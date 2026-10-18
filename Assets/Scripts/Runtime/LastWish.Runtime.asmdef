@@ -3,6 +3,7 @@
   "references": [
     "LastWish.Domain",
     "LastWish.Application",
-    "UnityEngine.UI"
+    "UnityEngine.UI",
+    "Unity.InputSystem"
   ]
 }

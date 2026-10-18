@@ -42,8 +42,11 @@ no se guarda turno por turno; al reiniciar se vuelve al último mapa guardado.
 - Menú, ajustes de FPS, selección de guerrera/mago/pícara.
 - Mazmorra y sprites actuales del proyecto original, con animaciones de idle,
   ataque, defensa, daño y derrota. Se conservan los tiempos de los atlas.
-- Combate básico contra un espectro: mazo inicial de nueve o diez cartas, mano de cinco, maná,
-  daño, escudo, robo, descarte y reciclado del mazo.
+- Combate contra el catálogo original: 11 enemigos normales, 5 élites, 3 jefes,
+  parejas y tríos; selección de objetivo, intenciones, estados y seis reacciones elementales.
+- Las 165 cartas del catálogo: condiciones, efectos de área, poderes persistentes,
+  curación, autocoste de vida, dagas automáticas y efectos de descarte.
+- Mazo inicial, mano, maná, daño, escudo, robo, descarte y reciclado del mazo.
 - Victoria, derrota, volver al menú y repetir batalla.
 - Música original, efectos y UI en español.
 - Lienzo de referencia 1280x720 adaptable a la ventana, texturas pixel-art sin
@@ -55,10 +58,15 @@ no se guarda turno por turno; al reiniciar se vuelve al último mapa guardado.
 
 | Acción | Control |
 |---|---|
-| Jugar carta contra el espectro | Clic o teclas 1-5 |
+| Jugar carta | Clic o teclas 1-9 y 0 (décima) |
+| Elegir enemigo | Clic en su zona; Tab siguiente / Q anterior |
 | Terminar turno | Botón o Espacio |
 | Volver al menú durante combate | Botón Menú o Esc |
 | Mostrar FPS y milisegundos | Menú > Ajustes |
+
+El Input System también configura navegación de UI con mando; hombros cambian
+objetivo, botón oeste termina turno y Start vuelve al menú. Las pruebas automáticas
+comprueban teclado y ratón; el mando físico aún requiere validación.
 
 Mientras se resuelve una animación, las acciones se bloquean para evitar jugar
 cartas dos veces. Se usa la semilla 42 en esta demo para reproducir las partidas.
@@ -78,7 +86,8 @@ Tools/                       Validación adicional sin arrancar el editor
 ```
 
 La UI se construye con componentes uGUI al iniciar. El proyecto usa el renderizador
-Built-in y la entrada clásica de Unity para mantener esta base pequeña.
+Built-in y **Input System 1.17.0** con `InputSystemUIInputModule`.
+Active Input Handling está en **Input System Package (New)**; no requiere la entrada clásica.
 Las actualizaciones del HUD ocurren al cambiar el combate; las animaciones cambian
 el UV del atlas sin crear imágenes ni recortar texturas cada frame.
 
@@ -108,32 +117,52 @@ sustituye al Test Runner ni comprueba el renderizado de Unity.
 
 ## Cobertura y pendientes
 
-Los tres personajes usan sus estadísticas y mazos originales; están implementados
-Combo de Finta, Aguante de Guardia Férrea y el Fuego de Chispa Ígnea.
-Se migraron 33 cartas del catálogo con efectos numéricos y 8 reliquias.
-El catálogo completo exportado incluye **165 cartas, 156 reliquias y 17 pantallas**;
-`docs/migration/card-coverage.json` enumera las 132 cartas aún pendientes.
+Los tres personajes usan sus estadísticas y mazos originales. Se migraron las
+**165 cartas del catálogo** y los **19 patrones de enemigos**, incluidos élites,
+jefes y encuentros múltiples. Hay 326 comparaciones de resolución de cartas,
+92 comprobaciones de poderes durante varios turnos y 1,368 intenciones comparadas
+contra el motor Python. Esto no equivale a cobertura exhaustiva de cada combinación.
 
-Aún faltan los patrones de enemigos/jefes, encuentros múltiples, selección de
-objetivos, reacciones elementales completas, cromas, el resto de callbacks de
-cartas/reliquias, elecciones de mazo y ajustes de Pruebas. Los combates de élite
-y jefe son encuentros provisionales de un enemigo; no reproducen sus patrones
-originales. Los sucesos también tienen una opción básica de curación/oro.
-Los mapas conservan reglas de tamaño y conexiones ortogonales; usan el RNG de
-C# y la misma semilla no reproduce exactamente un mapa del generador Python.
+Las reliquias siguen en **8 de 156**. Aún faltan sus otros 148 efectos, cromas,
+fusión/rotura de cartas, elecciones especiales de mazo, sucesos completos y Pruebas.
+El guardado sigue siendo entre salas. El RNG de C# conserva las reglas de
+selección, pero una semilla no reproduce exactamente los resultados de Python.
+La migración completa sigue pendiente; la lista precisa está en
+[docs/port-status.md](docs/port-status.md).
 
-`Tools/ExportPythonCatalog.py` es una herramienta opcional de migración, ajena al
-runtime. Para regenerar el inventario, ejecútala con el Python del repositorio
-original y `--source-dir RUTA_PYTHON --output docs/migration/python-catalog.json`.
-Los callbacks exportados son referencias de código, **no implementaciones Unity**.
+Se midió la build final de Windows antes/después de reutilizar la UI de cartas:
+la mediana de un refresco sin cambios pasó de **3.0443 a 0.0301 ms**, y el GC del
+frame de refresco de **635,324 a 1,640 bytes**. El límite continúa en unos 60 FPS.
+Consulta [método, límites y datos](docs/performance/README.md).
+
+Herramientas opcionales de migración (el juego no necesita Python):
+
+```powershell
+# Ejecutar con el Python/venv del repositorio original; ajustar RUTA_PYTHON.
+python Tools/ExportPythonCatalog.py --source-dir RUTA_PYTHON --output docs/migration/python-catalog.json
+python Tools/ExportNumericCards.py --source-dir RUTA_PYTHON --output-dir .
+python Tools/ExportEnemyPatterns.py --source-dir RUTA_PYTHON --output-dir .
+python Tools/ImportEnemyArt.py --source-dir RUTA_PYTHON --output-dir .
+```
+
+Los exportadores generan C# y expectativas contra la ejecución del motor Python;
+no ejecutan callbacks Python durante el juego. El nombre histórico `NumericCards`
+ahora incluye también comandos nativos y poderes. Los PNG enemigos se copian sin
+alterar sus píxeles; se conserva el tiempo de cada frame y el anclaje original.
 
 El arte original y los atlas se conservan. Consulta `THIRD_PARTY_NOTICES.md`.
+
+Validación de este cambio: **72/72 EditMode**, **7/7 PlayMode** y build Windows
+correcta. PlayMode comprueba input real simulado, los 19 atlas, encuentros
+múltiples, reutilización de botones y guardado JSON de las 165 cartas.
 
 ## Capturas de Unity
 
 ![Menú](docs/screenshots/menu.png)
 
-![Combate](docs/screenshots/combat.png)
+![Encuentro de dos enemigos](docs/screenshots/pair.png)
+
+![Jefe original](docs/screenshots/enemy-caballero.png)
 
 ![Mapa](docs/screenshots/map.png)
 

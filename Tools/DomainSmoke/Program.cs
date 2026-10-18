@@ -10,7 +10,7 @@ public static class Program
     public static int Main()
     {
         var passed = 0;
-        foreach (var suite in new object[] { new LastWish.Tests.CombatTests(), new LastWish.Tests.RunTests() })
+        foreach (var suite in Assembly.GetExecutingAssembly().GetTypes().Where(t => t.Namespace == "LastWish.Tests" && t.GetConstructor(Type.EmptyTypes) != null).Select(Activator.CreateInstance))
         {
         foreach (var method in suite.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance))
         {

@@ -26,7 +26,7 @@ namespace LastWish.Editor
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, ScriptingImplementation.Mono2x);
             var settings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset")[0]);
             var input = settings.FindProperty("activeInputHandler");
-            if (input != null) { input.intValue = 0; settings.ApplyModifiedPropertiesWithoutUndo(); }
+            if (input != null) { input.intValue = 1; settings.ApplyModifiedPropertiesWithoutUndo(); }
             if (!File.Exists(ScenePath))
             {
                 Directory.CreateDirectory("Assets/Scenes");

@@ -4,12 +4,23 @@ using System.Numerics;
 
 namespace LastWish.Domain
 {
+    [Serializable] public sealed class SavedCommand { public int kind, amount, times = 1; }
+    [Serializable] public sealed class SavedEffect
+    {
+        public string damage;
+        public int condition, block, draw, mana, element = -1, stacks;
+        public bool allEnemies;
+        public string text;
+        public SavedCommand[] commands, turnCommands;
+    }
     [Serializable] public sealed class SavedCard
     {
         public string id, name, damage;
         public int cost, block, draw, mana, rarity, comboBlock, endureStrength, fireStacks;
         public string classId, theme;
         public bool upgraded;
+        public int kind;
+        public SavedEffect[] effects;
     }
     [Serializable] public sealed class RunSave
     {
@@ -29,8 +40,18 @@ namespace LastWish.Domain
                 currentRoom = CurrentRoomId, visited = Map.Nodes.Where(n => n.Visited).Select(n => n.Id).ToArray(),
                 relics = relics.ToArray(), sold = sold.ToArray(),
                 cards = deck.Select(c => new SavedCard { id = c.Id, name = c.Name, cost = c.Cost, damage = c.Damage.Value.ToString(),
-                    block = c.Block, draw = c.Draw, mana = c.ManaGain, upgraded = c.Upgraded, rarity = c.Rarity, classId = c.ClassId, theme = c.Theme, comboBlock = c.ComboBlock, endureStrength = c.EndureStrength, fireStacks = c.FireStacks }).ToArray()
+                    block = c.Block, draw = c.Draw, mana = c.ManaGain, upgraded = c.Upgraded, rarity = c.Rarity, classId = c.ClassId, theme = c.Theme, comboBlock = c.ComboBlock, endureStrength = c.EndureStrength, fireStacks = c.FireStacks, kind = (int)c.Kind,
+                    effects = c.Effects == null ? null : c.Effects.Select(e => new SavedEffect { condition = (int)e.Condition, damage = e.Damage.ToString(), block = e.Block,
+                        draw = e.Draw, mana = e.Mana, element = e.Element.HasValue ? (int)e.Element.Value : -1, stacks = e.Stacks, allEnemies = e.AllEnemies, text = e.Text, commands = SaveCommands(e.Commands), turnCommands = SaveCommands(e.TurnCommands) }).ToArray() }).ToArray()
             };
+        }
+        private static SavedCommand[] SaveCommands(System.Collections.Generic.IEnumerable<CardCommand> commands) =>
+            commands.Select(c => new SavedCommand { kind = (int)c.Kind, amount = c.Amount, times = c.Times }).ToArray();
+        private static CardCommand[] LoadCommands(SavedCommand[] commands)
+        {
+            if (commands == null) return null;
+            if (commands.Length > 64 || commands.Any(c => c == null)) throw new ArgumentException("Invalid saved commands");
+            return commands.Select(c => new CardCommand((CommandKind)c.kind, c.amount, c.times)).ToArray();
         }
         public static RunState FromSave(RunSave save)
         {
@@ -49,7 +70,14 @@ namespace LastWish.Domain
                     || !BigInteger.TryParse(card.damage, out var damage) || damage < 0 || card.block < 0 || card.draw < 0 || card.draw > 100
                     || card.mana < 0 || card.mana > 100 || card.cost < 0 || card.cost > 100)
                     throw new ArgumentException("Invalid saved card");
-                run.deck.Add(new CardDefinition(card.id, card.name, card.cost, damage, card.block, card.draw, card.mana, card.upgraded, Math.Max(1, Math.Min(5, card.rarity)), card.classId ?? "neutral", card.theme ?? "acero", card.comboBlock, card.endureStrength, card.fireStacks));
+                if (!Enum.IsDefined(typeof(CardKind), card.kind) || card.effects != null && card.effects.Length > 64) throw new ArgumentException("Invalid saved effects");
+                var effects = card.effects == null || card.effects.Length == 0 ? null : card.effects.Select(e =>
+                {
+                    if (e == null || e.damage == null || e.damage.Length > 4096 || !BigInteger.TryParse(e.damage, out var value)
+                        || e.element < -1 || e.element > 3) throw new ArgumentException("Invalid saved effect");
+                    return new EffectLayer((EffectCondition)e.condition, value, e.block, e.draw, e.mana, e.element < 0 ? (ElementKind?)null : (ElementKind)e.element, e.stacks, e.allEnemies, LoadCommands(e.commands), LoadCommands(e.turnCommands), e.text);
+                }).ToArray();
+                run.deck.Add(new CardDefinition(card.id, card.name, card.cost, damage, card.block, card.draw, card.mana, card.upgraded, Math.Max(1, Math.Min(5, card.rarity)), card.classId ?? "neutral", card.theme ?? "acero", card.comboBlock, card.endureStrength, card.fireStacks, effects, (CardKind)card.kind));
             }
             foreach (var id in save.relics) if (!run.AcquireRelic(id)) throw new ArgumentException("Unknown saved relic");
             if (save.hp > run.MaxHp) throw new ArgumentException("Invalid saved HP");

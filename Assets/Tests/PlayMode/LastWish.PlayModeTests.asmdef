@@ -3,7 +3,8 @@
   "references": [
     "LastWish.Domain",
     "LastWish.Runtime",
-    "UnityEngine.UI"
+    "UnityEngine.UI",
+    "Unity.InputSystem"
   ],
   "optionalUnityReferences": [
     "TestAssemblies"

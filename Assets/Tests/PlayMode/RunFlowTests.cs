@@ -29,6 +29,7 @@ namespace LastWish.Tests
                 Assert.That(game.IsReady, Is.True);
                 Click("PlayButton"); Click("MageButton");
                 Assert.That(game.ScreenName, Is.EqualTo("Map"));
+                game.Run.ForcedEncounter = 1;
                 var checkpoint = RunPersistence.Load();
                 Assert.That(checkpoint, Is.Not.Null); Assert.That(checkpoint.Seed, Is.EqualTo(game.Run.Seed));
                 var frameTimes = new List<float>();
@@ -127,6 +128,30 @@ namespace LastWish.Tests
                     Assert.That(game.ScreenName, Is.EqualTo("Map"), kind.ToString());
                     Assert.That(run.RoomCompleted, Is.True);
                 }
+            }
+            finally
+            {
+                if (previous != null) File.WriteAllBytes(save, previous); else if (File.Exists(save)) File.Delete(save);
+                if (backup != null) File.WriteAllBytes(save + ".bak", backup); else if (File.Exists(save + ".bak")) File.Delete(save + ".bak");
+            }
+        }
+        [Test] public void JsonCheckpointKeepsEveryEffectLayer()
+        {
+            var save = Path.Combine(UnityEngine.Application.persistentDataPath, "run-v1.json");
+            var previous = File.Exists(save) ? File.ReadAllBytes(save) : null;
+            var backup = File.Exists(save + ".bak") ? File.ReadAllBytes(save + ".bak") : null;
+            try
+            {
+                var run = new LastWish.Domain.RunState(LastWish.Domain.HeroKind.Mage, 42);
+                var card = LastWish.Domain.NumericCards.All.First(c => c.Effects.Any(e => e.Element.HasValue));
+                foreach (var entry in LastWish.Domain.NumericCards.All) run.AddCard(entry);
+                RunPersistence.Save(run);
+                var restored = RunPersistence.Load(); Assert.That(restored, Is.Not.Null);
+                Assert.That(restored.Deck[run.Deck.Count - LastWish.Domain.NumericCards.All.Count + LastWish.Domain.NumericCards.All.ToList().IndexOf(card)].Effects.Count, Is.EqualTo(card.Effects.Count));
+                var originalCards = run.CreateSave().cards; var restoredCards = restored.CreateSave().cards;
+                Assert.That(restoredCards.Length, Is.EqualTo(originalCards.Length));
+                for (var i = 0; i < originalCards.Length; i++)
+                    Assert.That(JsonUtility.ToJson(restoredCards[i]), Is.EqualTo(JsonUtility.ToJson(originalCards[i])), originalCards[i].id);
             }
             finally
             {

@@ -19,10 +19,13 @@ namespace LastWish.Presentation
             return durations.Length - 1;
         }
     }
+    [Serializable] public sealed class MoveClip { public string id; public string clip; }
     [Serializable] public sealed class AtlasDefinition
     {
         public int cellWidth;
         public int cellHeight;
+        public float anchorX, anchorY;
+        public MoveClip[] moves;
         public float attackContactSeconds;
         public SpriteClip[] clips;
         public SpriteClip Find(string name) => Array.Find(clips, clip => clip.name == name);
@@ -38,6 +41,11 @@ namespace LastWish.Presentation
         private bool returnToIdle;
         public void Initialize(RawImage target, Texture2D atlas, AtlasDefinition data)
         { image = target; texture = atlas; definition = data; image.texture = texture; Play("idle"); }
+        public void PlayMove(string move, string fallback)
+        {
+            var mapped = definition.moves == null ? null : Array.Find(definition.moves, item => item.id == move);
+            Play(mapped == null ? fallback : mapped.clip);
+        }
         public void Play(string animation, bool recover = true)
         {
             var selected = definition.Find(animation) ?? definition.Find("idle");

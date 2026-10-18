@@ -12,6 +12,7 @@
     <Reference Include="$(UnityEditorRoot)/Data/Managed/UnityEditor.dll" />
     <Reference Include="$(UnityEditorRoot)/Data/Managed/UnityEngine/*.dll" />
     <Reference Include="$(TemplateCache)/UnityEngine.UI.dll" />
+    <Reference Include="$(TemplateCache)/Unity.InputSystem.dll" />
     <Reference Include="$(TemplateCache)/UnityEngine.TestRunner.dll" />
     <Reference Include="$(UnityEditorRoot)/Data/Resources/PackageManager/BuiltInPackages/com.unity.ext.nunit/net40/unity-custom/nunit.framework.dll" />
   </ItemGroup>

@@ -1,0 +1,14 @@
+{
+    "unity": "6000.3.6f1",
+    "graphics": "NVIDIA GeForce RTX 3060 Ti",
+    "context": "Windows development player; D3D11; 1280x720; 60 FPS target; hidden automation window",
+    "frames": 300,
+    "refreshCalls": 30,
+    "gcCounterAvailable": true,
+    "frameMedianMs": 16.667396545410158,
+    "frameP95Ms": 17.05949592590332,
+    "idleGcBytesPerFrame": 6.533333333333333,
+    "refreshMedianMs": 3.0443,
+    "refreshP95Ms": 3.5299,
+    "refreshFrameGcBytes": 635323.6
+}

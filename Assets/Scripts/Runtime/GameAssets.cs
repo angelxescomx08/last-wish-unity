@@ -15,8 +15,32 @@ namespace LastWish.Presentation
                 "Resource " + path + " is not a live " + typeof(T).Name + "; imported type: " + loaded[path].GetType().Name);
             return value;
         }
-        public AtlasDefinition Atlas(string id) =>
-            JsonUtility.FromJson<AtlasDefinition>(Get<TextAsset>("Art/" + id + "Clips").text);
+        private readonly Dictionary<string, AtlasDefinition> atlasCache = new Dictionary<string, AtlasDefinition>();
+        public AtlasDefinition Atlas(string id)
+        {
+            if (!atlasCache.TryGetValue(id, out var data))
+                atlasCache[id] = data = JsonUtility.FromJson<AtlasDefinition>(Get<TextAsset>("Art/" + id + "Clips").text);
+            return data;
+        }
+        public IEnumerator LoadEnemies(IEnumerable<string> ids, System.Action<string, float> progress)
+        {
+            var paths = new List<string>();
+            foreach (var id in ids)
+                foreach (var suffix in new[] { "Atlas", "Clips" })
+                {
+                    var path = "Art/" + id + suffix;
+                    if (!loaded.ContainsKey(path) && !paths.Contains(path)) paths.Add(path);
+                }
+            for (var i = 0; i < paths.Count; i++)
+            {
+                progress("Preparando el encuentro...", (float)i / paths.Count);
+                var type = paths[i].EndsWith("Clips") ? typeof(TextAsset) : typeof(Texture2D);
+                var request = Resources.LoadAsync("Game/" + paths[i], type); yield return request;
+                if (request.asset == null) throw new System.InvalidOperationException("Missing enemy resource: " + paths[i]);
+                loaded.Add(paths[i], request.asset);
+            }
+            progress("Todo listo", 1);
+        }
         public IEnumerator Load(System.Action<string, float> progress)
         {
             string[] paths = { "Fonts/Pixel", "Art/DungeonRoom", "Art/warriorAtlas", "Art/warriorClips",

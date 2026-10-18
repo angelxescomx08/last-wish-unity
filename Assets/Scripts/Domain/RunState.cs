@@ -13,6 +13,9 @@ namespace LastWish.Domain
         public HeroKind HeroKind { get; }
         public HeroDefinition Hero => HeroDefinition.OriginalFor(HeroKind);
         public int Seed { get; }
+        public int ForcedEncounter { get; set; }
+        public int ForcedBoss { get; set; }
+        public int ForcedElite { get; set; }
         public int Floor { get; private set; } = 1;
         public int Gold { get; private set; } = 2000;
         public int Hp { get; private set; }
@@ -137,12 +140,10 @@ namespace LastWish.Domain
         public CombatState CreateBattle()
         {
             var room = Map.Find(CurrentRoomId) ?? throw new InvalidOperationException("No active room");
-            var elite = room.Kind == RoomKind.Elite; var boss = room.Kind == RoomKind.Boss;
-            var hp = (int)Math.Min(1000000, (boss ? 120L : elite ? 70L : 45L) + (Floor - 1L) * 12);
+            var seed = unchecked(Seed * 397 ^ Floor * 997 ^ room.Row * 31 ^ room.Column);
+            var encounter = EnemyCatalog.Roll(seed, Floor, room.Id, room.Kind, room.Kind == RoomKind.Boss ? ForcedBoss : room.Kind == RoomKind.Elite ? ForcedElite : ForcedEncounter);
             return new CombatState(Hero.WithBonuses(RelicCount("fire") * 2, RelicCount("amulet"), MaxHp - Hero.MaxHp), deck,
-                unchecked(Seed * 397 ^ Floor * 997 ^ room.Row * 31 ^ room.Column), Hp, hp,
-                (int)Math.Min(1000000, (boss ? 18L : elite ? 12L : 8L) + Floor - 1L),
-                boss ? "Guardián de la Cripta" : elite ? "Espectro de élite" : "Espectro", RelicCount("totem"));
+                seed, Hp, encounter, RelicCount("totem"));
         }
     }
 
@@ -184,40 +185,6 @@ namespace LastWish.Domain
             return cards;
         }
         public static CardDefinition[] ForHero(HeroKind kind) => Cards.Where(c => c.ClassId == "neutral" || c.ClassId == kind.ToString().ToLowerInvariant()).ToArray();
-        public static readonly IReadOnlyList<CardDefinition> Cards = Array.AsReadOnly(new[] {
-            new CardDefinition("a_golpe_ferreo", "Golpe Férreo", 1, 9, 0, 0, 0, false, 2, "neutral", "acero"),
-            new CardDefinition("a_arremetida", "Arremetida", 2, 14, 0, 0, 0, false, 3, "mage", "acero"),
-            new CardDefinition("a_furia", "Furia", 3, 20, 0, 0, 0, false, 4, "mage", "acero"),
-            new CardDefinition("a_punio", "Puñetazo", 0, 5, 0, 0, 0, false, 1, "neutral", "acero"),
-            new CardDefinition("a_golpe_pesado", "Golpe Pesado", 2, 16, 0, 0, 0, false, 3, "warrior", "acero"),
-            new CardDefinition("a_patada", "Patada", 1, 7, 0, 0, 0, false, 2, "neutral", "acero"),
-            new CardDefinition("a_embestida", "Embestida", 2, 12, 0, 0, 0, false, 3, "mage", "acero"),
-            new CardDefinition("a_gran_golpe", "Gran Golpe", 3, 26, 0, 0, 0, false, 4, "warrior", "acero"),
-            new CardDefinition("r_pinchazo", "Pinchazo", 0, 3, 0, 0, 0, false, 1, "rogue", "acero"),
-            new CardDefinition("r_corte_y_guardia", "Corte y Guardia", 1, 3, 3, 0, 0, false, 1, "rogue", "acero"),
-            new CardDefinition("e_guardia_solida", "Guardia Sólida", 1, 0, 8, 0, 0, false, 2, "neutral", "escudo"),
-            new CardDefinition("e_escudo_solido", "Escudo Sólido", 1, 0, 5, 1, 0, false, 2, "neutral", "escudo"),
-            new CardDefinition("e_fortaleza", "Fortaleza", 2, 0, 14, 0, 0, false, 3, "neutral", "escudo"),
-            new CardDefinition("e_parada", "Parada", 0, 0, 4, 0, 0, false, 1, "neutral", "escudo"),
-            new CardDefinition("e_capa_hierro", "Capa de Hierro", 2, 0, 11, 1, 0, false, 3, "mage", "escudo"),
-            new CardDefinition("e_torre", "Torre", 2, 0, 16, 0, 0, false, 3, "warrior", "escudo"),
-            new CardDefinition("e_gran_muralla", "Gran Muralla", 3, 0, 28, 0, 0, false, 4, "warrior", "escudo"),
-            new CardDefinition("r_paso_atras", "Paso Atrás", 0, 0, 3, 0, 0, false, 1, "rogue", "escudo"),
-            new CardDefinition("r_muro_de_humo", "Muro de Humo", 2, 0, 14, 0, 0, false, 2, "rogue", "escudo"),
-            new CardDefinition("m_chispa", "Chispa", 0, 3, 0, 1, 0, false, 1, "mage", "magia"),
-            new CardDefinition("m_rayo", "Rayo", 2, 11, 0, 0, 0, false, 3, "mage", "magia"),
-            new CardDefinition("m_absorcion", "Absorción", 1, 0, 0, 3, 0, false, 2, "neutral", "magia"),
-            new CardDefinition("m_impulso", "Impulso", 1, 0, 6, 1, 0, false, 2, "neutral", "magia"),
-            new CardDefinition("m_barrera_magica", "Barrera Mágica", 2, 0, 10, 1, 0, false, 3, "mage", "magia"),
-            new CardDefinition("m_vision", "Visión", 0, 0, 0, 2, 0, false, 1, "neutral", "magia"),
-            new CardDefinition("m_hechizo_menor", "Hechizo Menor", 1, 6, 0, 0, 0, false, 2, "mage", "magia"),
-            new CardDefinition("m_conjuro", "Conjuro de Combate", 2, 10, 6, 0, 0, false, 3, "warrior", "magia"),
-            new CardDefinition("r_astucia", "Astucia", 1, 0, 0, 2, 0, false, 4, "rogue", "magia"),
-            new CardDefinition("ep_golpe_mortal", "Golpe Mortal", 2, 22, 0, 0, 0, false, 5, "neutral", "epico"),
-            new CardDefinition("ep_tormenta", "Tormenta", 3, 16, 12, 0, 0, false, 5, "mage", "epico"),
-            new CardDefinition("ep_bastion", "Bastión", 3, 0, 30, 0, 0, false, 5, "warrior", "epico"),
-            new CardDefinition("ep_descarga", "Descarga", 2, 18, 0, 2, 0, false, 5, "mage", "epico"),
-            new CardDefinition("ep_escudo_arcano", "Escudo Arcano", 2, 0, 14, 2, 0, false, 5, "mage", "epico"),
-        });
+        public static readonly IReadOnlyList<CardDefinition> Cards = NumericCards.All;
     }
 }

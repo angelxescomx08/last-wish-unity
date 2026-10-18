@@ -70,7 +70,7 @@ namespace LastWish.Presentation
             switch (room.Kind)
             {
                 case RoomKind.Combat: case RoomKind.Elite: case RoomKind.Boss:
-                    session = new BattleSession(Run.CreateBattle()); BuildBattle(); break;
+                    StartCoroutine(BeginEncounter()); break;
                 case RoomKind.Shop: ShowShop(); break;
                 case RoomKind.Warlock: inventoryPage = 0; ShowInventory(true, false); break;
                 case RoomKind.Purge: inventoryPage = 0; ShowInventory(false, true); break;
@@ -191,7 +191,7 @@ namespace LastWish.Presentation
         private void ShowRunReward()
         {
             var room = Run.Map.Find(Run.CurrentRoomId);
-            Run.ApplyCombatResult(session.State.Hp, Math.Max(1, session.State.EnemyMaxHp / 8));
+            Run.ApplyCombatResult(session.State.Hp, session.State.GoldEarned + session.State.Enemies.Sum(e => Math.Max(1, e.MaxHp / 8)));
             RunHeading("Reward", "VICTORIA");
             ui.Label(screen, "RewardText", "Elige una carta para tu mazo o continúa.", 640, 235, 1100, 60, 28);
             var random = new System.Random(RoomSeed(48));

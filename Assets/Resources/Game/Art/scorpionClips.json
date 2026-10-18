@@ -1,0 +1,154 @@
+{
+  "cellWidth": 208,
+  "cellHeight": 120,
+  "anchorX": 140,
+  "anchorY": 114,
+  "attackContactSeconds": 0.3,
+  "clips": [
+    {
+      "name": "idle",
+      "row": 0,
+      "durations": [
+        0.11,
+        0.11,
+        0.11,
+        0.11,
+        0.11,
+        0.11,
+        0.11,
+        0.11,
+        0.11,
+        0.11,
+        0.11,
+        0.11
+      ],
+      "loop": true
+    },
+    {
+      "name": "attack",
+      "row": 1,
+      "durations": [
+        0.11,
+        0.13,
+        0.06,
+        0.07,
+        0.06,
+        0.08,
+        0.09,
+        0.09,
+        0.11
+      ],
+      "loop": false
+    },
+    {
+      "name": "sting",
+      "row": 2,
+      "durations": [
+        0.12,
+        0.14,
+        0.055,
+        0.06,
+        0.09,
+        0.09,
+        0.09,
+        0.11
+      ],
+      "loop": false
+    },
+    {
+      "name": "spray",
+      "row": 3,
+      "durations": [
+        0.11,
+        0.13,
+        0.07,
+        0.07,
+        0.07,
+        0.07,
+        0.085,
+        0.085,
+        0.09,
+        0.11
+      ],
+      "loop": false
+    },
+    {
+      "name": "cast",
+      "row": 4,
+      "durations": [
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.11
+      ],
+      "loop": false
+    },
+    {
+      "name": "hurt",
+      "row": 5,
+      "durations": [
+        0.055,
+        0.065,
+        0.07,
+        0.07,
+        0.08,
+        0.1
+      ],
+      "loop": false
+    },
+    {
+      "name": "death",
+      "row": 6,
+      "durations": [
+        0.07,
+        0.11,
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.085,
+        0.12
+      ],
+      "loop": false
+    }
+  ],
+  "moves": [
+    {
+      "id": "pinch",
+      "clip": "attack"
+    },
+    {
+      "id": "sting",
+      "clip": "sting"
+    },
+    {
+      "id": "toxin",
+      "clip": "spray"
+    },
+    {
+      "id": "shell",
+      "clip": "cast"
+    },
+    {
+      "id": "frenzy",
+      "clip": "cast"
+    },
+    {
+      "id": "vengeance",
+      "clip": "cast"
+    }
+  ]
+}

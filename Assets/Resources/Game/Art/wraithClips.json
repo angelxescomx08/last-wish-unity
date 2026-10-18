@@ -1,6 +1,8 @@
 {
   "cellWidth": 128,
   "cellHeight": 104,
+  "anchorX": 80,
+  "anchorY": 96,
   "attackContactSeconds": 0.3,
   "clips": [
     {
@@ -89,5 +91,6 @@
       ],
       "loop": false
     }
-  ]
+  ],
+  "moves": []
 }

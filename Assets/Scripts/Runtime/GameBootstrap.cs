@@ -5,6 +5,7 @@ using LastWish.Domain;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.InputSystem.UI;
 
 namespace LastWish.Presentation
 {
@@ -16,15 +17,18 @@ namespace LastWish.Presentation
         public CombatState Battle => session?.State;
         public string ScreenName { get; private set; }
         private UiFactory ui;
+        private GameInput gameInput;
+        private TooltipPresenter tooltip;
         private GameAssets assets;
         private RectTransform viewport;
         private RectTransform screen;
         private RectTransform loadingFill;
-        private Text loadingLabel, loadingPercent, loadingTitle, fps, heroStats, enemyStats, turnStats, feedback;
+        private Text loadingLabel, loadingPercent, loadingTitle, fps, heroStats, heroDebuffs, turnStats, feedback;
         private Transform handRoot;
+        private readonly System.Collections.Generic.List<CardView> cardViews = new System.Collections.Generic.List<CardView>();
         private CanvasGroup handGroup;
         private Button endTurn;
-        private AtlasAnimation heroView, enemyView;
+        private AtlasAnimation heroView;
         private AtlasDefinition heroAtlas;
         private BattleSession session;
         private HeroKind selectedHero = HeroKind.Warrior;
@@ -42,6 +46,7 @@ namespace LastWish.Presentation
             showFps = PlayerPrefs.GetInt("last_wish_show_fps", 1) == 1;
             ui = new UiFactory(Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));
             assets = new GameAssets();
+            gameInput = new GameInput(PlayCard, EndTurn, () => { if (!IsBusy) ShowMenu(); }, CycleEnemy);
             var cameraObject = new GameObject("GameCamera", typeof(Camera), typeof(AudioListener));
             cameraObject.transform.SetParent(transform);
             var camera = cameraObject.GetComponent<Camera>();
@@ -59,10 +64,12 @@ namespace LastWish.Presentation
             viewport.anchoredPosition = Vector2.zero;
             if (FindFirstObjectByType<EventSystem>() == null)
             {
-                var events = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+                var events = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
                 events.transform.SetParent(transform, false);
             }
-            fps = ui.Label(viewport, "Fps", "", 1125, 18, 290, 30, 16, UiFactory.Gold);
+            var overlay = ui.Rect(viewport, "PerformanceOverlay", 640, 360, 1280, 720);
+            var overlayCanvas = overlay.gameObject.AddComponent<Canvas>(); overlayCanvas.overrideSorting = true; overlayCanvas.sortingOrder = 10;
+            fps = ui.Label(overlay, "Fps", "", 1125, 18, 290, 30, 16, UiFactory.Gold);
             ShowLoading();
         }
 
@@ -88,6 +95,7 @@ namespace LastWish.Presentation
             music = gameObject.AddComponent<AudioSource>(); music.clip = assets.Get<AudioClip>("Audio/Music");
             music.loop = true; music.volume = .25f; music.Play();
             effects = gameObject.AddComponent<AudioSource>(); effects.volume = .65f;
+            tooltip = new TooltipPresenter(ui, viewport);
             Run = RunPersistence.Load();
             ShowMenu();
             IsReady = true;
@@ -95,6 +103,7 @@ namespace LastWish.Presentation
 
         private void OnDestroy()
         {
+            gameInput?.Dispose();
             Font.textureRebuilt -= KeepFontPixels;
             if (Instance == this) Instance = null;
         }
@@ -111,17 +120,15 @@ namespace LastWish.Presentation
                 fps.text = showFps ? string.Format("{0:0} FPS  |  {1:0.0} ms", frames / frameTime, 1000 * frameTime / frames) : "";
                 frameTime = 0; frames = 0;
             }
-            if (ScreenName != "Battle" || IsBusy) return;
-            for (var i = 0; i < 5; i++) if (Input.GetKeyDown(KeyCode.Alpha1 + i)) PlayCard(i);
-            if (Input.GetKeyDown(KeyCode.Space)) EndTurn();
-            if (Input.GetKeyDown(KeyCode.Escape)) ShowMenu();
+
         }
 
         private void ClearScreen(string name)
         {
+            tooltip?.Hide();
             if (screen != null) { screen.gameObject.SetActive(false); Destroy(screen.gameObject); }
             screen = ui.Rect(viewport, name, 640, 360, 1280, 720);
-            ScreenName = name; fps.transform.SetAsLastSibling();
+            ScreenName = name; gameInput.SetBattleActive(name == "Battle"); fps.transform.SetAsLastSibling();
         }
         private void ShowLoading()
         {
@@ -208,46 +215,36 @@ namespace LastWish.Presentation
             heroAtlas = assets.Atlas(session.State.Hero.AssetId);
             ClearScreen("Battle"); Backdrop();
             heroView = Actor(session.State.Hero.AssetId, 270, 345, 192);
-            enemyView = Actor("wraith", 980, 330, 256);
+            BuildEnemies();
             ui.Panel(screen, "TopBar", 640, 42, 1280, 84, new Color(.025f, .03f, .05f, .96f));
             turnStats = ui.Label(screen, "Turn", "", 475, 42, 700, 50, 24, UiFactory.Gold);
             ui.Button(screen, "MenuButton", "Menú", 80, 42, 120, 42, ShowMenu);
-            heroStats = ui.Label(screen, "HeroStats", "", 280, 195, 500, 70, 24);
-            enemyStats = ui.Label(screen, "EnemyStats", "", 965, 175, 550, 100, 24);
+            heroStats = ui.Label(screen, "HeroStats", "", 280, 180, 500, 100, 22);
+            heroDebuffs = ui.Label(screen, "HeroDebuffs", "", 270, 250, 490, 50, 14, UiFactory.Gold);
             feedback = ui.Label(screen, "Feedback", "Juega tus cartas y sobrevive.", 640, 430, 1150, 50, 24, UiFactory.Gold);
             ui.Panel(screen, "HandBackdrop", 640, 620, 1280, 200, new Color(.025f, .03f, .06f, .96f));
+            cardViews.Clear();
             handRoot = ui.Rect(screen, "Hand", 550, 605, 1100, 220);
             handGroup = handRoot.gameObject.AddComponent<CanvasGroup>();
             endTurn = ui.Button(screen, "EndTurnButton", "Fin de turno", 1150, 595, 200, 54, EndTurn);
-            ui.Label(screen, "Controls", "1-5: jugar carta   |   Espacio: fin de turno   |   Esc: menú", 640, 701, 1200, 30, 16);
+            ui.Label(screen, "Controls", "1-0: jugar carta   |   Espacio: fin de turno   |   Tab: objetivo   |   Esc: menú", 640, 701, 1200, 30, 16);
             RefreshBattle();
         }
         private void RefreshBattle()
         {
             var state = session.State;
             turnStats.text = "Turno " + state.Turn + "   |   Maná " + state.Mana + "/" + state.Hero.MaxMana + "   |   Robo " + state.DrawCount + "   Descarte " + state.DiscardCount;
-            heroStats.text = state.Hero.Name + "\nVida " + state.Hp + "/" + state.Hero.MaxHp + "   Escudo " + state.Block;
-            enemyStats.text = state.EnemyName + "\nVida " + state.EnemyHp + "/" + state.EnemyMaxHp + "   Escudo " + state.EnemyBlock + "\n" + (state.EnemyIntendsBlock ? "Preparando 8 de escudo" : "Atacará por " + state.EnemyDamage);
-            foreach (Transform child in handRoot) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
+            heroStats.text = state.Hero.Name + "\nVida " + state.Hp + "/" + state.Hero.MaxHp + "   Escudo " + state.Block + "\nFuerza " + state.Strength + " · Poderes " + state.ActivePowerCount;
+            heroDebuffs.text = DescribeStatuses(state.HeroStatuses);
+            RefreshEnemies();
+            var spacing = Math.Min(190, 1000f / Math.Max(1, state.Hand.Count));
             for (var i = 0; i < state.Hand.Count; i++)
             {
-                var index = i; var card = state.Hand[i]; var spacing = Math.Min(190, 1000f / Math.Max(1, state.Hand.Count)); var x = 55 + spacing / 2 + i * spacing;
-                var holder = ui.Rect(handRoot, "CardSlot" + i, x, 110, 146, 194);
-                var scale = Math.Min(1, spacing / 156); holder.localScale = new Vector3(scale, scale, 1);
-                var button = ui.Button(holder, "CardButton" + i, "", 73, 97, 146, 194, () => PlayCard(index));
-                button.interactable = session.CanPlay(i);
-                ui.Art(button.transform, "Frame", assets.Get<Texture2D>("Art/CardFrame"), 73, 97, 146, 194);
-                ui.Label(button.transform, "Cost", card.Cost.ToString(), 20, 22, 34, 35, 24, UiFactory.Gold);
-                ui.Label(button.transform, "Name", card.Name, 86, 26, 100, 40, 16, Color.black);
-                ui.Label(button.transform, "Kind", card.IsAttack ? "ATAQUE" : card.Block > 0 ? "DEFENSA" : "HABILIDAD", 73, 78, 120, 45, 16, UiFactory.Gold);
-                var detail = card.IsAttack ? "Inflige " + card.Damage.AddFlat(state.Hero.AttackBonus).AddFlat(state.Strength) + "\nde daño." : card.Block > 0 ? "Gana " + (card.Block + state.Hero.Dexterity) + "\nde escudo." : "";
-                if (card.ComboBlock > 0) detail += "\nCombo: +" + card.ComboBlock;
-                if (card.EndureStrength > 0) detail += "\nAguante: Fuerza";
-                if (card.FireStacks > 0) detail += "\nFuego +" + card.FireStacks;
-                if (card.Draw > 0) detail += "\nRoba " + card.Draw;
-                if (card.ManaGain > 0) detail += "\nManá +" + card.ManaGain;
-                ui.Label(button.transform, "Effect", detail, 73, 139, 115, 65, 16);
+                var index = i;
+                if (i == cardViews.Count) cardViews.Add(new CardView(ui, handRoot, assets.Get<Texture2D>("Art/CardFrame"), index, () => PlayCard(index), tooltip));
+                cardViews[i].Bind(state.Hand[i], state, i, spacing, session.CanPlay(i));
             }
+            for (var i = state.Hand.Count; i < cardViews.Count; i++) cardViews[i].SetVisible(false);
             handGroup.interactable = !IsBusy; handGroup.blocksRaycasts = !IsBusy; endTurn.interactable = !IsBusy;
         }
         public void PlayCard(int index)
@@ -259,12 +256,13 @@ namespace LastWish.Presentation
         {
             IsBusy = true; RefreshBattle();
             var card = session.State.Hand[index];
+            var attacked = session.State.SelectedEnemy;
             heroView.Play(card.IsAttack ? "attack" : "guard");
             effects.PlayOneShot(assets.Get<AudioClip>("Audio/Card"));
             var contact = card.IsAttack ? heroAtlas.attackContactSeconds : .15f;
             yield return new WaitForSeconds(contact);
             session.PlayCard(index);
-            if (card.IsAttack) { enemyView.Play(session.State.Victory ? "death" : "hurt", !session.State.Victory); effects.PlayOneShot(assets.Get<AudioClip>("Audio/Hit")); }
+            if (card.IsAttack) { ShowEnemyHit(attacked); effects.PlayOneShot(assets.Get<AudioClip>("Audio/Hit")); }
             feedback.text = "Has jugado " + card.Name + ".";
             RefreshBattle();
             yield return new WaitForSeconds(.45f);
@@ -279,12 +277,13 @@ namespace LastWish.Presentation
         private IEnumerator EndTurnAnimation()
         {
             IsBusy = true; RefreshBattle();
-            var guards = session.State.EnemyIntendsBlock; var before = session.State.Hp;
-            enemyView.Play(guards ? "cast" : "attack");
+            var before = session.State.Hp;
+            PlayEnemyIntents();
             yield return new WaitForSeconds(.3f);
             session.EndTurn();
-            if (!guards) heroView.Play(session.State.Defeat ? "death" : "hurt", !session.State.Defeat);
-            feedback.text = guards ? "El espectro se protege." : "Has recibido " + (before - session.State.Hp) + " de daño.";
+            if (before != session.State.Hp) heroView.Play(session.State.Defeat ? "death" : "hurt", !session.State.Defeat);
+            ShowEnemyDeaths();
+            feedback.text = "Turno enemigo resuelto. Has recibido " + (before - session.State.Hp) + " de daño.";
             RefreshBattle();
             yield return new WaitForSeconds(.6f);
             IsBusy = false;
