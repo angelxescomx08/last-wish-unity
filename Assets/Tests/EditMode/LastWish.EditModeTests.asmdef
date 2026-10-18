@@ -1,0 +1,12 @@
+{
+  "name": "LastWish.EditModeTests",
+  "references": [
+    "LastWish.Domain"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

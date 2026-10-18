@@ -1,0 +1,9 @@
+{
+  "name": "LastWish.Editor",
+  "references": [
+    "LastWish.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "LastWish.Runtime",
+  "references": [
+    "LastWish.Domain",
+    "LastWish.Application",
+    "UnityEngine.UI"
+  ]
+}

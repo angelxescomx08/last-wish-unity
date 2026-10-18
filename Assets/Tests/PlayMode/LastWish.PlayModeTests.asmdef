@@ -1,0 +1,11 @@
+{
+  "name": "LastWish.PlayModeTests",
+  "references": [
+    "LastWish.Domain",
+    "LastWish.Runtime",
+    "UnityEngine.UI"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

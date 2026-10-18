@@ -1,0 +1,7 @@
+{
+  "name": "LastWish.Application",
+  "references": [
+    "LastWish.Domain"
+  ],
+  "noEngineReferences": true
+}

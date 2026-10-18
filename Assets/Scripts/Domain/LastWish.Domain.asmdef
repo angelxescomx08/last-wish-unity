@@ -1,0 +1,5 @@
+{
+  "name": "LastWish.Domain",
+  "rootNamespace": "LastWish.Domain",
+  "noEngineReferences": true
+}

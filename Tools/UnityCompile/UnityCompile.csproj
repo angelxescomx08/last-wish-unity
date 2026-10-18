@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework><LangVersion>9.0</LangVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <DefineConstants>UNITY_EDITOR;UNITY_6000_3_OR_NEWER</DefineConstants>
+    <UnityEditorRoot Condition="'$(UnityEditorRoot)' == ''">C:/Program Files/Unity/Hub/Editor/6000.3.6f1/Editor</UnityEditorRoot>
+    <TemplateCache>$(UnityEditorRoot)/Data/Resources/PackageManager/ProjectTemplates/libcache/com.unity.template.2d-cross-platform-2d-6.1.2/ScriptAssemblies</TemplateCache>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/Scripts/**/*.cs" /><Compile Include="../../Assets/Editor/*.cs" /><Compile Include="../../Assets/Tests/**/*.cs" />
+    <Reference Include="$(UnityEditorRoot)/Data/Managed/UnityEngine.dll" />
+    <Reference Include="$(UnityEditorRoot)/Data/Managed/UnityEditor.dll" />
+    <Reference Include="$(UnityEditorRoot)/Data/Managed/UnityEngine/*.dll" />
+    <Reference Include="$(TemplateCache)/UnityEngine.UI.dll" />
+    <Reference Include="$(TemplateCache)/UnityEngine.TestRunner.dll" />
+    <Reference Include="$(UnityEditorRoot)/Data/Resources/PackageManager/BuiltInPackages/com.unity.ext.nunit/net40/unity-custom/nunit.framework.dll" />
+  </ItemGroup>
+</Project>
