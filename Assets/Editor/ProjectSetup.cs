@@ -16,6 +16,7 @@ namespace LastWish.Editor
         public static void Configure()
         {
             EditorSettings.serializationMode = SerializationMode.ForceText;
+            EditorSettings.defaultBehaviorMode = EditorBehaviorMode.Mode2D;
             PlayerSettings.companyName = "Last Wish";
             PlayerSettings.productName = "Último Deseo";
             PlayerSettings.defaultScreenWidth = 1280; PlayerSettings.defaultScreenHeight = 720;

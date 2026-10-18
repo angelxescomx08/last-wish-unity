@@ -7,8 +7,10 @@ Base jugable de **Último Deseo**, migrada desde el proyecto Python/Pygame a
 
 1. Clona este repositorio y agrega su carpeta raíz en Unity Hub.
 2. Ábrelo con **6000.3.6f1** y espera la importación inicial de paquetes y recursos.
-3. Abre `Assets/Scenes/Bootstrap.unity` y pulsa **Play**.
+3. Selecciona **Last Wish > Jugar** en el menú superior. Abre la escena inicial y activa Play en la pestaña Game.
 4. Pulsa **Jugar**, elige personaje y comienza el combate.
+
+La interfaz se crea al ejecutar el juego: la pestaña **Scene** puede verse vacía antes de Play. Para arrancar manualmente, abre `Assets/Scenes/Bootstrap.unity`, pulsa ▶ **Play** y cambia a **Game**. El editor usa vista 2D y el botón Play inicia siempre Bootstrap, aunque estés en una escena vacía.
 
 Unity Hub debe tener una licencia activa. La primera importación del editor
 puede tardar; la pantalla de carga del juego aparece al pulsar Play o ejecutar

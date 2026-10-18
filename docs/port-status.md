@@ -37,3 +37,5 @@ outside Unity, and completed a deterministic combat for each of the three heroes
 
 
 Windows x64 development build completed successfully with the Mono backend. Tools/Validate.ps1 compiled all C# with zero warnings/errors and passed the 16 domain cases plus three complete hero combats. No standalone FPS comparison has been performed.
+
+Editor startup now selects 2D mode and Bootstrap as the Play Mode start scene. Last Wish > Jugar opens Bootstrap and focuses Game before entering Play; modified scenes use Unity's normal save prompt. The UI is still constructed at runtime.
