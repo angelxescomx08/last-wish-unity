@@ -1,0 +1,8 @@
+{
+    "scene": "Map",
+    "environment": "Unity Editor PlayMode, automated graphics test; not a standalone benchmark",
+    "frameCount": 120,
+    "medianMs": 16.659496307373048,
+    "p95Ms": 17.166900634765626,
+    "averageMs": 16.818500518798829
+}

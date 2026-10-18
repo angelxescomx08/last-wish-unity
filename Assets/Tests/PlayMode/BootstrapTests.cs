@@ -28,7 +28,7 @@ namespace LastWish.Tests
             yield return null;
             GameObject.Find("PlayButton").GetComponent<Button>().onClick.Invoke();
             Assert.That(game.ScreenName, Is.EqualTo("Selection"));
-            GameObject.Find("WarriorButton").GetComponent<Button>().onClick.Invoke();
+            game.StartBattle(LastWish.Domain.HeroKind.Warrior);
             Assert.That(game.ScreenName, Is.EqualTo("Battle"));
             Assert.That(game.Battle.Hand.Count, Is.EqualTo(5));
             var atlas = Resources.Load<Texture2D>("Game/Art/warriorAtlas");
@@ -55,7 +55,7 @@ namespace LastWish.Tests
             Assert.That(game.ScreenName, Is.EqualTo("Menu"));
         }
 
-        private static void CaptureUi(string path)
+        public static void CaptureUi(string path)
         {
             var canvas = Object.FindFirstObjectByType<Canvas>();
             var camera = Object.FindFirstObjectByType<Camera>();

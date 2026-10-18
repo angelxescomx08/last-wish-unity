@@ -9,8 +9,9 @@ public static class Program
 {
     public static int Main()
     {
-        var suite = new LastWish.Tests.CombatTests();
         var passed = 0;
+        foreach (var suite in new object[] { new LastWish.Tests.CombatTests(), new LastWish.Tests.RunTests() })
+        {
         foreach (var method in suite.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance))
         {
             var cases = method.GetCustomAttributes<TestCaseAttribute>().ToArray();
@@ -21,6 +22,7 @@ public static class Program
                 try { method.Invoke(suite, values); passed++; }
                 catch (TargetInvocationException failure) { Console.Error.WriteLine(method.Name + ": " + failure.InnerException); return 1; }
             }
+        }
         }
         Console.WriteLine(passed + " NUnit domain cases passed outside Unity");
         var huge = BigInteger.Pow(10, 1000);

@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace LastWish.Presentation
 {
-    public sealed class GameBootstrap : MonoBehaviour
+    public sealed partial class GameBootstrap : MonoBehaviour
     {
         public static GameBootstrap Instance { get; private set; }
         public bool IsReady { get; private set; }
@@ -88,6 +88,7 @@ namespace LastWish.Presentation
             music = gameObject.AddComponent<AudioSource>(); music.clip = assets.Get<AudioClip>("Audio/Music");
             music.loop = true; music.volume = .25f; music.Play();
             effects = gameObject.AddComponent<AudioSource>(); effects.volume = .65f;
+            Run = RunPersistence.Load();
             ShowMenu();
             IsReady = true;
         }
@@ -169,6 +170,8 @@ namespace LastWish.Presentation
             ui.Button(screen, "PlayButton", "Jugar", 640, 340, 320, 48, ShowCharacterSelection);
             ui.Button(screen, "SettingsButton", "Ajustes", 640, 412, 320, 48, ShowSettings);
             ui.Button(screen, "QuitButton", "Salir", 640, 484, 320, 48, Quit);
+            if (Run != null && !Run.IsDead)
+                ui.Button(screen, "ContinueRunButton", "Continuar partida", 640, 570, 420, 44, () => { if (Run.RoomCompleted) ShowMap(); else ShowCurrentRoom(); });
             ui.Label(screen, "Hint", "Una aventura nueva. El mismo último deseo.", 640, 650, 1100, 40, 24);
         }
         public void ShowCharacterSelection()
@@ -178,12 +181,12 @@ namespace LastWish.Presentation
             var kinds = new[] { HeroKind.Warrior, HeroKind.Mage, HeroKind.Rogue };
             for (var i = 0; i < kinds.Length; i++)
             {
-                var kind = kinds[i]; var hero = HeroDefinition.For(kind); var x = 270 + i * 370;
+                var kind = kinds[i]; var hero = HeroDefinition.OriginalFor(kind); var x = 270 + i * 370;
                 ui.Panel(screen, "HeroPanel", x, 365, 325, 420, new Color(.04f, .05f, .09f, .90f));
                 ui.Label(screen, "HeroName", hero.Name, x, 205, 315, 50, 32, UiFactory.Gold);
                 Actor(hero.AssetId, x, 350, 240);
                 ui.Label(screen, "HeroStats", "Vida " + hero.MaxHp + "  |  Maná " + hero.MaxMana, x, 480, 310, 45, 24);
-                ui.Button(screen, kind + "Button", "Elegir", x, 540, 255, 46, () => StartBattle(kind));
+                ui.Button(screen, kind + "Button", "Elegir", x, 540, 255, 46, () => StartRun(kind));
             }
             ui.Button(screen, "BackButton", "Volver", 640, 650, 280, 44, ShowMenu);
         }
@@ -197,7 +200,11 @@ namespace LastWish.Presentation
         }
         public void StartBattle(HeroKind kind)
         {
-            Confirm(); selectedHero = kind; session = new BattleSession(kind, Seed);
+            Run = null; Confirm(); selectedHero = kind; session = new BattleSession(kind, Seed);
+            BuildBattle();
+        }
+        private void BuildBattle()
+        {
             heroAtlas = assets.Atlas(session.State.Hero.AssetId);
             ClearScreen("Battle"); Backdrop();
             heroView = Actor(session.State.Hero.AssetId, 270, 345, 192);
@@ -220,18 +227,25 @@ namespace LastWish.Presentation
             var state = session.State;
             turnStats.text = "Turno " + state.Turn + "   |   Maná " + state.Mana + "/" + state.Hero.MaxMana + "   |   Robo " + state.DrawCount + "   Descarte " + state.DiscardCount;
             heroStats.text = state.Hero.Name + "\nVida " + state.Hp + "/" + state.Hero.MaxHp + "   Escudo " + state.Block;
-            enemyStats.text = "Espectro\nVida " + state.EnemyHp + "/45   Escudo " + state.EnemyBlock + "\n" + (state.EnemyIntendsBlock ? "Preparando 8 de escudo" : "Atacará por " + state.EnemyDamage);
+            enemyStats.text = state.EnemyName + "\nVida " + state.EnemyHp + "/" + state.EnemyMaxHp + "   Escudo " + state.EnemyBlock + "\n" + (state.EnemyIntendsBlock ? "Preparando 8 de escudo" : "Atacará por " + state.EnemyDamage);
             foreach (Transform child in handRoot) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
             for (var i = 0; i < state.Hand.Count; i++)
             {
-                var index = i; var card = state.Hand[i]; var x = 110 + i * 190;
-                var button = ui.Button(handRoot, "CardButton" + i, "", x, 110, 146, 194, () => PlayCard(index));
+                var index = i; var card = state.Hand[i]; var spacing = Math.Min(190, 1000f / Math.Max(1, state.Hand.Count)); var x = 55 + spacing / 2 + i * spacing;
+                var holder = ui.Rect(handRoot, "CardSlot" + i, x, 110, 146, 194);
+                var scale = Math.Min(1, spacing / 156); holder.localScale = new Vector3(scale, scale, 1);
+                var button = ui.Button(holder, "CardButton" + i, "", 73, 97, 146, 194, () => PlayCard(index));
                 button.interactable = session.CanPlay(i);
                 ui.Art(button.transform, "Frame", assets.Get<Texture2D>("Art/CardFrame"), 73, 97, 146, 194);
                 ui.Label(button.transform, "Cost", card.Cost.ToString(), 20, 22, 34, 35, 24, UiFactory.Gold);
                 ui.Label(button.transform, "Name", card.Name, 86, 26, 100, 40, 16, Color.black);
-                ui.Label(button.transform, "Kind", card.IsAttack ? "ATAQUE" : "DEFENSA", 73, 78, 120, 45, 16, UiFactory.Gold);
-                var detail = card.IsAttack ? "Inflige " + card.Damage.AddFlat(state.Hero.AttackBonus) + "\nde daño." : "Gana " + card.Block + "\nde escudo.";
+                ui.Label(button.transform, "Kind", card.IsAttack ? "ATAQUE" : card.Block > 0 ? "DEFENSA" : "HABILIDAD", 73, 78, 120, 45, 16, UiFactory.Gold);
+                var detail = card.IsAttack ? "Inflige " + card.Damage.AddFlat(state.Hero.AttackBonus).AddFlat(state.Strength) + "\nde daño." : card.Block > 0 ? "Gana " + (card.Block + state.Hero.Dexterity) + "\nde escudo." : "";
+                if (card.ComboBlock > 0) detail += "\nCombo: +" + card.ComboBlock;
+                if (card.EndureStrength > 0) detail += "\nAguante: Fuerza";
+                if (card.FireStacks > 0) detail += "\nFuego +" + card.FireStacks;
+                if (card.Draw > 0) detail += "\nRoba " + card.Draw;
+                if (card.ManaGain > 0) detail += "\nManá +" + card.ManaGain;
                 ui.Label(button.transform, "Effect", detail, 73, 139, 115, 65, 16);
             }
             handGroup.interactable = !IsBusy; handGroup.blocksRaycasts = !IsBusy; endTurn.interactable = !IsBusy;
@@ -274,15 +288,17 @@ namespace LastWish.Presentation
             RefreshBattle();
             yield return new WaitForSeconds(.6f);
             IsBusy = false;
-            if (session.State.Defeat) ShowResult(false); else RefreshBattle();
+            if (session.State.Victory) ShowResult(true); else if (session.State.Defeat) ShowResult(false); else RefreshBattle();
         }
         private void ShowResult(bool victory)
         {
+            if (Run != null && victory) { ShowRunReward(); return; }
+            if (Run != null) { Run.ApplyCombatResult(0, 0); RunPersistence.Delete(); }
             ClearScreen("Result"); Backdrop();
             ui.Panel(screen, "ResultPanel", 640, 355, 760, 390, new Color(.035f, .04f, .07f, .95f));
             ui.Label(screen, "ResultHeading", victory ? "VICTORIA" : "ÚLTIMO SUSPIRO", 640, 250, 1000, 90, 56, UiFactory.Gold);
             ui.Label(screen, "ResultMessage", victory ? "La mazmorra guarda más secretos." : "Cada derrota deja una nueva oportunidad.", 640, 350, 1100, 60, 24);
-            ui.Button(screen, "RetryButton", "Otra batalla", 640, 440, 380, 50, () => StartBattle(selectedHero));
+            ui.Button(screen, "RetryButton", Run == null ? "Otra batalla" : "Nueva partida", 640, 440, 380, 50, () => { if (Run == null) StartBattle(selectedHero); else StartRun(selectedHero); });
             ui.Button(screen, "ResultMenuButton", "Menú principal", 640, 515, 380, 50, ShowMenu);
         }
         private void Quit()

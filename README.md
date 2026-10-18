@@ -1,7 +1,7 @@
 # Last Wish - Unity
 
 Base jugable de **Último Deseo**, migrada desde el proyecto Python/Pygame a
-**Unity 6.3 LTS, 6000.3.6f1**. Es una primera etapa de la migración.
+**Unity 6.3 LTS, 6000.3.6f1**. La migración sigue en curso; consulta la cobertura exacta en `docs/port-status.md`.
 
 ## Abrir y jugar
 
@@ -16,13 +16,33 @@ Unity Hub debe tener una licencia activa. La primera importación del editor
 puede tardar; la pantalla de carga del juego aparece al pulsar Play o ejecutar
 una build, no durante la importación de Unity Hub.
 
+## Carpeta independiente
+
+Este repositorio vive separado del juego Python. La copia local se encuentra en
+`C:/Users/USER/Desktop/web/unity/last-wish-unity`. Agrega **esa carpeta** a Unity
+Hub; elimina de la lista de Hub la entrada anterior que terminaba en `last-wish/unity`.
+El juego no necesita Python instalado para ejecutarse.
+
+## Partida migrada
+
+Jugar > elegir personaje abre el mapa. Elige la sala disponible y completa sus
+acciones para desbloquear caminos. La vida, el oro, el mazo y las reliquias se
+conservan entre salas. Hay tienda con sobres, apertura de sobres, tesoro,
+suceso, Brujo, purga, gachapón, recompensas y avance de piso tras el jefe.
+Mazo y reliquias abre el inventario paginado.
+
+El guardado es un **punto de control entre salas**: al volver al mapa se guarda
+en `Application.persistentDataPath/run-v1.json`, con respaldo y validación de
+versión. Continuar partida carga ese punto de control. Un combate en curso
+no se guarda turno por turno; al reiniciar se vuelve al último mapa guardado.
+
 ## Incluido
 
 - Pantalla de carga con progreso de recursos mediante `Resources.LoadAsync`.
 - Menú, ajustes de FPS, selección de guerrera/mago/pícara.
 - Mazmorra y sprites actuales del proyecto original, con animaciones de idle,
   ataque, defensa, daño y derrota. Se conservan los tiempos de los atlas.
-- Combate básico contra un espectro: mazo de diez cartas, mano de cinco, maná,
+- Combate básico contra un espectro: mazo inicial de nueve o diez cartas, mano de cinco, maná,
   daño, escudo, robo, descarte y reciclado del mazo.
 - Victoria, derrota, volver al menú y repetir batalla.
 - Música original, efectos y UI en español.
@@ -86,21 +106,35 @@ Para compilar C# contra las bibliotecas locales sin abrir Unity y ejecutar los
 casos NUnit del dominio con .NET 9, usa `Tools/Validate.ps1`. Esta validación no
 sustituye al Test Runner ni comprueba el renderizado de Unity.
 
-## Alcance de esta etapa
+## Cobertura y pendientes
 
-El port **no incluye todavía** mapa de la run, reliquias, gachapón, tienda,
-recompensas, todos los enemigos/jefes, estados, reacciones elementales, todas las
-cartas ni guardado de partida. Los valores de la demo son una base inicial;
-no se promete paridad completa con el balance de Python. La selección de objetivo
-es automática porque hay un único enemigo. La segunda etapa puede ampliar el
-dominio sin mezclarlo con el Canvas.
+Los tres personajes usan sus estadísticas y mazos originales; están implementados
+Combo de Finta, Aguante de Guardia Férrea y el Fuego de Chispa Ígnea.
+Se migraron 33 cartas del catálogo con efectos numéricos y 8 reliquias.
+El catálogo completo exportado incluye **165 cartas, 156 reliquias y 17 pantallas**;
+`docs/migration/card-coverage.json` enumera las 132 cartas aún pendientes.
 
-El código Python, sus generadores y los diseños archivados no forman parte del
-runtime Unity. El arte seleccionado procede de las versiones activas del juego;
-consulta `THIRD_PARTY_NOTICES.md` y `docs/port-status.md`.
+Aún faltan los patrones de enemigos/jefes, encuentros múltiples, selección de
+objetivos, reacciones elementales completas, cromas, el resto de callbacks de
+cartas/reliquias, elecciones de mazo y ajustes de Pruebas. Los combates de élite
+y jefe son encuentros provisionales de un enemigo; no reproducen sus patrones
+originales. Los sucesos también tienen una opción básica de curación/oro.
+Los mapas conservan reglas de tamaño y conexiones ortogonales; usan el RNG de
+C# y la misma semilla no reproduce exactamente un mapa del generador Python.
+
+`Tools/ExportPythonCatalog.py` es una herramienta opcional de migración, ajena al
+runtime. Para regenerar el inventario, ejecútala con el Python del repositorio
+original y `--source-dir RUTA_PYTHON --output docs/migration/python-catalog.json`.
+Los callbacks exportados son referencias de código, **no implementaciones Unity**.
+
+El arte original y los atlas se conservan. Consulta `THIRD_PARTY_NOTICES.md`.
 
 ## Capturas de Unity
 
 ![Menú](docs/screenshots/menu.png)
 
 ![Combate](docs/screenshots/combat.png)
+
+![Mapa](docs/screenshots/map.png)
+
+![Inventario](docs/screenshots/inventory.png)
