@@ -1,95 +1,98 @@
 using System.Collections;
-using System.IO;
+using System.Linq;
+using LastWish.Domain;
 using LastWish.Presentation;
 using NUnit.Framework;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
-using UnityEngine.UI;
+
+using EventType = LastWish.Presentation.EventType;
+using Key = LastWish.Presentation.Key;
 
 namespace LastWish.Tests
 {
     public sealed class BootstrapTests
     {
         [UnityTest]
-        public IEnumerator LoadingMenuSelectionAndCombatWork()
+        public IEnumerator LoadingMenuSelectionMapAndCombatWork()
         {
-            yield return SceneManager.LoadSceneAsync("Bootstrap");
-            var deadline = Time.realtimeSinceStartup + 30;
-            while ((GameBootstrap.Instance == null || !GameBootstrap.Instance.IsReady) && Time.realtimeSinceStartup < deadline)
-                yield return null;
-            var game = GameBootstrap.Instance;
-            Assert.That(game, Is.Not.Null);
-            Assert.That(game.IsReady, Is.True, "Startup must finish within 30 seconds");
-            Assert.That(game.ScreenName, Is.EqualTo("Menu"));
-            var results = Path.GetFullPath(Path.Combine(UnityEngine.Application.dataPath, "../TestResults"));
-            Directory.CreateDirectory(results);
-            CaptureUi(Path.Combine(results, "menu.png"));
-            yield return null;
-            GameObject.Find("PlayButton").GetComponent<Button>().onClick.Invoke();
-            Assert.That(game.ScreenName, Is.EqualTo("Selection"));
-            game.StartBattle(LastWish.Domain.HeroKind.Warrior);
-            Assert.That(game.ScreenName, Is.EqualTo("Battle"));
-            Assert.That(game.Battle.Hand.Count, Is.EqualTo(5));
-            var atlas = Resources.Load<Texture2D>("Game/Art/warriorAtlas");
-            Assert.That(atlas.filterMode, Is.EqualTo(FilterMode.Point));
-            Assert.That(atlas.width, Is.EqualTo(6912), "Native atlas must not be resized by import");
-            var previousMana = game.Battle.Mana;
-            GameObject.Find("CardButton0").GetComponent<Button>().onClick.Invoke();
-            Assert.That(game.IsBusy, Is.True);
-            deadline = Time.realtimeSinceStartup + 5;
-            while (game.IsBusy && Time.realtimeSinceStartup < deadline) yield return null;
-            Assert.That(game.IsBusy, Is.False);
-            Assert.That(game.Battle.Mana, Is.LessThan(previousMana));
-            Assert.That(game.Battle.Hand.Count, Is.EqualTo(4));
-            var turn = game.Battle.Turn;
-            GameObject.Find("EndTurnButton").GetComponent<Button>().onClick.Invoke();
-            deadline = Time.realtimeSinceStartup + 5;
-            while (game.IsBusy && Time.realtimeSinceStartup < deadline) yield return null;
-            Assert.That(game.Battle.Turn, Is.EqualTo(turn + 1));
-            Assert.That(game.Battle.Hand.Count, Is.EqualTo(5));
-            Assert.That(game.Battle.Mana, Is.EqualTo(game.Battle.Hero.MaxMana));
-            CaptureUi(Path.Combine(results, "combat.png"));
-            yield return null;
-            GameObject.Find("MenuButton").GetComponent<Button>().onClick.Invoke();
-            Assert.That(game.ScreenName, Is.EqualTo("Menu"));
+            yield return GameDriver.Boot();
+            var manager = GameDriver.Manager;
+            Assert.That(manager.Top, Is.InstanceOf<MainMenuScene>());
+            Assert.That(GameDriver.Game.LastBatchCount, Is.LessThan(200), "The menu must stay a handful of batches");
+            yield return GameDriver.Frames(3);
+            GameDriver.Capture("menu");
+
+            GameDriver.Key(Key.Return);                         // Jugar
+            yield return GameDriver.Until(() => manager.Top is CharacterSelectScene, 5, "Jugar must open the character selection");
+            GameDriver.Key(Key.Return);                         // La Guerrera
+            yield return GameDriver.Until(() => manager.Top is MapScene, 5, "Confirming must start a run on the map");
+            Assert.That(manager.Run, Is.Not.Null);
+            GameDriver.Capture("map");
+
+            var map = (MapScene)manager.Top;
+            map.SelectedNode = manager.Run.Map.AvailableNodes().First(n => n.Kind == RoomKind.Combat);
+            yield return GameDriver.Until(() => manager.Top is CombatScene, 5, "A combat room must open the fight");
+            var combat = (CombatScene)manager.Top;
+            var state = combat.State;
+            yield return GameDriver.Seconds(1.5f);              // the opening hand is dealt
+            Assert.That(state.Hand.Count, Is.EqualTo(5));
+            GameDriver.Capture("combat");
+
+            var mana = state.Mana;
+            var index = Enumerable.Range(0, state.Hand.Count).First(i => state.CanPlay(i));
+            GameDriver.Key(Key.D1 + index);
+            GameDriver.Key(Key.Return);
+            yield return GameDriver.Until(() => state.Mana < mana, 5, "Number key + Enter must play the card");
+            Assert.That(state.Hand.Count, Is.EqualTo(4));
+
+            var turn = state.Turn;
+            yield return GameDriver.Until(() => !combat.PresentationBusy, 5, "The play must finish presenting");
+            GameDriver.Key(Key.E);
+            yield return GameDriver.Until(() => state.Turn == turn + 1, 5, "E must end the turn");
+            Assert.That(state.Mana, Is.EqualTo(state.ManaMaximum));
+            yield return GameDriver.Seconds(2.5f);
+            GameDriver.Capture("combat-turn2");
+
+            GameDriver.Key(Key.Escape);
+            yield return GameDriver.Until(() => manager.Pause != null, 5, "Escape must open the pause menu");
+            GameDriver.Capture("pause");
+            GameDriver.Key(Key.Escape);
+            yield return GameDriver.Until(() => manager.Pause == null, 5, "Escape must resume");
+            GameDriver.Key(Key.C);
+            yield return GameDriver.Until(() => manager.HeroSheet != null, 5, "C must open the hero sheet");
+            yield return GameDriver.Seconds(1f);
+            GameDriver.Capture("hero-sheet");
+            GameDriver.Key(Key.Escape);
+            yield return GameDriver.Until(() => manager.HeroSheet == null, 5, "Escape must close the hero sheet");
         }
 
-        public static void CaptureUi(string path)
+        [UnityTest]
+        public IEnumerator MouseDragPlaysACardOnTheEnemy()
         {
-            var canvas = Object.FindFirstObjectByType<Canvas>();
-            var camera = Object.FindFirstObjectByType<Camera>();
-            var previousMode = canvas.renderMode;
-            var previousCamera = canvas.worldCamera;
-            var previousMask = camera.cullingMask;
-            var previousTarget = camera.targetTexture;
-            var previousActive = RenderTexture.active;
-            var target = new RenderTexture(1280, 720, 24);
-            var pixels = new Texture2D(1280, 720, TextureFormat.RGB24, false);
-            try
-            {
-                camera.targetTexture = target;
-                camera.cullingMask = ~0;
-                canvas.renderMode = RenderMode.ScreenSpaceCamera;
-                canvas.worldCamera = camera;
-                canvas.planeDistance = 1;
-                Canvas.ForceUpdateCanvases();
-                camera.Render();
-                RenderTexture.active = target;
-                pixels.ReadPixels(new Rect(0, 0, 1280, 720), 0, 0);
-                pixels.Apply();
-                File.WriteAllBytes(path, pixels.EncodeToPNG());
-            }
-            finally
-            {
-                RenderTexture.active = previousActive;
-                camera.targetTexture = previousTarget;
-                camera.cullingMask = previousMask;
-                canvas.renderMode = previousMode;
-                canvas.worldCamera = previousCamera;
-                Object.Destroy(pixels);
-                Object.Destroy(target);
-            }
+            yield return GameDriver.Boot();
+            var manager = GameDriver.Manager;
+            var run = new RunState(HeroKind.Warrior, 12345);
+            manager.StartRun(run);
+            yield return null;
+            ((MapScene)manager.Top).SelectedNode = run.Map.AvailableNodes().First(n => n.Kind == RoomKind.Combat);
+            yield return GameDriver.Until(() => manager.Top is CombatScene, 5, "combat");
+            var state = ((CombatScene)manager.Top).State;
+            yield return GameDriver.Seconds(1.5f);
+            var hp = state.Enemies.Sum(e => e.Hp);
+            var attack = Enumerable.Range(0, state.Hand.Count).FirstOrDefault(i => state.Hand[i].IsAttack && state.CanPlay(i));
+            Assume.That(state.Hand[attack].IsAttack, "The opening hand has an attack");
+            // hover, press, drag above the play line onto the enemy, release (Slay the Spire style)
+            var scene = (CombatScene)manager.Top;
+            GameDriver.Send(new InputEvent(EventType.MouseMove, 640, 640));
+            yield return null;
+            GameDriver.Key(Key.D1 + attack);                     // number key picks it up; aim with the mouse
+            GameDriver.Send(new InputEvent(EventType.MouseMove, 830, 230));
+            yield return GameDriver.Frames(2);
+            GameDriver.Capture("aim");
+            GameDriver.Send(new InputEvent(EventType.MouseDown, 830, 230, 1));
+            GameDriver.Send(new InputEvent(EventType.MouseUp, 830, 230, 1));
+            yield return GameDriver.Until(() => state.Enemies.Sum(e => e.Hp) < hp, 5, "Clicking the enemy must play the attack on it");
         }
     }
 }

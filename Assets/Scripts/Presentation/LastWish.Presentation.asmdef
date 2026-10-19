@@ -1,0 +1,16 @@
+{
+    "name": "LastWish.Presentation",
+    "rootNamespace": "LastWish.Presentation",
+    "references": [
+        "LastWish.Domain"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

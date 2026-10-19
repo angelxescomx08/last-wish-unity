@@ -39,7 +39,7 @@ namespace LastWish.Tests
         }
         [Test] public void DecoyRedirectsOneHitToAnotherEnemy()
         {
-            var encounter=EnemyCatalog.Roll(1,1,"fixture",RoomKind.Combat,12);
+            var encounter=EnemyCatalog.CreateEncounter(12,1,"fixture");
             var state=new CombatState(HeroDefinition.OriginalFor(HeroKind.Warrior),new[]{Rule("decoy",new CardCommand(CommandKind.Decoy))},42,100,encounter);
             foreach(var enemy in state.Enemies) typeof(EnemyState).GetProperty("Intent").SetValue(enemy,new EnemyIntent(IntentKind.Attack,6));
             var hp=state.Enemies[1].Hp;Play(state,"decoy");state.EndTurn();

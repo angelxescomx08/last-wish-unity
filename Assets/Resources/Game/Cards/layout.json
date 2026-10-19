@@ -1,0 +1,108 @@
+{
+ "frames": {
+  "COMMON": {
+   "file": "Cards/Frames/card_common",
+   "size": [
+    1064,
+    1479
+   ],
+   "art": {
+    "x0": 0.141,
+    "y0": 0.1629,
+    "x1": 0.86,
+    "y1": 0.5396
+   }
+  },
+  "UNCOMMON": {
+   "file": "Cards/Frames/card_uncommon",
+   "size": [
+    1064,
+    1478
+   ],
+   "art": {
+    "x0": 0.1438,
+    "y0": 0.1637,
+    "x1": 0.8637,
+    "y1": 0.5372
+   }
+  },
+  "RARE": {
+   "file": "Cards/Frames/card_rare",
+   "size": [
+    1064,
+    1478
+   ],
+   "art": {
+    "x0": 0.1466,
+    "y0": 0.1637,
+    "x1": 0.8759,
+    "y1": 0.5406
+   }
+  },
+  "EPIC": {
+   "file": "Cards/Frames/card_epic",
+   "size": [
+    1064,
+    1478
+   ],
+   "art": {
+    "x0": 0.1438,
+    "y0": 0.1658,
+    "x1": 0.8571,
+    "y1": 0.5338
+   }
+  },
+  "LEGENDARY": {
+   "file": "Cards/Frames/card_legendary",
+   "size": [
+    1064,
+    1478
+   ],
+   "art": {
+    "x0": 0.1457,
+    "y0": 0.1631,
+    "x1": 0.8618,
+    "y1": 0.5318
+   }
+  }
+ },
+ "zones": {
+  "mana": {
+   "cx": 0.137,
+   "cy": 0.097,
+   "r": 0.058
+  },
+  "name": {
+   "x0": 0.285,
+   "y0": 0.08,
+   "x1": 0.85,
+   "y1": 0.146
+  },
+  "text": {
+   "x0": 0.15,
+   "y0": 0.59,
+   "x1": 0.85,
+   "y1": 0.835
+  },
+  "attack": {
+   "cx": 0.131,
+   "cy": 0.889,
+   "r": 0.056
+  },
+  "block": {
+   "cx": 0.87,
+   "cy": 0.889,
+   "r": 0.056
+  }
+ },
+ "packs": {
+  "acero": "Cards/Packs/pack_acero",
+  "escudo": "Cards/Packs/pack_escudo",
+  "magia": "Cards/Packs/pack_magia",
+  "epico": "Cards/Packs/pack_epico"
+ },
+ "art": [
+  "status_espora",
+  "status_moho"
+ ]
+}

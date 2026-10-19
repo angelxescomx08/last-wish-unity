@@ -1,0 +1,121 @@
+{
+ "cell_w": 144,
+ "cell_h": 112,
+ "columns": 14,
+ "anchor": [
+  96,
+  106
+ ],
+ "scale": 2,
+ "sheet": "acolyte_sheet.png",
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 12,
+   "durations_ms": [
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110
+   ],
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "frames": 10,
+   "durations_ms": [
+    100,
+    130,
+    80,
+    55,
+    60,
+    80,
+    90,
+    90,
+    90,
+    110
+   ],
+   "loop": false
+  },
+  "cast": {
+   "row": 2,
+   "frames": 8,
+   "durations_ms": [
+    85,
+    90,
+    90,
+    100,
+    110,
+    90,
+    90,
+    110
+   ],
+   "loop": false
+  },
+  "hurt": {
+   "row": 3,
+   "frames": 7,
+   "durations_ms": [
+    55,
+    60,
+    70,
+    70,
+    80,
+    90,
+    100
+   ],
+   "loop": false
+  },
+  "death": {
+   "row": 4,
+   "frames": 14,
+   "durations_ms": [
+    70,
+    100,
+    90,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    120
+   ],
+   "loop": false
+  }
+ },
+ "events": {
+  "attack": {
+   "strikes": [
+    4
+   ]
+  }
+ },
+ "moves": {
+  "censer": "attack",
+  "ember": "attack",
+  "bless": "cast",
+  "mend": "cast",
+  "penance": "cast",
+  "vengeance": "cast"
+ },
+ "top_native": 27,
+ "idle_bbox_native": [
+  62,
+  27,
+  120,
+  106
+ ]
+}

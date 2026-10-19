@@ -1,0 +1,168 @@
+{
+ "enemies": {
+  "espectro": {
+   "name": "Espectro",
+   "identity": "Lamento",
+   "title": "Zarpazos espectrales y un lamento que te deja Débil y Frágil.",
+   "kind": "regular"
+  },
+  "babosa": {
+   "name": "Babosa Ácida",
+   "identity": "Corrosión",
+   "title": "Su ácido te deja Frágil y Vulnerable: tu escudo rinde menos y recibes más daño.",
+   "kind": "regular"
+  },
+  "gusano": {
+   "name": "Gusano de Tumba",
+   "identity": "Veneno",
+   "title": "Te envenena con cada mordida y se entierra para protegerse.",
+   "kind": "regular"
+  },
+  "ojo": {
+   "name": "Ojo Vigilante",
+   "identity": "Debuffs",
+   "title": "Pega poco, pero su mirada te deja Vulnerable, Débil y Enredado.",
+   "kind": "regular"
+  },
+  "craneo": {
+   "name": "Cráneo Ígneo",
+   "identity": "Agresivo",
+   "title": "Aviva su fuego: gana Fuerza cada tres turnos y golpea cada vez más fuerte.",
+   "kind": "regular"
+  },
+  "murcielago": {
+   "name": "Murciélago Vampiro",
+   "identity": "Robo de vida",
+   "title": "Se cura con la vida que te quita y cae en picado con tres mordiscos.",
+   "kind": "regular"
+  },
+  "seta": {
+   "name": "Seta Explosiva",
+   "identity": "Cuenta atrás",
+   "title": "Su Mecha se consume: si no la matas a tiempo, explota con un golpe enorme.",
+   "kind": "regular"
+  },
+  "golem": {
+   "name": "Gólem de Musgo",
+   "identity": "Muro",
+   "title": "Mucho escudo, protege a su compañero y golpea lento pero muy fuerte.",
+   "kind": "regular"
+  },
+  "acolito": {
+   "name": "Acólito de Ceniza",
+   "identity": "Apoyo",
+   "title": "Bendice a sus aliados con Fuerza y los cura. Mátalo primero.",
+   "kind": "regular"
+  },
+  "diablillo": {
+   "name": "Diablillo",
+   "identity": "Muy agresivo",
+   "title": "Tres zarpazos, bolas de fuego que te dejan Vulnerable y burlas que lo fortalecen.",
+   "kind": "regular"
+  },
+  "mimico": {
+   "name": "Mímico",
+   "identity": "Emboscada",
+   "title": "Se hace pasar por un cofre (mucho escudo) y luego muerde con todo.",
+   "kind": "regular"
+  },
+  "verdugo": {
+   "name": "El Verdugo",
+   "identity": "Ejecución",
+   "title": "Te marca como Vulnerable, afila su hacha y descarga golpes enormes.",
+   "kind": "elite"
+  },
+  "bruja": {
+   "name": "Bruja del Pantano",
+   "identity": "Maleficios",
+   "title": "Te maldice, llena tu mazo de Moho y se cura con sus brebajes.",
+   "kind": "elite"
+  },
+  "gargola": {
+   "name": "Gárgola",
+   "identity": "Piel de piedra",
+   "title": "Se convierte en piedra con muchísimo escudo y luego cae en picado sobre ti.",
+   "kind": "elite"
+  },
+  "minotauro": {
+   "name": "Minotauro",
+   "identity": "Embestida",
+   "title": "Escarba el suelo y embiste: cada Embestida golpea más fuerte que la anterior.",
+   "kind": "elite"
+  },
+  "escorpion": {
+   "name": "Escorpión Rey",
+   "identity": "Veneno letal",
+   "title": "Te envenena sin parar y se protege con un caparazón muy duro.",
+   "kind": "elite"
+  },
+  "micelida": {
+   "name": "Reina Micélida",
+   "identity": "",
+   "title": "Llena tu mazo de Esporas y Moho, y te envenena.",
+   "kind": "boss"
+  },
+  "tejedora": {
+   "name": "La Tejedora",
+   "identity": "",
+   "title": "Te enreda en debuffs; su Banquete muerde más cuantos más tengas.",
+   "kind": "boss"
+  },
+  "caballero": {
+   "name": "Caballero Hueco",
+   "identity": "",
+   "title": "Espadas flotantes: golpea una vez por espada y cada vez invoca más.",
+   "kind": "boss"
+  }
+ },
+ "pairs": {
+  "culto": {
+   "name": "El Culto del Fuego",
+   "synergy": "El Acólito bendice al Cráneo con Fuerza mientras este no para de atacar.",
+   "members": [
+    "acolito",
+    "craneo"
+   ]
+  },
+  "muro": {
+   "name": "Muro Corrosivo",
+   "synergy": "El Gólem cubre a la Babosa con escudo mientras su ácido te corroe.",
+   "members": [
+    "golem",
+    "babosa"
+   ]
+  },
+  "caceria": {
+   "name": "Vigía y Cazador",
+   "synergy": "El Ojo te deja Vulnerable y el Murciélago cae en picado sobre ti.",
+   "members": [
+    "ojo",
+    "murcielago"
+   ]
+  },
+  "cementerio": {
+   "name": "Cementerio Podrido",
+   "synergy": "El Gusano te envenena y te entretiene mientras la Seta se consume.",
+   "members": [
+    "gusano",
+    "seta"
+   ]
+  },
+  "tesoro": {
+   "name": "Trampa del Tesoro",
+   "synergy": "El Mímico se cubre como un cofre y el Diablillo ataca sin parar.",
+   "members": [
+    "mimico",
+    "diablillo"
+   ]
+  },
+  "procesion": {
+   "name": "Procesión de Ceniza",
+   "synergy": "El Espectro te debilita mientras el Acólito lo fortalece y lo cura.",
+   "members": [
+    "espectro",
+    "acolito"
+   ]
+  }
+ }
+}

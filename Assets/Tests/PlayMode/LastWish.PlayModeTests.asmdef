@@ -2,8 +2,8 @@
   "name": "LastWish.PlayModeTests",
   "references": [
     "LastWish.Domain",
+    "LastWish.Presentation",
     "LastWish.Runtime",
-    "UnityEngine.UI",
     "Unity.InputSystem"
   ],
   "optionalUnityReferences": [

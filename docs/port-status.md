@@ -1,79 +1,89 @@
-# Migration status — 2026-10-18
+# Migration status — 2026-10-19
 
 Unity: standalone repository `C:/Users/USER/Desktop/web/unity/last-wish-unity`.
 Python: separate repository `C:/Users/USER/Desktop/web/python/last-wish`.
-Engine: Unity 6000.3.6f1. Full Python parity is still in progress.
+Engine: Unity 6000.3.6f1, Built-in renderer, Input System 1.17.
+
+The goal is the original game, screen by screen and rule by rule. Every module of
+the Python `src/presentation`, `src/application` and `src/domain` packages and the
+`main.py` scene manager now has a C# counterpart.
 
 ## Coverage
 
-| System | Implemented | Remaining |
+| Python | C# | Notes |
 |---|---|---|
-| Startup/input | Async loading/progress, 2D/Bootstrap Play shortcut, Input System 1.17 actions + uGUI input module, keyboard/mouse target selection | Full settings/Pruebas; physical gamepad validation |
-| Heroes | Original stats, starter decks and original artwork for all 3 | Full interaction with remaining relics/chromas |
-| Combat | Multiple enemies, targeting, intents, BigInteger printed damage, block, weak/vulnerable/frail, poison, entangled, fire/water/earth/air, 6 reactions, status cards | Full original presentation/preview/log; all relic hooks |
-| Enemies | All 11 normal, 5 elite, 3 boss AI patterns; pairs/trios, ally support, vengeance, enrage, multihits, fuse, heal/buffs, status-card spawns; all original atlases | Exact Python PRNG sequence; final visual tuning for all formations |
-| Cards | All 165 pool cards implemented with numeric layers + native commands; all 7 keywords; powers, random/discard effects, daggers, healing/HP costs, generic upgrades | Chromas, card merging/breaking, exhaustive combinations with all relics |
-| Run/map | HP/gold/deck/relic persistence, orthogonal routes, 9 room kinds, floor scaling/advance | Python PRNG/seed parity and complete economy/relic interactions |
-| Relics | Combat Amulet, Fire Orb, Broken Totem, Gold Ring, Iron Heart, Vitality Amulet, Blood Potion, Thief Mask (8/156) | Other 148 relic rules, chromas and trigger combinations |
-| Shop/packs | Seeded offers, prices/sold flags, class filtering, choose 1 of 5 cards from full pool | Luck/chroma and relic-altered picks/stock |
-| Treasure/events | Take a relic; heal/gold event | Original event variations and relic-dependent choices |
-| Warlock/purge | Generic capped upgrade, selection, prices and last-card protection | Original special/deck modification workflows, relic effects |
-| Gacha | Rising prices, normal/stellar weights, hero luck, accept/decline | Chromas and special/free pulls |
-| Rewards/death | Card choice/skip, gold, HP, elite/boss relic, floor advance, restart | Boss relic choices and all original reward effects |
-| Save/inventory | Atomic versioned checkpoint/backup, validation, paged inventory; effect layers/commands/power kind retained | Mid-combat saves and specialized deck-choice screens |
+| `domain/*`, `application/*` (rules) | `Assets/Scripts/Domain` | Combat, 165 cards, 7 keywords, elements/reactions, 156 relic tags, chromas, 19 enemies + pairs/trios, elites, bosses, map, run economy, luck, gacha, warlock, purge, deck choices, Pruebas (`Tuning`). |
+| `application/combat_log.py`, `play_preview.py` | `Presentation/Combat/CombatLog.cs`, `ElementPreview.cs` | Pure; the preview plays the card on `CombatState.Clone()` with the same random stream. |
+| `main.py` `SceneManager` | `Presentation/SceneManager.cs` | Every transition, pause menu, hero sheet (C / button), gold counter with interest notes, deck-choice auto-open, Dado Cargado reroll. |
+| `scenes/*` (17 screens) | `Presentation/Scenes/*` | Menu, settings, Pruebas, character select, map, combat, rewards, treasure, shop, packs, event, boss reward, warlock, gacha, purge, deck choice, death. |
+| `ui/*` | `Presentation/Ui/*`, `Presentation/Combat/*`, `Presentation/Cards/*` | Card faces, tooltips, glossary/rich text, HUD kit, mana orb, entity widgets, intents, targeting arrow, action banners, history strip + detail, inspect panel, element wheel/preview, hero sheet, viewers, pause menu, gold HUD, luck badge, loading screen. |
+| `fx/*` | `Presentation/Fx/*` | Particles/bursts, chroma, ready keywords, card deal, card burn, enemy animator (styles, floating swords), hero fx, reaction show, dungeon backdrop. |
+| `infrastructure/*` | `Presentation/Core/*`, `Runtime/*` | Asset metadata, fonts (pixel bitmap faces), sounds, preferences, dev settings, viewport. |
 
-Current offered pool cards have executable native rules; unsupported relics are
-kept in the reference catalog and are not offered as simplified placeholders.
-All 165 being ported does not imply every card/relic combination is verified.
+Removed on purpose: the earlier Unity-only checkpoint save and "Continuar" (the
+original has no save; its main menu never offers it), the uGUI screens, and the
+`Application` assembly (its battle session is now the combat scene).
 
-## Architecture and art
+## Architecture
 
-Domain/Application are engine-independent C#. `CombatState`, `EffectLayer` and
-`CardCommands` implement the battle; `EnemyCatalog` and generated pattern data
-implement encounters. Callback closures become validated command data, never
-Python code/reflection at runtime. `RunSave` round-trips commands and effects.
-`RunMap`/`RunState` own progression. Runtime owns uGUI, input, async assets, audio,
-UV animation, navigation and persistence; `BattleActors` owns enemy views.
+```text
+Domain (pure C#)  ←  Presentation (pure C#, draws through IRenderBackend)  ←  Runtime (Unity)
+```
 
-`CardView` pools controls and invalidates content on combat context changes.
-The FPS label and hover tooltip have separate canvases; atlas metadata is cached;
-encounter resources load asynchronously. See [performance](performance/README.md)
-for measured scope, raw before/after data and official Unity documentation.
+* `Presentation` reproduces pygame drawing on a virtual 1280×720 `Canvas`: sprites,
+  rects, circles, polygons, text, clips, transforms, tints and the blend modes the
+  original uses (alpha, `BLEND_RGB_ADD`, multiply, masked add). pygame quirks are kept
+  where they show on screen (draw calls ignore alpha on the display surface,
+  `BLEND_RGB_ADD` ignores alpha, SRCALPHA overwrite, `Rect` centre rounding,
+  banker's rounding, wheel = MOUSEWHEEL + buttons 4/5).
+* `Runtime/UnityRenderBackend` appends every quad/triangle of a frame to one dynamic
+  mesh (sub-meshes split only by texture/blend) executed by one command buffer;
+  clipping is done on the CPU. Offscreen targets compose static card faces once
+  (LRU cache) so a card in hand is one quad. Steady state allocates nothing.
+* `Runtime/GameBootstrap` is `main.py`: loading screen between startup steps, then
+  input → `SceneManager.Update` → draw into a 1280×720 `RenderTexture` presented
+  aspect-fit with black bars (bilinear like `smoothscale`, nearest at native size).
+  Mouse positions are converted like `viewport.to_virtual`.
+* Art keeps the original PNGs: hero sheets (96/192 px), the 19 enemy sheets, kit,
+  icons, relics, card frames/art, packs, gacha, dungeon room. `Editor/PixelArtImporter`
+  imports everything under `Resources/Game` with Point filtering, no mipmaps, NPOT
+  None, uncompressed, max 8192 (card faces/packs/back: bilinear, as the original
+  smoothscales them).
 
-Original warrior v3, mage v2, rogue v2 and all 19 enemy atlases retain their PNG
-pixels, row ordering, timing and anchors. Point filtering, no mipmaps/compression,
-native sizes and UV animation remain. Attribution: `THIRD_PARTY_NOTICES.md`.
+Small domain additions for presentation (rules unchanged, tests green):
 
-## Reproduction and validation
+* `SeededRandom` reproduces `new System.Random(seed)` exactly with a copyable state,
+  so `CombatState.Clone()` previews use the stream the real play will use.
+* Each card of a fight is its own object (`CardDefinition.Copy`, like the original's
+  `copy.copy`), so the hand animation tracks cards by identity.
+* Hero Fuerza is also mirrored into the hero statuses (its badge), Cadena Rota makes
+  enemy junk ethereal, enemy sheets carry the idle bounds used by history portraits.
+* The combat scene keeps the original's enemy list semantics (the dead are dropped
+  after each enemy turn) for slots, targeting, history and victory gold.
 
-`migration/python-catalog.json` (relative to this docs folder) records the original
-165 cards, 156 relics, starter decks, 17 screens and callback source references.
-`migration/card-coverage.json` lists the full implemented card pool and the two
-random-result cards omitted from exact one-cast replay fixtures. Random outcomes
-have native bounded tests, but Python/C# random sequences are not identical.
+## Verification
 
-Optional `Tools/ExportNumericCards.py`, `ExportEnemyPatterns.py` and
-`ImportEnemyArt.py` accept `--source-dir` and `--output-dir`. Run with the source
-repository's Python environment; they generate C#/fixtures and copy unchanged art.
-They are not runtime dependencies. Commands are in the root README.
+* EditMode (domain): **100/100** with the offline NUnit runner (parity fixtures against
+  the Python engine for cards, powers, enemies, relics, RNG and runs, plus combat-view
+  tests: random stream copy, preview = real play, card identity, Fuerza badge,
+  Cadena Rota).
+* All C# (Domain, Presentation, Runtime, Editor, tests) compiles against the Unity
+  6000.3.6f1 assemblies with no errors.
+* Offline renderer: the presentation's draw commands rasterised and compared side
+  by side with pygame screenshots of the same scenes (menu, cards, map, shop, reward,
+  treasure, pack opening, gacha phases, combat idle/hover/aim/play/enemy turn/new turn).
+* Autoplay smoke: the real `SceneManager` driven from the menu through a run (combats,
+  rewards, shop, purge, gacha, treasure, event, death) drawing every frame, no errors.
+* PlayMode tests (`Assets/Tests/PlayMode`) boot `Bootstrap.unity`, drive the game with
+  injected input (menu → selection → map → combat → play → end turn → pause → hero
+  sheet), mouse aiming, and fight every enemy and pair with its sheet, saving canvas
+  captures to `TestResults/`. **They must be run in Unity** (not run in this session).
 
-Validated in Unity 6000.3.6f1:
+## Known differences
 
-- EditMode: **72/72**, including 326 differential card casts, 92 power snapshots
-  through three following turns, 1,368 enemy intents, 100 map seeds, economy/save,
-  keywords/reactions, power combinations and arbitrary-precision arithmetic.
-- PlayMode: **7/7**. Startup/demo and run-to-reward/checkpoint/inventory; every
-  noncombat room; all 19 enemy atlases; pair targeting and pooled button identity;
-  actual queued keyboard/mouse input through the new input module, hover tooltip;
-  JSON round-trip preserving the native effects/commands of all 165 cards.
-- Windows x64 development build succeeded. Final player benchmark: 300 idle frames
-  + 30 unchanged refreshes, valid Unity GC counter. Refresh median 3.0443 →
-  0.0301 ms; refresh-frame GC 635,323.6 → 1,639.6 bytes. Idle remains capped at ~60
-  FPS, not a claim of higher maximum FPS or all-scenario speedup.
-- `Tools/Validate.ps1`: zero compile errors/warnings, 72 offline NUnit cases and
-  three completed demo combats; additional to real Unity tests.
-- Inspected actual Unity renders: pair, original knight boss, tooltip, map,
-  inventory/shop/gacha from the run tests. All original hero artwork is preserved.
+* Python's `hash()`-salted event text is replaced by CRC32 of the room id (stable).
+* Resizing the window behaves like the original viewport (aspect-fit, letterbox).
+* `docs/performance/README.md` measured the previous uGUI version and is kept as history.
 
-Remaining migration order: relic triggers/chromas and their economy/reward/deck
-workflows; full events and Pruebas; exhaustive cross-system parity and visual QA.
+Screenshots in `docs/screenshots/` come from the offline renderer of the C# drawing
+code (the same commands Unity executes), not from the Unity editor.

@@ -22,7 +22,7 @@ named = {
 named.update({
 "_on_discard_random":"DiscardRandom", "_on_random_hit_4":"RandomHit, 4", "_on_random_hit_3":"RandomHit, 3", "_on_two_random_10":"TwoRandomHits", "_on_all_hit_5":"RawArea, 5", "_on_hide_one_dagger":"HideDaggers, 1", "_on_hide_two_daggers":"HideDaggers, 2", "_on_lucky_cut":"LuckyCut", "_on_decoy":"Decoy", "_on_counter":"Counter", "_on_pickpocket":"Pickpocket", "_on_poison_blade":"PoisonBlade", "_on_roll_dice":"RollDice", "_on_scavenge":"Scavenge", "_on_dagger_master":"DaggerMaster", "_on_twin_shadow":"TwinShadow", "_on_bold_fortune":"BoldFortune", "_on_nothing_to_lose":"NothingToLose", "_on_perfect_chain":"PerfectChain", "_on_assassin":"Assassin", "_on_thousand_cuts":"ThousandCuts"
 })
-closures={"_on_lose":"LoseHp", "_on_heal":"Heal", "_on_strength":"Strength", "_on_mana":"Mana", "_on_heal_last_hit":"Lifesteal", "_on_strike":"Strike", "_on_area":"Area", "_on_heal_per_area_hit":"HealArea", "_on_all_hit":"RawArea", "_on_hit_target":"RawHit"}
+closures={"_on_lose":"LoseHp", "_on_heal":"Heal", "_on_strength":"Strength", "_on_mana":"Mana", "_on_heal_last_hit":"Lifesteal", "_on_strike":"Strike", "_on_area":"Area", "_on_heal_per_area_hit":"HealArea", "_on_all_hit":"MageArea", "_on_hit_target":"RawHit"}
 def commands(cb):
  if cb is None:return []
  if cb.__name__ in named:return ["new CardCommand(CommandKind."+named[cb.__name__]+")"]

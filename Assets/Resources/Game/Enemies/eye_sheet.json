@@ -1,0 +1,118 @@
+{
+ "cell_w": 160,
+ "cell_h": 108,
+ "columns": 13,
+ "anchor": [
+  112,
+  102
+ ],
+ "scale": 2,
+ "sheet": "eye_sheet.png",
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 12,
+   "durations_ms": [
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110
+   ],
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "frames": 9,
+   "durations_ms": [
+    90,
+    110,
+    100,
+    55,
+    60,
+    70,
+    90,
+    90,
+    110
+   ],
+   "loop": false
+  },
+  "cast": {
+   "row": 2,
+   "frames": 9,
+   "durations_ms": [
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    90,
+    90,
+    110
+   ],
+   "loop": false
+  },
+  "hurt": {
+   "row": 3,
+   "frames": 7,
+   "durations_ms": [
+    55,
+    60,
+    70,
+    70,
+    80,
+    90,
+    100
+   ],
+   "loop": false
+  },
+  "death": {
+   "row": 4,
+   "frames": 13,
+   "durations_ms": [
+    70,
+    90,
+    90,
+    90,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    120
+   ],
+   "loop": false
+  }
+ },
+ "events": {
+  "attack": {
+   "strikes": [
+    4
+   ]
+  }
+ },
+ "moves": {
+  "beam": "attack",
+  "stare": "cast",
+  "dread": "cast",
+  "vengeance": "cast"
+ },
+ "top_native": 29,
+ "idle_bbox_native": [
+  91,
+  29,
+  133,
+  85
+ ]
+}

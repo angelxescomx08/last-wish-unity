@@ -40,14 +40,15 @@ namespace LastWish.Domain
         private int discardsThisTurn;
         public int HpLostThisTurn { get; private set; }
         public int EffectVersion { get; private set; }
-        private uint ActiveConditions(CardDefinition card)
+        private uint ActiveConditions(CardDefinition card, int? target = null)
         {
+            var aimed = target ?? SelectedEnemy;
             var mask = 1u;
-            if (cardsPlayed > 0 || comboAlways) mask |= 1u << (int)EffectCondition.Combo;
+            if (cardsPlayed > 0 || comboAlways || Turn == 1 && HasRelic("crimson_ribbon")) mask |= 1u << (int)EffectCondition.Combo;
             if (singularDeck) mask |= 1u << (int)EffectCondition.Singular;
-            if (Mana == CardCost(card)) mask |= 1u << (int)EffectCondition.Void;
+            if (CardCost(card) > 0 && Mana == CardCost(card)) mask |= 1u << (int)EffectCondition.Void;
             if (discardsThisTurn > 0) mask |= 1u << (int)EffectCondition.Spoil;
-            if (HpLostThisTurn > 0) mask |= 1u << (int)EffectCondition.Fury;
+            if (HpLostThisTurn > 0 || hitLastEnemyTurn && HasRelic("blood_rune")) mask |= 1u << (int)EffectCondition.Fury;
             if (Block > 0) mask |= 1u << (int)EffectCondition.Endure;
             if (card.Effects != null)
                 foreach (var effect in card.Effects)
@@ -55,7 +56,7 @@ namespace LastWish.Domain
                     if (!effect.Element.HasValue || effect.Stacks == 0) continue;
                     for (var i = 0; i < enemies.Count; i++)
                     {
-                        if (!enemies[i].Alive || (!effect.AllEnemies && i != SelectedEnemy)) continue;
+                        if (!enemies[i].Alive || (!effect.AllEnemies && i != aimed)) continue;
                         for (var element = 0; element < 4; element++)
                             if (element != (int)effect.Element.Value && enemies[i].Statuses[(StatusKind)((int)StatusKind.Fire + element)] > 0)
                                 mask |= 1u << (int)EffectCondition.Reaction;
@@ -75,12 +76,12 @@ namespace LastWish.Domain
             }
             DamageFromCard(target, damage, damageBonus);
             GainCardBlock(block);
-            Mana = (int)Math.Min(Hero.MaxMana, Mana + mana);
+            Mana = (int)Math.Min(ManaMaximum, Mana + mana);
             foreach (var effect in card.Effects)
             {
                 if (!Active(effect, mask) || !effect.Element.HasValue || effect.Stacks == 0) continue;
-                if (effect.AllEnemies) for (var i = 0; i < enemies.Count; i++) ApplyElement(i, effect.Element.Value, effect.Stacks);
-                else ApplyElement(target, effect.Element.Value, effect.Stacks);
+                if (effect.AllEnemies) for (var i = 0; i < enemies.Count; i++) ApplyElement(i, effect.Element.Value, Saturate((long)effect.Stacks + ElementBonus(card, effect.Element.Value)));
+                else ApplyElement(target, effect.Element.Value, Saturate((long)effect.Stacks + ElementBonus(card, effect.Element.Value)));
             }
             foreach (var effect in card.Effects) if (Active(effect, mask)) ExecuteCommands(effect.Commands, target);
             var totalDraws = (int)Math.Min(10, draws + pendingDraws); pendingDraws = 0; DrawCards(totalDraws);
@@ -89,7 +90,7 @@ namespace LastWish.Domain
         {
             LastHit = 0;
             if (damage <= 0 || !enemies[target].Alive) return;
-            damage += Hero.AttackBonus + (BigInteger)Strength + damageBonus;
+            damage += Hero.AttackBonus + (BigInteger)Strength + damageBonus + MainRelicDamage(target);
             if (HeroStatuses[StatusKind.Weak] > 0) damage = damage * 3 / 4;
             if (enemies[target].Statuses[StatusKind.Vulnerable] > 0) damage = damage * 3 / 2;
             LastHit = enemies[target].Damage(damage);
@@ -97,7 +98,7 @@ namespace LastWish.Domain
         private void GainCardBlock(long amount)
         {
             if (amount <= 0) return;
-            amount += Hero.Dexterity + bonusDexterity;
+            amount += Hero.Dexterity + bonusDexterity + MainRelicBlock();
             if (HeroStatuses[StatusKind.Frail] > 0) amount = amount * 3 / 4;
             Block = (int)Math.Min(int.MaxValue, Block + amount);
         }

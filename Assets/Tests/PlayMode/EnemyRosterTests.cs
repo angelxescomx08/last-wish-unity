@@ -1,74 +1,60 @@
 using System.Collections;
-using System.IO;
+using System.Collections.Generic;
 using System.Linq;
 using LastWish.Domain;
 using LastWish.Presentation;
 using NUnit.Framework;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
-using UnityEngine.UI;
+
+using EventType = LastWish.Presentation.EventType;
+using Key = LastWish.Presentation.Key;
 
 namespace LastWish.Tests
 {
     public sealed class EnemyRosterTests
     {
-        [UnityTest]
-        public IEnumerator AllNineteenEnemiesLoadTheirOwnOriginalAtlas()
+        private static IEnumerator Fight(List<EnemyState> enemies, bool boss, string capture, int turns)
         {
-            yield return SceneManager.LoadSceneAsync("Bootstrap");
-            var deadline = Time.realtimeSinceStartup + 30;
-            while ((GameBootstrap.Instance == null || !GameBootstrap.Instance.IsReady) && Time.realtimeSinceStartup < deadline) yield return null;
-            var game = GameBootstrap.Instance; Assert.That(game.IsReady, Is.True);
-            var results = Path.GetFullPath(Path.Combine(UnityEngine.Application.dataPath, "../TestResults"));
-            foreach (var definition in EnemyCatalog.Definitions)
+            var manager = GameDriver.Manager;
+            var run = new RunState(HeroKind.Mage, 42);
+            manager.StartRun(run);
+            var state = run.CreateCombat(enemies);
+            var scene = new CombatScene(GameDriver.Game.Context, state, run.OwnedRelics, boss);
+            manager.Push(scene);
+            yield return GameDriver.Seconds(1.2f);
+            foreach (var enemy in state.Enemies)
             {
-                var run = new RunState(HeroKind.Mage, 42);
-                var kind = definition.Boss ? RoomKind.Boss : definition.Elite ? RoomKind.Elite : RoomKind.Combat;
-                var pool = EnemyCatalog.Definitions.Where(d => d.Boss == definition.Boss && d.Elite == definition.Elite).ToList();
-                var forced = pool.IndexOf(definition) + 1;
-                run.ForcedBoss = run.ForcedElite = run.ForcedEncounter = forced;
-                var room = kind == RoomKind.Combat ? run.Map.Nodes.Single(n => n.Available) : run.Map.Nodes.First(n => n.Kind == kind);
-                if (kind != RoomKind.Combat)
-                {
-                    var parent = run.Map.Nodes.First(n => n.Connections.Contains(room.Id));
-                    run.RestoreProgress(parent.Id, new string[0]);
-                }
-                typeof(GameBootstrap).GetProperty("Run").SetValue(game, run);
-                game.EnterRoom(room.Id);
-                deadline = Time.realtimeSinceStartup + 30;
-                while (game.ScreenName == "Loading" && Time.realtimeSinceStartup < deadline) yield return null;
-                Assert.That(game.ScreenName, Is.EqualTo("Battle"), definition.Ai);
-                Assert.That(game.Battle.Enemies[0].Definition.Ai, Is.EqualTo(definition.Ai));
-                var actor = GameObject.Find(definition.AssetId + "Actor").GetComponent<RawImage>();
-                Assert.That(actor.texture.name, Is.EqualTo(definition.AssetId + "Atlas"));
-                Assert.That(actor.texture.filterMode, Is.EqualTo(FilterMode.Point));
-                if (definition.Boss || definition.Ai == "golem" || definition.Ai == "espectro")
-                    BootstrapTests.CaptureUi(Path.Combine(results, "enemy-" + definition.Ai + ".png"));
+                var sheet = GameDriver.Game.Context.Art.SheetForEnemy(enemy.Definition.Name);
+                if (enemy.Definition.Ai != "crypt") Assert.That(sheet, Is.Not.Null, enemy.Definition.Name + " must have its own animated sheet");
+            }
+            Assert.That(scene.EnemyAnimators.Count, Is.EqualTo(state.Enemies.Count(e => e.Definition.Ai != "crypt")));
+            if (capture != null) GameDriver.Capture(capture);
+            for (var t = 0; t < turns && !state.Finished; t++)
+            {
+                GameDriver.Key(Key.E);
+                yield return GameDriver.Seconds(1.6f);
             }
         }
+
         [UnityTest]
-        public IEnumerator PairTargetsAndPooledHandControlsWork()
+        public IEnumerator EveryEnemyFightsWithItsOwnSheet()
         {
-            yield return SceneManager.LoadSceneAsync("Bootstrap");
-            var deadline = Time.realtimeSinceStartup + 30;
-            while ((GameBootstrap.Instance == null || !GameBootstrap.Instance.IsReady) && Time.realtimeSinceStartup < deadline) yield return null;
-            var game = GameBootstrap.Instance;
-            var run = new RunState(HeroKind.Mage, 42) { ForcedEncounter = 12 };
-            typeof(GameBootstrap).GetProperty("Run").SetValue(game, run);
-            game.EnterRoom(run.Map.Nodes.Single(n => n.Available).Id);
-            deadline = Time.realtimeSinceStartup + 30;
-            while (game.ScreenName == "Loading" && Time.realtimeSinceStartup < deadline) yield return null;
-            Assert.That(game.ScreenName, Is.EqualTo("Battle")); Assert.That(game.Battle.Enemies.Count, Is.EqualTo(2));
-            GameObject.Find("EnemyTarget1").GetComponent<Button>().onClick.Invoke();
-            Assert.That(game.Battle.SelectedEnemy, Is.EqualTo(1));
-            var first = GameObject.Find("CardButton0").GetInstanceID();
-            game.PlayCard(0);
-            deadline = Time.realtimeSinceStartup + 5;
-            while (game.IsBusy && Time.realtimeSinceStartup < deadline) yield return null;
-            Assert.That(game.IsBusy, Is.False);
-            Assert.That(GameObject.Find("CardButton0").GetInstanceID(), Is.EqualTo(first), "Hand controls must be reused after playing a card");
-            BootstrapTests.CaptureUi(Path.GetFullPath(Path.Combine(UnityEngine.Application.dataPath, "../TestResults/pair.png")));
+            yield return GameDriver.Boot();
+            foreach (var definition in EnemyCatalog.Definitions)
+            {
+                var enemy = EnemyCatalog.Create(definition.Ai, 1, "e0");
+                var capture = definition.Boss || definition.Elite || definition.Ai == "golem" || definition.Ai == "espectro" ? "enemy-" + definition.Ai : null;
+                yield return Fight(new List<EnemyState> { enemy }, definition.Boss, capture, 2);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator EveryPairFightsSideBySide()
+        {
+            yield return GameDriver.Boot();
+            foreach (var pair in EnemyCatalog.Pairs)
+                yield return Fight(EnemyCatalog.CreatePair(pair.Key, 1, "p"), false, "pair-" + pair.Key, 3);
         }
     }
 }

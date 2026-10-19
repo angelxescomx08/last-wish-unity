@@ -1,0 +1,938 @@
+{
+ "Afiladora de Bolsillo": [
+  0,
+  0,
+  32,
+  32
+ ],
+ "Ampolla de Maná": [
+  32,
+  0,
+  32,
+  32
+ ],
+ "Amuleto de Combate": [
+  64,
+  0,
+  32,
+  32
+ ],
+ "Amuleto de Escarcha": [
+  96,
+  0,
+  32,
+  32
+ ],
+ "Amuleto de Vitalidad": [
+  128,
+  0,
+  32,
+  32
+ ],
+ "Ancla": [
+  160,
+  0,
+  32,
+  32
+ ],
+ "Anillo de Oro": [
+  224,
+  0,
+  32,
+  32
+ ],
+ "Anillo de los Cuatro": [
+  192,
+  0,
+  32,
+  32
+ ],
+ "Ankh": [
+  256,
+  0,
+  32,
+  32
+ ],
+ "Antídoto": [
+  288,
+  0,
+  32,
+  32
+ ],
+ "Ascua de Volcán": [
+  320,
+  0,
+  32,
+  32
+ ],
+ "Bandera Blanca": [
+  352,
+  0,
+  32,
+  32
+ ],
+ "Baraja Mágica": [
+  384,
+  0,
+  32,
+  32
+ ],
+ "Batería Arcana": [
+  416,
+  0,
+  32,
+  32
+ ],
+ "Bolsa Agujereada": [
+  448,
+  0,
+  32,
+  32
+ ],
+ "Bolsa de Canicas": [
+  480,
+  0,
+  32,
+  32
+ ],
+ "Bolsa de Dagas": [
+  0,
+  32,
+  32,
+  32
+ ],
+ "Bolsa sin Fondo": [
+  32,
+  32,
+  32,
+  32
+ ],
+ "Bolsillo Roto": [
+  64,
+  32,
+  32,
+  32
+ ],
+ "Botas Silenciosas": [
+  128,
+  32,
+  32,
+  32
+ ],
+ "Botas de Ratero": [
+  96,
+  32,
+  32,
+  32
+ ],
+ "Brasero": [
+  160,
+  32,
+  32,
+  32
+ ],
+ "Brazal de Guerra": [
+  192,
+  32,
+  32,
+  32
+ ],
+ "Brazalete del Equilibrio": [
+  224,
+  32,
+  32,
+  32
+ ],
+ "Broche de Evasión": [
+  256,
+  32,
+  32,
+  32
+ ],
+ "Cadena Rota": [
+  288,
+  32,
+  32,
+  32
+ ],
+ "Calavera Sonriente": [
+  320,
+  32,
+  32,
+  32
+ ],
+ "Caldero": [
+  352,
+  32,
+  32,
+  32
+ ],
+ "Cantimplora": [
+  416,
+  32,
+  32,
+  32
+ ],
+ "Capa Raída": [
+  480,
+  32,
+  32,
+  32
+ ],
+ "Capa del Archimago": [
+  448,
+  32,
+  32,
+  32
+ ],
+ "Capucha de Sombras": [
+  0,
+  64,
+  32,
+  32
+ ],
+ "Cartas Marcadas": [
+  64,
+  64,
+  32,
+  32
+ ],
+ "Cartas de Diamante": [
+  32,
+  64,
+  32,
+  32
+ ],
+ "Catalejo": [
+  96,
+  64,
+  32,
+  32
+ ],
+ "Cicatriz": [
+  128,
+  64,
+  32,
+  32
+ ],
+ "Cinta Roja": [
+  160,
+  64,
+  32,
+  32
+ ],
+ "Cola de Zorro": [
+  192,
+  64,
+  32,
+  32
+ ],
+ "Collar de Colmillos": [
+  224,
+  64,
+  32,
+  32
+ ],
+ "Colmillo de Hierro": [
+  256,
+  64,
+  32,
+  32
+ ],
+ "Colmillo de Víbora": [
+  288,
+  64,
+  32,
+  32
+ ],
+ "Concha Marina": [
+  320,
+  64,
+  32,
+  32
+ ],
+ "Contrato Maldito": [
+  352,
+  64,
+  32,
+  32
+ ],
+ "Copa de Sangre": [
+  384,
+  64,
+  32,
+  32
+ ],
+ "Corazón Desbocado": [
+  0,
+  96,
+  32,
+  32
+ ],
+ "Corazón de Hierro": [
+  416,
+  64,
+  32,
+  32
+ ],
+ "Corazón de Piedra": [
+  448,
+  64,
+  32,
+  32
+ ],
+ "Corazón de Titán": [
+  480,
+  64,
+  32,
+  32
+ ],
+ "Corona de Espinas": [
+  32,
+  96,
+  32,
+  32
+ ],
+ "Corona del Rey Ladrón": [
+  64,
+  96,
+  32,
+  32
+ ],
+ "Cristal de Escarcha": [
+  96,
+  96,
+  32,
+  32
+ ],
+ "Cuchillo Arrojadizo": [
+  128,
+  96,
+  32,
+  32
+ ],
+ "Cuenco Vacío": [
+  160,
+  96,
+  32,
+  32
+ ],
+ "Cuerno de Guerra": [
+  192,
+  96,
+  32,
+  32
+ ],
+ "Cáliz Carmesí": [
+  384,
+  32,
+  32,
+  32
+ ],
+ "Dado Cargado": [
+  224,
+  96,
+  32,
+  32
+ ],
+ "Dado de Hueso": [
+  256,
+  96,
+  32,
+  32
+ ],
+ "Dado de Veinte Caras": [
+  288,
+  96,
+  32,
+  32
+ ],
+ "Daga Partida": [
+  320,
+  96,
+  32,
+  32
+ ],
+ "Dagas Gemelas": [
+  352,
+  96,
+  32,
+  32
+ ],
+ "Diente de León": [
+  384,
+  96,
+  32,
+  32
+ ],
+ "Escalera": [
+  416,
+  96,
+  32,
+  32
+ ],
+ "Escoba de Brujo": [
+  448,
+  96,
+  32,
+  32
+ ],
+ "Escudo Espectral": [
+  0,
+  128,
+  32,
+  32
+ ],
+ "Escudo del Mártir": [
+  480,
+  96,
+  32,
+  32
+ ],
+ "Espejo Singular": [
+  32,
+  128,
+  32,
+  32
+ ],
+ "Estandarte Desgarrado": [
+  96,
+  128,
+  32,
+  32
+ ],
+ "Estandarte de la Legión": [
+  64,
+  128,
+  32,
+  32
+ ],
+ "Ficha de Ajedrez": [
+  128,
+  128,
+  32,
+  32
+ ],
+ "Frasco de Neblina": [
+  160,
+  128,
+  32,
+  32
+ ],
+ "Frasco de Veneno": [
+  192,
+  128,
+  32,
+  32
+ ],
+ "Fruta Silvestre": [
+  224,
+  128,
+  32,
+  32
+ ],
+ "Fuente Eterna": [
+  256,
+  128,
+  32,
+  32
+ ],
+ "Fuente Menor": [
+  288,
+  128,
+  32,
+  32
+ ],
+ "Ganzúa": [
+  320,
+  128,
+  32,
+  32
+ ],
+ "Garfio": [
+  352,
+  128,
+  32,
+  32
+ ],
+ "Gema de Sangre": [
+  384,
+  128,
+  32,
+  32
+ ],
+ "Grillete": [
+  416,
+  128,
+  32,
+  32
+ ],
+ "Grimorio en Blanco": [
+  448,
+  128,
+  32,
+  32
+ ],
+ "Guante de Ladrón": [
+  480,
+  128,
+  32,
+  32
+ ],
+ "Guante de Seda": [
+  0,
+  160,
+  32,
+  32
+ ],
+ "Guantelete de Púas": [
+  32,
+  160,
+  32,
+  32
+ ],
+ "Hacha Mellada": [
+  64,
+  160,
+  32,
+  32
+ ],
+ "Herradura de Plata": [
+  96,
+  160,
+  32,
+  32
+ ],
+ "Hierro Fundido": [
+  128,
+  160,
+  32,
+  32
+ ],
+ "Hilo de Araña": [
+  160,
+  160,
+  32,
+  32
+ ],
+ "Hilo de Seda Negra": [
+  192,
+  160,
+  32,
+  32
+ ],
+ "Hoja de Laurel": [
+  224,
+  160,
+  32,
+  32
+ ],
+ "Hucha": [
+  256,
+  160,
+  32,
+  32
+ ],
+ "Interés Compuesto": [
+  288,
+  160,
+  32,
+  32
+ ],
+ "Lanza de Ruptura": [
+  352,
+  160,
+  32,
+  32
+ ],
+ "Lente Prismática": [
+  384,
+  160,
+  32,
+  32
+ ],
+ "Lima de Hierro": [
+  416,
+  160,
+  32,
+  32
+ ],
+ "Llave Maestra": [
+  448,
+  160,
+  32,
+  32
+ ],
+ "Lupa del Tasador": [
+  480,
+  160,
+  32,
+  32
+ ],
+ "Lámpara de Aceite": [
+  320,
+  160,
+  32,
+  32
+ ],
+ "Martillo del Herrero": [
+  0,
+  192,
+  32,
+  32
+ ],
+ "Medalla del Veterano": [
+  96,
+  192,
+  32,
+  32
+ ],
+ "Medallón Singular": [
+  128,
+  192,
+  32,
+  32
+ ],
+ "Moneda de Dos Caras": [
+  160,
+  192,
+  32,
+  32
+ ],
+ "Moneda de la Suerte": [
+  192,
+  192,
+  32,
+  32
+ ],
+ "Muñequera": [
+  224,
+  192,
+  32,
+  32
+ ],
+ "Máscara de Arlequín": [
+  32,
+  192,
+  32,
+  32
+ ],
+ "Máscara del Ladrón": [
+  64,
+  192,
+  32,
+  32
+ ],
+ "Navaja Plegable": [
+  256,
+  192,
+  32,
+  32
+ ],
+ "Odre de Sangre": [
+  288,
+  192,
+  32,
+  32
+ ],
+ "Orbe de Fuego": [
+  320,
+  192,
+  32,
+  32
+ ],
+ "Orbe de Tormenta": [
+  352,
+  192,
+  32,
+  32
+ ],
+ "Panacea": [
+  384,
+  192,
+  32,
+  32
+ ],
+ "Pata de Conejo": [
+  480,
+  192,
+  32,
+  32
+ ],
+ "Pañuelo Envenenado": [
+  448,
+  192,
+  32,
+  32
+ ],
+ "Pañuelo del Duelista": [
+  416,
+  192,
+  32,
+  32
+ ],
+ "Pergamino Viejo": [
+  32,
+  224,
+  32,
+  32
+ ],
+ "Peto Abollado": [
+  64,
+  224,
+  32,
+  32
+ ],
+ "Pico de Minero": [
+  96,
+  224,
+  32,
+  32
+ ],
+ "Piedra Pómez": [
+  256,
+  224,
+  32,
+  32
+ ],
+ "Piedra de Afilar": [
+  128,
+  224,
+  32,
+  32
+ ],
+ "Piedra de Energía": [
+  160,
+  224,
+  32,
+  32
+ ],
+ "Piedra de Lava": [
+  192,
+  224,
+  32,
+  32
+ ],
+ "Piedra de Toque": [
+  224,
+  224,
+  32,
+  32
+ ],
+ "Pieza Única": [
+  288,
+  224,
+  32,
+  32
+ ],
+ "Pila Ordenada": [
+  320,
+  224,
+  32,
+  32
+ ],
+ "Pluma de Fénix": [
+  352,
+  224,
+  32,
+  32
+ ],
+ "Pluma de Grifo": [
+  384,
+  224,
+  32,
+  32
+ ],
+ "Poción de Sangre": [
+  416,
+  224,
+  32,
+  32
+ ],
+ "Prisma": [
+  448,
+  224,
+  32,
+  32
+ ],
+ "Péndulo": [
+  0,
+  224,
+  32,
+  32
+ ],
+ "Reloj Roto": [
+  64,
+  256,
+  32,
+  32
+ ],
+ "Reloj de Agua": [
+  480,
+  224,
+  32,
+  32
+ ],
+ "Reloj de Arena": [
+  0,
+  256,
+  32,
+  32
+ ],
+ "Reloj de Bolsillo Robado": [
+  32,
+  256,
+  32,
+  32
+ ],
+ "Rodela Gastada": [
+  96,
+  256,
+  32,
+  32
+ ],
+ "Runa de Sangre": [
+  128,
+  256,
+  32,
+  32
+ ],
+ "Saco de Arena": [
+  160,
+  256,
+  32,
+  32
+ ],
+ "Saco de Trapos": [
+  192,
+  256,
+  32,
+  32
+ ],
+ "Sello del Anticuario": [
+  224,
+  256,
+  32,
+  32
+ ],
+ "Sello del Coleccionista": [
+  256,
+  256,
+  32,
+  32
+ ],
+ "Sombrero Puntiagudo": [
+  288,
+  256,
+  32,
+  32
+ ],
+ "Talismán del Último Aliento": [
+  320,
+  256,
+  32,
+  32
+ ],
+ "Tambor de Guerra": [
+  352,
+  256,
+  32,
+  32
+ ],
+ "Tarjeta de Socio": [
+  384,
+  256,
+  32,
+  32
+ ],
+ "Tijeras del Sastre": [
+  416,
+  256,
+  32,
+  32
+ ],
+ "Trofeo de Caza": [
+  0,
+  288,
+  32,
+  32
+ ],
+ "Trébol de Siete Hojas": [
+  480,
+  256,
+  32,
+  32
+ ],
+ "Tótem Roto": [
+  448,
+  256,
+  32,
+  32
+ ],
+ "Vaina Afilada": [
+  32,
+  288,
+  32,
+  32
+ ],
+ "Vale de Descuento": [
+  64,
+  288,
+  32,
+  32
+ ],
+ "Varita de Sauce": [
+  96,
+  288,
+  32,
+  32
+ ],
+ "Vela Votiva": [
+  128,
+  288,
+  32,
+  32
+ ],
+ "Venda Empapada": [
+  192,
+  288,
+  32,
+  32
+ ],
+ "Venda de Campaña": [
+  160,
+  288,
+  32,
+  32
+ ],
+ "Vendas del Monje": [
+  224,
+  288,
+  32,
+  32
+ ],
+ "Veneno de Escorpión": [
+  256,
+  288,
+  32,
+  32
+ ],
+ "Yelmo del Berserker": [
+  288,
+  288,
+  32,
+  32
+ ],
+ "Yesca": [
+  320,
+  288,
+  32,
+  32
+ ],
+ "Yunque Portátil": [
+  352,
+  288,
+  32,
+  32
+ ]
+}

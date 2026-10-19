@@ -1,3 +1,5 @@
+> Historical: this measured the previous uGUI version of the Unity port (removed on 2026-10-19).
+
 # Windows player measurement — 2026-10-18
 
 Unity 6000.3.6f1 development build, Windows x64, Mono, D3D11, RTX 3060 Ti,

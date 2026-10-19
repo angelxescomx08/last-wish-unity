@@ -1,0 +1,177 @@
+{
+ "cell_w": 208,
+ "cell_h": 120,
+ "columns": 20,
+ "anchor": [
+  140,
+  114
+ ],
+ "scale": 2,
+ "sheet": "gargoyle_sheet.png",
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 12,
+   "durations_ms": [
+    120,
+    120,
+    120,
+    120,
+    120,
+    120,
+    120,
+    120,
+    120,
+    120,
+    120,
+    120
+   ],
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "frames": 9,
+   "durations_ms": [
+    110,
+    130,
+    80,
+    60,
+    70,
+    90,
+    100,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "dive": {
+   "row": 2,
+   "frames": 20,
+   "durations_ms": [
+    120,
+    110,
+    70,
+    80,
+    90,
+    60,
+    55,
+    70,
+    55,
+    55,
+    70,
+    50,
+    60,
+    80,
+    90,
+    90,
+    90,
+    80,
+    100,
+    120
+   ],
+   "loop": false
+  },
+  "petrify": {
+   "row": 3,
+   "frames": 13,
+   "durations_ms": [
+    100,
+    90,
+    90,
+    90,
+    90,
+    110,
+    230,
+    230,
+    90,
+    90,
+    90,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "cast": {
+   "row": 4,
+   "frames": 10,
+   "durations_ms": [
+    120,
+    90,
+    80,
+    80,
+    80,
+    80,
+    90,
+    100,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "hurt": {
+   "row": 5,
+   "frames": 6,
+   "durations_ms": [
+    60,
+    70,
+    80,
+    90,
+    90,
+    100
+   ],
+   "loop": false
+  },
+  "death": {
+   "row": 6,
+   "frames": 15,
+   "durations_ms": [
+    70,
+    100,
+    90,
+    90,
+    90,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    85,
+    85,
+    85,
+    120
+   ],
+   "loop": false
+  }
+ },
+ "events": {
+  "attack": {
+   "strikes": [
+    3
+   ]
+  },
+  "dive": {
+   "strikes": [
+    6,
+    9,
+    12
+   ]
+  }
+ },
+ "moves": {
+  "rend": "attack",
+  "dive": "dive",
+  "petrify": "petrify",
+  "awaken": "cast",
+  "vengeance": "cast"
+ },
+ "boss": true,
+ "elite": true,
+ "top_native": 21,
+ "idle_bbox_native": [
+  102,
+  21,
+  180,
+  114
+ ]
+}

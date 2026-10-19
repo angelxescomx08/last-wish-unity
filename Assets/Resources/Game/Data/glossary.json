@@ -1,0 +1,1171 @@
+{
+ "colors": {
+  "KEYWORD": [
+   246,
+   204,
+   92
+  ],
+  "DAMAGE": [
+   255,
+   116,
+   92
+  ],
+  "BLOCK": [
+   112,
+   182,
+   255
+  ],
+  "POISON_INK": [
+   138,
+   226,
+   96
+  ],
+  "MANA": [
+   150,
+   226,
+   255
+  ],
+  "BUFF_TITLE": [
+   130,
+   220,
+   150
+  ],
+  "DEBUFF_TITLE": [
+   226,
+   140,
+   238
+  ],
+  "FIRE_INK": [
+   255,
+   128,
+   72
+  ],
+  "WATER_INK": [
+   110,
+   176,
+   255
+  ],
+  "EARTH_INK": [
+   214,
+   168,
+   100
+  ],
+  "AIR_INK": [
+   170,
+   236,
+   240
+  ],
+  "ICE_INK": [
+   170,
+   226,
+   255
+  ],
+  "REACTION_INK": [
+   255,
+   150,
+   220
+  ],
+  "DIM": [
+   176,
+   170,
+   160
+  ],
+  "BODY": [
+   228,
+   223,
+   210
+  ]
+ },
+ "all_terms": [
+  {
+   "name": "Veneno",
+   "rule": "Pierde tantos PV como acumulaciones al inicio de su turno; luego baja 1.",
+   "icon": "poison",
+   "color": [
+    138,
+    226,
+    96
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Veneno)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Vulnerable",
+   "rule": "Recibe un 50 % más de daño de ataques.",
+   "icon": "vulnerable",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Vulnerable)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Débil",
+   "rule": "Inflige un 25 % menos de daño con ataques.",
+   "icon": "weak",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Débil)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Frágil",
+   "rule": "Gana un 25 % menos de escudo con cartas.",
+   "icon": "frail",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Frágil)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Enredado",
+   "rule": "Roba 1 carta menos por acumulación al inicio de su próximo turno.",
+   "icon": "entangled",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Enredado)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Marcado",
+   "rule": "Cada golpe que recibe inflige tantos puntos extra como acumulaciones.",
+   "icon": "marked",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Marcado)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Fuerza",
+   "rule": "Cada golpe inflige tantos puntos extra como acumulaciones.",
+   "icon": "strength",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Fuerza)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Espadas",
+   "rule": "Espadas flotantes: algunos ataques golpean una vez por espada.",
+   "icon": "blades",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Espadas)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Mecha",
+   "rule": "Turnos que le quedan antes de explotar. Al llegar a 1, explota y muere.",
+   "icon": "fuse",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Mecha)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Fuego",
+   "rule": "Pierde tantos PV como acumulaciones al final de su turno (ignora el escudo).",
+   "icon": "fire",
+   "color": [
+    255,
+    128,
+    72
+   ],
+   "pattern": "(?<!Orbe\\ de\\ )(?<!Bola\\ de\\ )(?<!Lengua\\ de\\ )(?<!Chroma\\ )(?<!Muro\\ de\\ )(?<!Piel\\ de\\ )(?<![\\wÁÉÍÓÚáéíóúñÑ])(?:\\d+ de )?Fuego(?![\\wáéíóúñ])",
+   "lines": [
+    "[[steam]]+ Agua: Vapor",
+    "[[magma]]+ Tierra: Magma",
+    "[[wildfire]]+ Aire: Incendio"
+   ]
+  },
+  {
+   "name": "Agua",
+   "rule": "Cada golpe que da hace tantos puntos menos de daño como acumulaciones.",
+   "icon": "water",
+   "color": [
+    110,
+    176,
+    255
+   ],
+   "pattern": "(?<!Orbe\\ de\\ )(?<!Bola\\ de\\ )(?<!Lengua\\ de\\ )(?<!Chroma\\ )(?<!Muro\\ de\\ )(?<!Piel\\ de\\ )(?<![\\wÁÉÍÓÚáéíóúñÑ])(?:\\d+ de )?Agua(?![\\wáéíóúñ])",
+   "lines": [
+    "[[steam]]+ Fuego: Vapor",
+    "[[mud]]+ Tierra: Barro",
+    "[[frozen]]+ Aire: Congelar"
+   ]
+  },
+  {
+   "name": "Tierra",
+   "rule": "Cada golpe que recibe hace tantos puntos más de daño como acumulaciones.",
+   "icon": "earth",
+   "color": [
+    214,
+    168,
+    100
+   ],
+   "pattern": "(?<!Orbe\\ de\\ )(?<!Bola\\ de\\ )(?<!Lengua\\ de\\ )(?<!Chroma\\ )(?<!Muro\\ de\\ )(?<!Piel\\ de\\ )(?<![\\wÁÉÍÓÚáéíóúñÑ])(?:\\d+ de )?Tierra(?![\\wáéíóúñ])",
+   "lines": [
+    "[[magma]]+ Fuego: Magma",
+    "[[mud]]+ Agua: Barro",
+    "[[sandstorm]]+ Aire: Tormenta de Arena"
+   ]
+  },
+  {
+   "name": "Aire",
+   "rule": "No hace nada solo, pero sus reacciones afectan a todos los enemigos.",
+   "icon": "air",
+   "color": [
+    170,
+    236,
+    240
+   ],
+   "pattern": "(?<!Orbe\\ de\\ )(?<!Bola\\ de\\ )(?<!Lengua\\ de\\ )(?<!Chroma\\ )(?<!Muro\\ de\\ )(?<!Piel\\ de\\ )(?<![\\wÁÉÍÓÚáéíóúñÑ])(?:\\d+ de )?Aire(?![\\wáéíóúñ])",
+   "lines": [
+    "[[wildfire]]+ Fuego: Incendio",
+    "[[frozen]]+ Agua: Congelar",
+    "[[sandstorm]]+ Tierra: Tormenta de Arena"
+   ]
+  },
+  {
+   "name": "Congelado",
+   "rule": "Pierde su próxima acción. Jefes y élites: sus golpes hacen la mitad de daño.",
+   "icon": "frozen",
+   "color": [
+    170,
+    226,
+    255
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Congelado)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Combo",
+   "rule": "Efecto extra si ya jugaste otra carta este turno.",
+   "icon": "combo",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Combo)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Singular",
+   "rule": "Efecto extra si tu mazo inicial no tiene cartas repetidas.",
+   "icon": "singular",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Singular)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Vacío",
+   "rule": "Efecto extra si al jugarla te quedas con 0 de maná.",
+   "icon": "void",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Vacío)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Despojo",
+   "rule": "Efecto extra si ya descartaste una carta este turno.",
+   "icon": "spoil",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Despojo)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Reacción",
+   "rule": "Efecto extra si al jugarla provocas una reacción elemental.",
+   "icon": "reaction",
+   "color": [
+    255,
+    150,
+    220
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Reacción)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Furia",
+   "rule": "Efecto extra si ya perdiste vida este turno.",
+   "icon": "fury",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Furia)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Aguante",
+   "rule": "Efecto extra si tienes escudo al jugarla.",
+   "icon": "endure",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Aguante)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Vapor",
+   "rule": "Fuego + Agua: le inflige el doble de las acumulaciones como daño.",
+   "icon": "steam",
+   "color": [
+    236,
+    236,
+    246
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Vapor)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Magma",
+   "rule": "Fuego + Tierra: pierde todo su escudo y recibe Vulnerable 2.",
+   "icon": "magma",
+   "color": [
+    255,
+    150,
+    60
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Magma)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Incendio",
+   "rule": "Fuego + Aire: todos los enemigos reciben esas acumulaciones de Fuego.",
+   "icon": "wildfire",
+   "color": [
+    255,
+    110,
+    70
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Incendio)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Barro",
+   "rule": "Agua + Tierra: ganas el triple de las acumulaciones como escudo.",
+   "icon": "mud",
+   "color": [
+    200,
+    150,
+    96
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Barro)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Congelar",
+   "rule": "Agua + Aire: pierde su próxima acción (jefes y élites: solo hacen la mitad de daño).",
+   "icon": "frozen",
+   "color": [
+    170,
+    226,
+    255
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Congelar)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Tormenta de Arena",
+   "rule": "Tierra + Aire: todos los enemigos reciben Débil 1.",
+   "icon": "sandstorm",
+   "color": [
+    236,
+    206,
+    140
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Tormenta\\ de\\ Arena)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Reacción elemental",
+   "rule": "Si un enemigo con un elemento recibe otro distinto, se consumen los dos y se provoca una reacción con la suma de sus acumulaciones.",
+   "icon": "reaction",
+   "color": [
+    255,
+    150,
+    220
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(reacción\\ elemental|reacciones|reacción)(?![\\wáéíóúñ])",
+   "lines": [
+    "[[steam]]Vapor: Fuego + Agua: le inflige el doble de las acumulaciones como daño.",
+    "[[magma]]Magma: Fuego + Tierra: pierde todo su escudo y recibe Vulnerable 2.",
+    "[[wildfire]]Incendio: Fuego + Aire: todos los enemigos reciben esas acumulaciones de Fuego.",
+    "[[mud]]Barro: Agua + Tierra: ganas el triple de las acumulaciones como escudo.",
+    "[[frozen]]Congelar: Agua + Aire: pierde su próxima acción (jefes y élites: solo hacen la mitad de daño).",
+    "[[sandstorm]]Tormenta de Arena: Tierra + Aire: todos los enemigos reciben Débil 1."
+   ]
+  },
+  {
+   "name": "Agotar",
+   "rule": "Al jugarla se retira del combate (no vuelve al descarte).",
+   "icon": "exhaust",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Agotar|Agota|agotar|se\\ agota)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Etérea",
+   "rule": "Si sigue en tu mano al final del turno, se desvanece: sale del combate.",
+   "icon": "ethereal",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Etérea|Etéreo|Se\\ desvanece|se\\ desvanece)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  {
+   "name": "Injugable",
+   "rule": "No se puede jugar. Solo ocupa sitio en tu mano.",
+   "icon": "unplayable",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Injugable)(?![\\wáéíóúñ])",
+   "lines": []
+  }
+ ],
+ "shield": {
+  "name": "Escudo",
+  "rule": "Absorbe el daño de los golpes antes que tu vida. Se pierde al empezar tu siguiente turno.",
+  "icon": "block",
+  "color": [
+   112,
+   182,
+   255
+  ],
+  "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(escudo|Escudo|bloqueo|Bloqueo)(?![\\wáéíóúñ])",
+  "lines": []
+ },
+ "status_terms": {
+  "Veneno": {
+   "name": "Veneno",
+   "rule": "Pierde tantos PV como acumulaciones al inicio de su turno; luego baja 1.",
+   "icon": "poison",
+   "color": [
+    138,
+    226,
+    96
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Veneno)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "Vulnerable": {
+   "name": "Vulnerable",
+   "rule": "Recibe un 50 % más de daño de ataques.",
+   "icon": "vulnerable",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Vulnerable)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "Débil": {
+   "name": "Débil",
+   "rule": "Inflige un 25 % menos de daño con ataques.",
+   "icon": "weak",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Débil)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "Frágil": {
+   "name": "Frágil",
+   "rule": "Gana un 25 % menos de escudo con cartas.",
+   "icon": "frail",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Frágil)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "Enredado": {
+   "name": "Enredado",
+   "rule": "Roba 1 carta menos por acumulación al inicio de su próximo turno.",
+   "icon": "entangled",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Enredado)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "Marcado": {
+   "name": "Marcado",
+   "rule": "Cada golpe que recibe inflige tantos puntos extra como acumulaciones.",
+   "icon": "marked",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Marcado)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "Fuerza": {
+   "name": "Fuerza",
+   "rule": "Cada golpe inflige tantos puntos extra como acumulaciones.",
+   "icon": "strength",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Fuerza)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "Espadas": {
+   "name": "Espadas",
+   "rule": "Espadas flotantes: algunos ataques golpean una vez por espada.",
+   "icon": "blades",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Espadas)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "Mecha": {
+   "name": "Mecha",
+   "rule": "Turnos que le quedan antes de explotar. Al llegar a 1, explota y muere.",
+   "icon": "fuse",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Mecha)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "Fuego": {
+   "name": "Fuego",
+   "rule": "Pierde tantos PV como acumulaciones al final de su turno (ignora el escudo).",
+   "icon": "fire",
+   "color": [
+    255,
+    128,
+    72
+   ],
+   "pattern": "(?<!Orbe\\ de\\ )(?<!Bola\\ de\\ )(?<!Lengua\\ de\\ )(?<!Chroma\\ )(?<!Muro\\ de\\ )(?<!Piel\\ de\\ )(?<![\\wÁÉÍÓÚáéíóúñÑ])(?:\\d+ de )?Fuego(?![\\wáéíóúñ])",
+   "lines": [
+    "[[steam]]+ Agua: Vapor",
+    "[[magma]]+ Tierra: Magma",
+    "[[wildfire]]+ Aire: Incendio"
+   ]
+  },
+  "Agua": {
+   "name": "Agua",
+   "rule": "Cada golpe que da hace tantos puntos menos de daño como acumulaciones.",
+   "icon": "water",
+   "color": [
+    110,
+    176,
+    255
+   ],
+   "pattern": "(?<!Orbe\\ de\\ )(?<!Bola\\ de\\ )(?<!Lengua\\ de\\ )(?<!Chroma\\ )(?<!Muro\\ de\\ )(?<!Piel\\ de\\ )(?<![\\wÁÉÍÓÚáéíóúñÑ])(?:\\d+ de )?Agua(?![\\wáéíóúñ])",
+   "lines": [
+    "[[steam]]+ Fuego: Vapor",
+    "[[mud]]+ Tierra: Barro",
+    "[[frozen]]+ Aire: Congelar"
+   ]
+  },
+  "Tierra": {
+   "name": "Tierra",
+   "rule": "Cada golpe que recibe hace tantos puntos más de daño como acumulaciones.",
+   "icon": "earth",
+   "color": [
+    214,
+    168,
+    100
+   ],
+   "pattern": "(?<!Orbe\\ de\\ )(?<!Bola\\ de\\ )(?<!Lengua\\ de\\ )(?<!Chroma\\ )(?<!Muro\\ de\\ )(?<!Piel\\ de\\ )(?<![\\wÁÉÍÓÚáéíóúñÑ])(?:\\d+ de )?Tierra(?![\\wáéíóúñ])",
+   "lines": [
+    "[[magma]]+ Fuego: Magma",
+    "[[mud]]+ Agua: Barro",
+    "[[sandstorm]]+ Aire: Tormenta de Arena"
+   ]
+  },
+  "Aire": {
+   "name": "Aire",
+   "rule": "No hace nada solo, pero sus reacciones afectan a todos los enemigos.",
+   "icon": "air",
+   "color": [
+    170,
+    236,
+    240
+   ],
+   "pattern": "(?<!Orbe\\ de\\ )(?<!Bola\\ de\\ )(?<!Lengua\\ de\\ )(?<!Chroma\\ )(?<!Muro\\ de\\ )(?<!Piel\\ de\\ )(?<![\\wÁÉÍÓÚáéíóúñÑ])(?:\\d+ de )?Aire(?![\\wáéíóúñ])",
+   "lines": [
+    "[[wildfire]]+ Fuego: Incendio",
+    "[[frozen]]+ Agua: Congelar",
+    "[[sandstorm]]+ Tierra: Tormenta de Arena"
+   ]
+  },
+  "Congelado": {
+   "name": "Congelado",
+   "rule": "Pierde su próxima acción. Jefes y élites: sus golpes hacen la mitad de daño.",
+   "icon": "frozen",
+   "color": [
+    170,
+    226,
+    255
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Congelado)(?![\\wáéíóúñ])",
+   "lines": []
+  }
+ },
+ "keyword_terms": {
+  "combo": {
+   "name": "Combo",
+   "rule": "Efecto extra si ya jugaste otra carta este turno.",
+   "icon": "combo",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Combo)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "singular": {
+   "name": "Singular",
+   "rule": "Efecto extra si tu mazo inicial no tiene cartas repetidas.",
+   "icon": "singular",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Singular)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "void": {
+   "name": "Vacío",
+   "rule": "Efecto extra si al jugarla te quedas con 0 de maná.",
+   "icon": "void",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Vacío)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "spoil": {
+   "name": "Despojo",
+   "rule": "Efecto extra si ya descartaste una carta este turno.",
+   "icon": "spoil",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Despojo)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "reaction": {
+   "name": "Reacción",
+   "rule": "Efecto extra si al jugarla provocas una reacción elemental.",
+   "icon": "reaction",
+   "color": [
+    255,
+    150,
+    220
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Reacción)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "fury": {
+   "name": "Furia",
+   "rule": "Efecto extra si ya perdiste vida este turno.",
+   "icon": "fury",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Furia)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "endure": {
+   "name": "Aguante",
+   "rule": "Efecto extra si tienes escudo al jugarla.",
+   "icon": "endure",
+   "color": [
+    246,
+    204,
+    92
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Aguante)(?![\\wáéíóúñ])",
+   "lines": []
+  }
+ },
+ "reaction_terms": {
+  "STEAM": {
+   "name": "Vapor",
+   "rule": "Fuego + Agua: le inflige el doble de las acumulaciones como daño.",
+   "icon": "steam",
+   "color": [
+    236,
+    236,
+    246
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Vapor)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "MAGMA": {
+   "name": "Magma",
+   "rule": "Fuego + Tierra: pierde todo su escudo y recibe Vulnerable 2.",
+   "icon": "magma",
+   "color": [
+    255,
+    150,
+    60
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Magma)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "WILDFIRE": {
+   "name": "Incendio",
+   "rule": "Fuego + Aire: todos los enemigos reciben esas acumulaciones de Fuego.",
+   "icon": "wildfire",
+   "color": [
+    255,
+    110,
+    70
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Incendio)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "MUD": {
+   "name": "Barro",
+   "rule": "Agua + Tierra: ganas el triple de las acumulaciones como escudo.",
+   "icon": "mud",
+   "color": [
+    200,
+    150,
+    96
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Barro)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "FREEZE": {
+   "name": "Congelar",
+   "rule": "Agua + Aire: pierde su próxima acción (jefes y élites: solo hacen la mitad de daño).",
+   "icon": "frozen",
+   "color": [
+    170,
+    226,
+    255
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Congelar)(?![\\wáéíóúñ])",
+   "lines": []
+  },
+  "SANDSTORM": {
+   "name": "Tormenta de Arena",
+   "rule": "Tierra + Aire: todos los enemigos reciben Débil 1.",
+   "icon": "sandstorm",
+   "color": [
+    236,
+    206,
+    140
+   ],
+   "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Tormenta\\ de\\ Arena)(?![\\wáéíóúñ])",
+   "lines": []
+  }
+ },
+ "elements_rule": {
+  "name": "Reacción elemental",
+  "rule": "Si un enemigo con un elemento recibe otro distinto, se consumen los dos y se provoca una reacción con la suma de sus acumulaciones.",
+  "icon": "reaction",
+  "color": [
+   255,
+   150,
+   220
+  ],
+  "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(reacción\\ elemental|reacciones|reacción)(?![\\wáéíóúñ])",
+  "lines": [
+   "[[steam]]Vapor: Fuego + Agua: le inflige el doble de las acumulaciones como daño.",
+   "[[magma]]Magma: Fuego + Tierra: pierde todo su escudo y recibe Vulnerable 2.",
+   "[[wildfire]]Incendio: Fuego + Aire: todos los enemigos reciben esas acumulaciones de Fuego.",
+   "[[mud]]Barro: Agua + Tierra: ganas el triple de las acumulaciones como escudo.",
+   "[[frozen]]Congelar: Agua + Aire: pierde su próxima acción (jefes y élites: solo hacen la mitad de daño).",
+   "[[sandstorm]]Tormenta de Arena: Tierra + Aire: todos los enemigos reciben Débil 1."
+  ]
+ },
+ "exhaust": {
+  "name": "Agotar",
+  "rule": "Al jugarla se retira del combate (no vuelve al descarte).",
+  "icon": "exhaust",
+  "color": [
+   246,
+   204,
+   92
+  ],
+  "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Agotar|Agota|agotar|se\\ agota)(?![\\wáéíóúñ])",
+  "lines": []
+ },
+ "ethereal": {
+  "name": "Etérea",
+  "rule": "Si sigue en tu mano al final del turno, se desvanece: sale del combate.",
+  "icon": "ethereal",
+  "color": [
+   246,
+   204,
+   92
+  ],
+  "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Etérea|Etéreo|Se\\ desvanece|se\\ desvanece)(?![\\wáéíóúñ])",
+  "lines": []
+ },
+ "unplayable": {
+  "name": "Injugable",
+  "rule": "No se puede jugar. Solo ocupa sitio en tu mano.",
+  "icon": "unplayable",
+  "color": [
+   246,
+   204,
+   92
+  ],
+  "pattern": "(?<![\\wÁÉÍÓÚáéíóúñÑ])(Injugable)(?![\\wáéíóúñ])",
+  "lines": []
+ },
+ "status_kind": {
+  "Veneno": false,
+  "Vulnerable": false,
+  "Débil": false,
+  "Frágil": false,
+  "Enredado": false,
+  "Marcado": false,
+  "Fuerza": true,
+  "Espadas": true,
+  "Ritual": true,
+  "Mecha": true,
+  "Fuego": false,
+  "Agua": false,
+  "Tierra": false,
+  "Aire": false,
+  "Congelado": false
+ },
+ "status_icon": {
+  "Veneno": "poison",
+  "Vulnerable": "vulnerable",
+  "Débil": "weak",
+  "Frágil": "frail",
+  "Enredado": "entangled",
+  "Fuerza": "strength",
+  "Espadas": "blades",
+  "Marcado": "marked",
+  "Ritual": "ritual",
+  "Mecha": "fuse",
+  "Fuego": "fire",
+  "Agua": "water",
+  "Tierra": "earth",
+  "Aire": "air",
+  "Congelado": "frozen"
+ },
+ "status_short": {
+  "Veneno": "−{n} de vida por turno",
+  "Débil": "−25 % de daño",
+  "Vulnerable": "recibe +50 % de daño",
+  "Frágil": "−25 % de escudo",
+  "Enredado": "roba {n} menos",
+  "Fuerza": "+{n} de daño por golpe",
+  "Espadas": "{n} espadas flotantes",
+  "Marcado": "+{n} por golpe recibido",
+  "Mecha": "explota en {n} turnos",
+  "Ritual": "se fortalece cada turno",
+  "Fuego": "arde: −{n} de vida por turno",
+  "Agua": "sus golpes hacen {n} menos",
+  "Tierra": "recibe +{n} por golpe",
+  "Aire": "listo para reaccionar",
+  "Congelado": "pierde su próxima acción"
+ },
+ "status_text": {
+  "Veneno": "Pierde tantos PV como acumulaciones al inicio de su turno; luego baja 1.",
+  "Marcado": "Cada golpe que recibe inflige tantos puntos extra como acumulaciones.",
+  "Débil": "Inflige un 25 % menos de daño con ataques.",
+  "Vulnerable": "Recibe un 50 % más de daño de ataques.",
+  "Frágil": "Gana un 25 % menos de escudo con cartas.",
+  "Enredado": "Roba 1 carta menos por acumulación al inicio de su próximo turno.",
+  "Fuerza": "Cada golpe inflige tantos puntos extra como acumulaciones.",
+  "Espadas": "Espadas flotantes: algunos ataques golpean una vez por espada.",
+  "Mecha": "Turnos que le quedan antes de explotar. Al llegar a 1, explota y muere.",
+  "Fuego": "Pierde tantos PV como acumulaciones al final de su turno (ignora el escudo).",
+  "Agua": "Cada golpe que da hace tantos puntos menos de daño como acumulaciones.",
+  "Tierra": "Cada golpe que recibe hace tantos puntos más de daño como acumulaciones.",
+  "Aire": "No hace nada solo, pero sus reacciones afectan a todos los enemigos.",
+  "Congelado": "Pierde su próxima acción. Jefes y élites: sus golpes hacen la mitad de daño."
+ },
+ "reaction_icon": {
+  "STEAM": "steam",
+  "MAGMA": "magma",
+  "WILDFIRE": "wildfire",
+  "MUD": "mud",
+  "FREEZE": "frozen",
+  "SANDSTORM": "sandstorm"
+ },
+ "reaction_color": {
+  "STEAM": [
+   236,
+   236,
+   246
+  ],
+  "MAGMA": [
+   255,
+   150,
+   60
+  ],
+  "WILDFIRE": [
+   255,
+   110,
+   70
+  ],
+  "MUD": [
+   200,
+   150,
+   96
+  ],
+  "FREEZE": [
+   170,
+   226,
+   255
+  ],
+  "SANDSTORM": [
+   236,
+   206,
+   140
+  ]
+ },
+ "reaction_names": {
+  "STEAM": "Vapor",
+  "MAGMA": "Magma",
+  "WILDFIRE": "Incendio",
+  "MUD": "Barro",
+  "FREEZE": "Congelar",
+  "SANDSTORM": "Tormenta de Arena"
+ },
+ "reaction_text": {
+  "STEAM": "Fuego + Agua: le inflige el doble de las acumulaciones como daño.",
+  "MAGMA": "Fuego + Tierra: pierde todo su escudo y recibe Vulnerable 2.",
+  "WILDFIRE": "Fuego + Aire: todos los enemigos reciben esas acumulaciones de Fuego.",
+  "MUD": "Agua + Tierra: ganas el triple de las acumulaciones como escudo.",
+  "FREEZE": "Agua + Aire: pierde su próxima acción (jefes y élites: solo hacen la mitad de daño).",
+  "SANDSTORM": "Tierra + Aire: todos los enemigos reciben Débil 1."
+ },
+ "reaction_rule": "Si un enemigo con un elemento recibe otro distinto, se consumen los dos y se provoca una reacción con la suma de sus acumulaciones.",
+ "reactions": [
+  [
+   "Agua",
+   "Fuego",
+   "STEAM"
+  ],
+  [
+   "Tierra",
+   "Fuego",
+   "MAGMA"
+  ],
+  [
+   "Aire",
+   "Fuego",
+   "WILDFIRE"
+  ],
+  [
+   "Agua",
+   "Tierra",
+   "MUD"
+  ],
+  [
+   "Agua",
+   "Aire",
+   "FREEZE"
+  ],
+  [
+   "Tierra",
+   "Aire",
+   "SANDSTORM"
+  ]
+ ],
+ "element_color": {
+  "Fuego": [
+   255,
+   128,
+   72
+  ],
+  "Agua": [
+   110,
+   176,
+   255
+  ],
+  "Tierra": [
+   214,
+   168,
+   100
+  ],
+  "Aire": [
+   170,
+   236,
+   240
+  ]
+ },
+ "keyword_defs": {
+  "combo": {
+   "name": "Combo",
+   "rule": "Combo: efecto extra si ya jugaste otra carta este turno."
+  },
+  "singular": {
+   "name": "Singular",
+   "rule": "Singular: efecto extra si tu mazo inicial no tiene cartas repetidas."
+  },
+  "void": {
+   "name": "Vacío",
+   "rule": "Vacío: efecto extra si al jugarla te quedas con 0 de maná."
+  },
+  "spoil": {
+   "name": "Despojo",
+   "rule": "Despojo: efecto extra si ya descartaste una carta este turno."
+  },
+  "reaction": {
+   "name": "Reacción",
+   "rule": "Reacción: efecto extra si al jugarla provocas una reacción elemental."
+  },
+  "fury": {
+   "name": "Furia",
+   "rule": "Furia: efecto extra si ya perdiste vida este turno."
+  },
+  "endure": {
+   "name": "Aguante",
+   "rule": "Aguante: efecto extra si tienes escudo al jugarla."
+  }
+ },
+ "rich_rules": [
+  [
+   "[+\\-−]?\\d[\\d.,]*(?:[KMBTQE](?=\\s))?(?:\\s*[x×]\\s*\\d+)?\\s+(?:de\\s+)?daño(?:\\s+más)?",
+   [
+    255,
+    116,
+    92
+   ]
+  ],
+  [
+   "daño",
+   [
+    255,
+    116,
+    92
+   ]
+  ],
+  [
+   "[+\\-−]?\\d[\\d.,]*(?:[KMBTQE](?=\\s))?\\s+(?:puntos\\s+)?(?:de\\s+)?(?:escudo|bloqueo)",
+   [
+    112,
+    182,
+    255
+   ]
+  ],
+  [
+   "\\b(?:escudo|bloqueo|Bloqueo|Escudo)\\b",
+   [
+    112,
+    182,
+    255
+   ]
+  ],
+  [
+   "[+\\-−]?\\d[\\d.,]*(?:[KMBTQE](?=\\s))?\\s+de\\s+maná",
+   [
+    150,
+    226,
+    255
+   ]
+  ],
+  [
+   "[+\\-−]?\\d[\\d.,]*(?:[KMBTQE](?=\\s))?\\s+de\\s+vida",
+   [
+    255,
+    116,
+    92
+   ]
+  ],
+  [
+   "[+\\-−]?\\d[\\d.,]*(?:[KMBTQE](?=\\s))?\\s+de\\s+Veneno",
+   [
+    138,
+    226,
+    96
+   ]
+  ]
+ ],
+ "status_names": {
+  "POISON": "Veneno",
+  "MARKED": "Marcado",
+  "WEAK": "Débil",
+  "VULNERABLE": "Vulnerable",
+  "FRAIL": "Frágil",
+  "ENTANGLED": "Enredado",
+  "STRENGTH": "Fuerza",
+  "BLADES": "Espadas",
+  "FUSE": "Mecha",
+  "FIRE": "Fuego",
+  "WATER": "Agua",
+  "EARTH": "Tierra",
+  "AIR": "Aire",
+  "FROZEN": "Congelado"
+ }
+}

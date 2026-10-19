@@ -1,0 +1,1250 @@
+{
+ "combat_amulet": {
+  "id": "r_amulet",
+  "name": "Amuleto de Combate",
+  "description": "+1 maná máximo al inicio del combate.",
+  "rarity": 4,
+  "class": "neutral",
+  "sprite": "Amuleto de Combate"
+ },
+ "broken_totem": {
+  "id": "r_totem",
+  "name": "Tótem Roto",
+  "description": "+1 carta robada al inicio de cada turno.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Tótem Roto"
+ },
+ "fire_orb": {
+  "id": "r_fire",
+  "name": "Orbe de Fuego",
+  "description": "+2 de daño en todos los ataques.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Orbe de Fuego"
+ },
+ "spectral_shield": {
+  "id": "r_shield",
+  "name": "Escudo Espectral",
+  "description": "Sobrevive una vez con 1 HP a un golpe fatal.",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Escudo Espectral"
+ },
+ "energy_stone": {
+  "id": "r_energy",
+  "name": "Piedra de Energía",
+  "description": "+1 carta robada al inicio de cada turno.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Piedra de Energía"
+ },
+ "gold_ring": {
+  "id": "r_gold",
+  "name": "Anillo de Oro",
+  "description": "+15 de oro extra por victoria de combate.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Anillo de Oro"
+ },
+ "iron_heart": {
+  "id": "r_iron",
+  "name": "Corazón de Hierro",
+  "description": "+15 de HP máximo permanente.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Corazón de Hierro"
+ },
+ "blood_potion": {
+  "id": "r_blood",
+  "name": "Poción de Sangre",
+  "description": "Recupera 8 HP después de cada combate.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Poción de Sangre"
+ },
+ "vitality_amulet": {
+  "id": "r_vitality",
+  "name": "Amuleto de Vitalidad",
+  "description": "+10 de HP máximo permanente.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Amuleto de Vitalidad"
+ },
+ "seven_leaf_clover": {
+  "id": "r_clover",
+  "name": "Trébol de Siete Hojas",
+  "description": "+100 de suerte: muchas más cartas y reliquias doradas y de mayor rareza.",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Trébol de Siete Hojas"
+ },
+ "panacea": {
+  "id": "r_panacea",
+  "name": "Panacea",
+  "description": "Eres inmune a cualquier debuff de los enemigos.",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Panacea"
+ },
+ "eternal_fount": {
+  "id": "r_fount",
+  "name": "Fuente Eterna",
+  "description": "Al inicio de cada turno ganas 1 de maná máximo.",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Fuente Eterna"
+ },
+ "ankh": {
+  "id": "r_ankh",
+  "name": "Ankh",
+  "description": "Al recibir un golpe fatal, revives con toda tu vida (una vez).",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Ankh"
+ },
+ "singular_mirror": {
+  "id": "r_mirror",
+  "name": "Espejo Singular",
+  "description": "Al obtenerla, elimina todas tus cartas repetidas: te quedas con una copia de cada carta.",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Espejo Singular"
+ },
+ "evasion_brooch": {
+  "id": "r_brooch",
+  "name": "Broche de Evasión",
+  "description": "Cada vez que activas un Combo, ganas 1 de bloqueo.",
+  "rarity": 2,
+  "class": "rogue",
+  "sprite": "Broche de Evasión"
+ },
+ "throwing_knife": {
+  "id": "r_knife",
+  "name": "Cuchillo Arrojadizo",
+  "description": "Cada vez que activas un Combo, inflige 1 de daño a un enemigo al azar.",
+  "rarity": 2,
+  "class": "rogue",
+  "sprite": "Cuchillo Arrojadizo"
+ },
+ "rag_sack": {
+  "id": "r_rag_sack",
+  "name": "Saco de Trapos",
+  "description": "Cada vez que activas un Despojo, ganas 2 de escudo.",
+  "rarity": 1,
+  "class": "rogue",
+  "sprite": "Saco de Trapos"
+ },
+ "duelist_scarf": {
+  "id": "r_scarf",
+  "name": "Pañuelo del Duelista",
+  "description": "Cuando una carta activa su Combo, hace +2 de daño y da +2 de escudo.",
+  "rarity": 2,
+  "class": "rogue",
+  "sprite": "Pañuelo del Duelista"
+ },
+ "grappling_hook": {
+  "id": "r_hook",
+  "name": "Garfio",
+  "description": "La primera vez que activas un Despojo cada turno, robas 1 carta.",
+  "rarity": 2,
+  "class": "rogue",
+  "sprite": "Garfio"
+ },
+ "crimson_ribbon": {
+  "id": "r_ribbon",
+  "name": "Cinta Roja",
+  "description": "En el primer turno de cada combate, tus Combos se activan sin jugar otra carta antes.",
+  "rarity": 3,
+  "class": "rogue",
+  "sprite": "Cinta Roja"
+ },
+ "torn_pocket": {
+  "id": "r_pocket",
+  "name": "Bolsillo Roto",
+  "description": "Al inicio de cada turno, tras robar, descarta una carta al azar y roba 1.",
+  "rarity": 3,
+  "class": "rogue",
+  "sprite": "Bolsillo Roto"
+ },
+ "split_dagger": {
+  "id": "r_split",
+  "name": "Daga Partida",
+  "description": "Tus efectos de Despojo se activan dos veces.",
+  "rarity": 5,
+  "class": "rogue",
+  "sprite": "Daga Partida"
+ },
+ "dagger_pouch": {
+  "id": "r_pouch",
+  "name": "Bolsa de Dagas",
+  "description": "Al inicio de cada combate, mete 2 Dagas Ocultas en tu pila de robo.",
+  "rarity": 1,
+  "class": "rogue",
+  "sprite": "Bolsa de Dagas"
+ },
+ "sharp_sheath": {
+  "id": "r_sheath",
+  "name": "Vaina Afilada",
+  "description": "Tus Dagas Ocultas hacen +2 de daño.",
+  "rarity": 2,
+  "class": "rogue",
+  "sprite": "Vaina Afilada"
+ },
+ "poison_vial": {
+  "id": "r_vial",
+  "name": "Frasco de Veneno",
+  "description": "Tu primer ataque de cada turno aplica 1 de Veneno.",
+  "rarity": 2,
+  "class": "rogue",
+  "sprite": "Frasco de Veneno"
+ },
+ "viper_fang": {
+  "id": "r_fang",
+  "name": "Colmillo de Víbora",
+  "description": "Cuando un enemigo muere envenenado, su Veneno pasa a otro enemigo al azar.",
+  "rarity": 3,
+  "class": "rogue",
+  "sprite": "Colmillo de Víbora"
+ },
+ "thief_mask": {
+  "id": "r_mask",
+  "name": "Máscara del Ladrón",
+  "description": "+25% de oro en los combates y la tienda es un 10% más barata.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Máscara del Ladrón"
+ },
+ "lucky_coin": {
+  "id": "r_coin",
+  "name": "Moneda de la Suerte",
+  "description": "Si un efecto al azar golpea dos veces seguidas al mismo enemigo, ganas 1 de maná (una vez por turno).",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Moneda de la Suerte"
+ },
+ "silver_horseshoe": {
+  "id": "r_horseshoe",
+  "name": "Herradura de Plata",
+  "description": "+30 de suerte.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Herradura de Plata"
+ },
+ "silk_glove": {
+  "id": "r_glove",
+  "name": "Guante de Seda",
+  "description": "La tercera carta que juegas cada turno cuesta 0.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Guante de Seda"
+ },
+ "silent_boots": {
+  "id": "r_boots",
+  "name": "Botas Silenciosas",
+  "description": "En el primer turno de cada combate robas 2 cartas extra.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Botas Silenciosas"
+ },
+ "spider_thread": {
+  "id": "r_thread",
+  "name": "Hilo de Araña",
+  "description": "Si terminas el turno sin cartas en la mano, ganas 6 de escudo.",
+  "rarity": 4,
+  "class": "neutral",
+  "sprite": "Hilo de Araña"
+ },
+ "master_key": {
+  "id": "r_key",
+  "name": "Llave Maestra",
+  "description": "Las salas del tesoro te dejan elegir entre 2 reliquias.",
+  "rarity": 4,
+  "class": "neutral",
+  "sprite": "Llave Maestra"
+ },
+ "compound_interest": {
+  "id": "r_interest",
+  "name": "Interés Compuesto",
+  "description": "Cada vez que ganas oro, ganas además un 10% de tu oro total.",
+  "rarity": 4,
+  "class": "neutral",
+  "sprite": "Interés Compuesto"
+ },
+ "broken_clock": {
+  "id": "r_clock",
+  "name": "Reloj Roto",
+  "description": "Una vez por combate, al quedarte en 0 de maná con cartas en la mano, recuperas todo el maná.",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Reloj Roto"
+ },
+ "scar": {
+  "id": "r_scar",
+  "name": "Cicatriz",
+  "description": "Empiezas cada combate con 1 de Fuerza.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Cicatriz"
+ },
+ "war_bracer": {
+  "id": "r_bracer",
+  "name": "Brazal de Guerra",
+  "description": "Al empezar cada combate ganas 8 de escudo.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Brazal de Guerra"
+ },
+ "iron_fang": {
+  "id": "r_iron_fang",
+  "name": "Colmillo de Hierro",
+  "description": "Tu primer ataque de cada turno te cura 2.",
+  "rarity": 2,
+  "class": "warrior",
+  "sprite": "Colmillo de Hierro"
+ },
+ "soaked_bandage": {
+  "id": "r_bandage",
+  "name": "Venda Empapada",
+  "description": "La primera vez que pierdes vida en tu turno, robas 1 carta.",
+  "rarity": 2,
+  "class": "warrior",
+  "sprite": "Venda Empapada"
+ },
+ "blood_cup": {
+  "id": "r_blood_cup",
+  "name": "Copa de Sangre",
+  "description": "Todas tus curaciones en combate curan 2 más.",
+  "rarity": 3,
+  "class": "warrior",
+  "sprite": "Copa de Sangre"
+ },
+ "torn_banner": {
+  "id": "r_banner",
+  "name": "Estandarte Desgarrado",
+  "description": "Cada 3 veces que activas Furia, ganas 1 de Fuerza.",
+  "rarity": 4,
+  "class": "warrior",
+  "sprite": "Estandarte Desgarrado"
+ },
+ "titan_heart": {
+  "id": "r_titan",
+  "name": "Corazón de Titán",
+  "description": "La curación que sobrepasa tu vida máxima te da el doble de escudo.",
+  "rarity": 5,
+  "class": "warrior",
+  "sprite": "Corazón de Titán"
+ },
+ "diamond_cards": {
+  "id": "r_diamond_cards",
+  "name": "Cartas de Diamante",
+  "description": "Tus cartas doradas pasan a ser de Diamante: se lanzan 3 veces en lugar de 2.",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Cartas de Diamante"
+ },
+ "collector_seal": {
+  "id": "r_collector_seal",
+  "name": "Sello del Coleccionista",
+  "description": "Ya no te salen cartas Comunes ni Poco comunes en sobres ni recompensas.",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Sello del Coleccionista"
+ },
+ "antiquary_seal": {
+  "id": "r_antiquary_seal",
+  "name": "Sello del Anticuario",
+  "description": "Ya no te salen reliquias Comunes ni Poco comunes.",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Sello del Anticuario"
+ },
+ "stairway": {
+  "id": "r_stairway",
+  "name": "Escalera",
+  "description": "Si este turno juegas 3 cartas seguidas que cuesten 1 de maná más que la anterior (p. ej. 0-1-2), ganas +1 de Daño y +1 de Destreza para el resto del combate.",
+  "rarity": 4,
+  "class": "neutral",
+  "sprite": "Escalera"
+ },
+ "unique_piece": {
+  "id": "r_unique_piece",
+  "name": "Pieza Única",
+  "description": "Si tu mazo no tiene cartas repetidas, la primera carta que juegas cada turno cuesta 1 menos.",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Pieza Única"
+ },
+ "tailor_scissors": {
+  "id": "r_tailor_scissors",
+  "name": "Tijeras del Sastre",
+  "description": "Al obtenerla, elimina 3 cartas de tu mazo a tu elección.",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Tijeras del Sastre"
+ },
+ "whetstone": {
+  "id": "r_whetstone",
+  "name": "Piedra de Afilar",
+  "description": "Tu primer ataque de cada combate hace +6 de daño.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Piedra de Afilar"
+ },
+ "ragged_cape": {
+  "id": "r_ragged_cape",
+  "name": "Capa Raída",
+  "description": "Al final de tu turno, si no tienes escudo, ganas 3.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Capa Raída"
+ },
+ "votive_candle": {
+  "id": "r_votive_candle",
+  "name": "Vela Votiva",
+  "description": "Al empezar cada combate, el enemigo con más vida recibe 1 de Débil.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Vela Votiva"
+ },
+ "white_flag": {
+  "id": "r_white_flag",
+  "name": "Bandera Blanca",
+  "description": "El primer golpe que recibes en cada combate hace 4 menos de daño.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Bandera Blanca"
+ },
+ "dandelion": {
+  "id": "r_dandelion",
+  "name": "Diente de León",
+  "description": "Cada vez que derrotas a un enemigo, te curas 3.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Diente de León"
+ },
+ "oil_lamp": {
+  "id": "r_oil_lamp",
+  "name": "Lámpara de Aceite",
+  "description": "En tu primer turno de cada combate, tus cartas de escudo dan +3.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Lámpara de Aceite"
+ },
+ "wild_fruit": {
+  "id": "r_wild_fruit",
+  "name": "Fruta Silvestre",
+  "description": "Al obtenerla, +7 de vida máxima.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Fruta Silvestre"
+ },
+ "antidote": {
+  "id": "r_antidote",
+  "name": "Antídoto",
+  "description": "Eres inmune al Veneno.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Antídoto"
+ },
+ "war_horn": {
+  "id": "r_war_horn",
+  "name": "Cuerno de Guerra",
+  "description": "En el turno 3 de cada combate, tus ataques hacen +4 de daño.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Cuerno de Guerra"
+ },
+ "sandbag": {
+  "id": "r_sandbag",
+  "name": "Saco de Arena",
+  "description": "Si terminas el turno habiendo jugado 3 cartas o más, ganas 4 de escudo.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Saco de Arena"
+ },
+ "chess_piece": {
+  "id": "r_chess_piece",
+  "name": "Ficha de Ajedrez",
+  "description": "Si en un turno juegas exactamente 2 cartas, ganas 5 de escudo.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Ficha de Ajedrez"
+ },
+ "old_scroll": {
+  "id": "r_old_scroll",
+  "name": "Pergamino Viejo",
+  "description": "La primera Habilidad de cada combate cuesta 0.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Pergamino Viejo"
+ },
+ "tidy_pile": {
+  "id": "r_tidy_pile",
+  "name": "Pila Ordenada",
+  "description": "Cada vez que barajas tu descarte en la pila de robo, ganas 4 de escudo.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Pila Ordenada"
+ },
+ "monk_wraps": {
+  "id": "r_monk_wraps",
+  "name": "Vendas del Monje",
+  "description": "El primer debuff que recibes en cada combate no te afecta.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Vendas del Monje"
+ },
+ "spyglass": {
+  "id": "r_spyglass",
+  "name": "Catalejo",
+  "description": "Puedes ver las 3 primeras cartas de tu pila de robo.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Catalejo"
+ },
+ "rabbit_foot": {
+  "id": "r_rabbit_foot",
+  "name": "Pata de Conejo",
+  "description": "+15 de suerte.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Pata de Conejo"
+ },
+ "thorn_crown": {
+  "id": "r_thorn_crown",
+  "name": "Corona de Espinas",
+  "description": "Cada vez que un enemigo te golpea, recibe 2 de daño.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Corona de Espinas"
+ },
+ "frost_amulet": {
+  "id": "r_frost_amulet",
+  "name": "Amuleto de Escarcha",
+  "description": "Al empezar cada combate, un enemigo normal al azar queda Congelado (pierde su primera acción). No afecta a jefes ni élites.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Amuleto de Escarcha"
+ },
+ "breach_spear": {
+  "id": "r_breach_spear",
+  "name": "Lanza de Ruptura",
+  "description": "Tus ataques contra enemigos con escudo hacen +3 de daño.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Lanza de Ruptura"
+ },
+ "pendulum": {
+  "id": "r_pendulum",
+  "name": "Péndulo",
+  "description": "En turnos pares tus ataques hacen +2 de daño; en turnos impares tus cartas de escudo dan +2.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Péndulo"
+ },
+ "balance_bracelet": {
+  "id": "r_balance_bracelet",
+  "name": "Brazalete del Equilibrio",
+  "description": "Si en un turno juegas tantos Ataques como Habilidades (al menos 1 de cada), ganas 5 de escudo.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Brazalete del Equilibrio"
+ },
+ "empty_bowl": {
+  "id": "r_empty_bowl",
+  "name": "Cuenco Vacío",
+  "description": "Al final de tu turno, ganas 3 de escudo por cada maná que no gastaste.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Cuenco Vacío"
+ },
+ "hourglass": {
+  "id": "r_hourglass",
+  "name": "Reloj de Arena",
+  "description": "Cada 4 turnos de combate, robas 1 carta extra.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Reloj de Arena"
+ },
+ "anchor": {
+  "id": "r_anchor",
+  "name": "Ancla",
+  "description": "Tu escudo del primer turno de cada combate no se pierde al empezar el segundo.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Ancla"
+ },
+ "marked_cards": {
+  "id": "r_marked_cards",
+  "name": "Cartas Marcadas",
+  "description": "Al obtenerla, eliges 1 carta de tu mazo: empezarás cada combate con ella en la mano.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Cartas Marcadas"
+ },
+ "veteran_medal": {
+  "id": "r_veteran_medal",
+  "name": "Medalla del Veterano",
+  "description": "Cada vez que vences a una élite, +3 de vida máxima.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Medalla del Veterano"
+ },
+ "laurel_leaf": {
+  "id": "r_laurel_leaf",
+  "name": "Hoja de Laurel",
+  "description": "Al vencer a un jefe, te curas toda la vida.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Hoja de Laurel"
+ },
+ "phoenix_feather": {
+  "id": "r_phoenix_feather",
+  "name": "Pluma de Fénix",
+  "description": "Si empiezas un combate con menos de la mitad de vida, te curas 8.",
+  "rarity": 4,
+  "class": "neutral",
+  "sprite": "Pluma de Fénix"
+ },
+ "last_breath": {
+  "id": "r_last_breath",
+  "name": "Talismán del Último Aliento",
+  "description": "La primera vez en cada combate que bajas del 25 % de vida, ganas 15 de escudo.",
+  "rarity": 4,
+  "class": "neutral",
+  "sprite": "Talismán del Último Aliento"
+ },
+ "shackle": {
+  "id": "r_shackle",
+  "name": "Grillete",
+  "description": "Todos los enemigos empiezan el combate con 1 de Vulnerable.",
+  "rarity": 4,
+  "class": "neutral",
+  "sprite": "Grillete"
+ },
+ "magic_deck": {
+  "id": "r_magic_deck",
+  "name": "Baraja Mágica",
+  "description": "La primera vez en cada combate que tu pila de robo se queda vacía, robas 1 carta.",
+  "rarity": 4,
+  "class": "neutral",
+  "sprite": "Baraja Mágica"
+ },
+ "arcane_battery": {
+  "id": "r_arcane_battery",
+  "name": "Batería Arcana",
+  "description": "Si terminas el turno con maná sin gastar, guardas 1 para el siguiente turno.",
+  "rarity": 4,
+  "class": "neutral",
+  "sprite": "Batería Arcana"
+ },
+ "stone_heart": {
+  "id": "r_stone_heart",
+  "name": "Corazón de Piedra",
+  "description": "+30 de vida máxima, pero no puedes curarte durante los combates.",
+  "rarity": 4,
+  "class": "neutral",
+  "sprite": "Corazón de Piedra"
+ },
+ "prism": {
+  "id": "r_prism",
+  "name": "Prisma",
+  "description": "Tus cartas doradas cuestan 1 menos (mínimo 1).",
+  "rarity": 4,
+  "class": "neutral",
+  "sprite": "Prisma"
+ },
+ "touchstone": {
+  "id": "r_touchstone",
+  "name": "Piedra de Toque",
+  "description": "Tus cartas mejoradas hacen +2 de daño y dan +2 de escudo.",
+  "rarity": 4,
+  "class": "neutral",
+  "sprite": "Piedra de Toque"
+ },
+ "bottomless_bag": {
+  "id": "r_bottomless_bag",
+  "name": "Bolsa sin Fondo",
+  "description": "Los sobres dorados te dejan quedarte con 3 cartas en lugar de 2.",
+  "rarity": 4,
+  "class": "neutral",
+  "sprite": "Bolsa sin Fondo"
+ },
+ "cursed_contract": {
+  "id": "r_cursed_contract",
+  "name": "Contrato Maldito",
+  "description": "+1 de maná por turno, pero cada combate empieza con una carta Herida (Injugable) en tu pila de robo.",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Contrato Maldito"
+ },
+ "d20": {
+  "id": "r_d20",
+  "name": "Dado de Veinte Caras",
+  "description": "Al empezar cada combate, una carta al azar de tu mano inicial se vuelve dorada durante ese combate.",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Dado de Veinte Caras"
+ },
+ "mana_vial": {
+  "id": "r_mana_vial",
+  "name": "Ampolla de Maná",
+  "description": "Una vez por turno, si juegas 4 cartas y te quedas sin maná, recuperas 1.",
+  "rarity": 5,
+  "class": "neutral",
+  "sprite": "Ampolla de Maná"
+ },
+ "leaky_purse": {
+  "id": "r_leaky_purse",
+  "name": "Bolsa Agujereada",
+  "description": "Ganas 5 de oro al terminar cada sala.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Bolsa Agujereada"
+ },
+ "canteen": {
+  "id": "r_canteen",
+  "name": "Cantimplora",
+  "description": "Si ganas un combate sin perder vida, +15 de oro.",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Cantimplora"
+ },
+ "voucher": {
+  "id": "r_voucher",
+  "name": "Vale de Descuento",
+  "description": "En la próxima tienda que visites, una reliquia es gratis (se gasta al usarlo).",
+  "rarity": 1,
+  "class": "neutral",
+  "sprite": "Vale de Descuento"
+ },
+ "miner_pick": {
+  "id": "r_miner_pick",
+  "name": "Pico de Minero",
+  "description": "Las salas del tesoro dan además 25 de oro.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Pico de Minero"
+ },
+ "piggy_bank": {
+  "id": "r_piggy_bank",
+  "name": "Hucha",
+  "description": "Al entrar en una tienda, ganas 1 de oro por cada 10 que tengas (máx. 15).",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Hucha"
+ },
+ "grinning_skull": {
+  "id": "r_grinning_skull",
+  "name": "Calavera Sonriente",
+  "description": "Las élites dan +30 de oro.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Calavera Sonriente"
+ },
+ "portable_anvil": {
+  "id": "r_portable_anvil",
+  "name": "Yunque Portátil",
+  "description": "Al obtenerla, mejora 1 carta al azar de tu mazo.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Yunque Portátil"
+ },
+ "loaded_die": {
+  "id": "r_loaded_die",
+  "name": "Dado Cargado",
+  "description": "Una vez por sobre, puedes volver a tirar las cartas que ofrece.",
+  "rarity": 2,
+  "class": "neutral",
+  "sprite": "Dado Cargado"
+ },
+ "member_card": {
+  "id": "r_member_card",
+  "name": "Tarjeta de Socio",
+  "description": "La primera compra en cada tienda cuesta la mitad.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Tarjeta de Socio"
+ },
+ "hunting_trophy": {
+  "id": "r_hunting_trophy",
+  "name": "Trofeo de Caza",
+  "description": "Si ganas un combate en 3 turnos o menos, +20 de oro.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Trofeo de Caza"
+ },
+ "smith_hammer": {
+  "id": "r_smith_hammer",
+  "name": "Martillo del Herrero",
+  "description": "El Brujo te cobra la mitad por mejorar cartas.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Martillo del Herrero"
+ },
+ "iron_file": {
+  "id": "r_iron_file",
+  "name": "Lima de Hierro",
+  "description": "Al obtenerla, elimina 1 carta básica de tu mazo inicial.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Lima de Hierro"
+ },
+ "appraiser_lens": {
+  "id": "r_appraiser_lens",
+  "name": "Lupa del Tasador",
+  "description": "Las recompensas de combate ofrecen 1 carta más para elegir.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Lupa del Tasador"
+ },
+ "two_faced_coin": {
+  "id": "r_two_faced_coin",
+  "name": "Moneda de Dos Caras",
+  "description": "Una tirada gratis de gachapón por piso.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Moneda de Dos Caras"
+ },
+ "broken_chain": {
+  "id": "r_broken_chain",
+  "name": "Cadena Rota",
+  "description": "Las cartas de estado que te meten los enemigos se vuelven Etéreas.",
+  "rarity": 3,
+  "class": "neutral",
+  "sprite": "Cadena Rota"
+ },
+ "spiked_gauntlet": {
+  "id": "r_spiked_gauntlet",
+  "name": "Guantelete de Púas",
+  "description": "Cada vez que pierdes vida por tus cartas, inflige 2 de daño a un enemigo al azar.",
+  "rarity": 1,
+  "class": "warrior",
+  "sprite": "Guantelete de Púas"
+ },
+ "wristguard": {
+  "id": "r_wristguard",
+  "name": "Muñequera",
+  "description": "Tus cartas con Aguante dan +2 de escudo.",
+  "rarity": 1,
+  "class": "warrior",
+  "sprite": "Muñequera"
+ },
+ "field_bandage": {
+  "id": "r_field_bandage",
+  "name": "Venda de Campaña",
+  "description": "Al final de tu turno, si perdiste vida este turno, te curas 2.",
+  "rarity": 1,
+  "class": "warrior",
+  "sprite": "Venda de Campaña"
+ },
+ "dented_plate": {
+  "id": "r_dented_plate",
+  "name": "Peto Abollado",
+  "description": "Tus cartas de escudo dan +1 por cada 10 de vida que te faltan.",
+  "rarity": 2,
+  "class": "warrior",
+  "sprite": "Peto Abollado"
+ },
+ "fang_necklace": {
+  "id": "r_fang_necklace",
+  "name": "Collar de Colmillos",
+  "description": "Cada vez que matas a un enemigo, +1 de Fuerza para ese combate.",
+  "rarity": 2,
+  "class": "warrior",
+  "sprite": "Collar de Colmillos"
+ },
+ "notched_axe": {
+  "id": "r_notched_axe",
+  "name": "Hacha Mellada",
+  "description": "Tu primer ataque con Furia de cada turno hace +4 de daño.",
+  "rarity": 2,
+  "class": "warrior",
+  "sprite": "Hacha Mellada"
+ },
+ "blood_skin": {
+  "id": "r_blood_skin",
+  "name": "Odre de Sangre",
+  "description": "Si empiezas un combate con la vida llena, pierdes 5 y ganas 2 de Fuerza.",
+  "rarity": 2,
+  "class": "warrior",
+  "sprite": "Odre de Sangre"
+ },
+ "blood_gem": {
+  "id": "r_blood_gem",
+  "name": "Gema de Sangre",
+  "description": "La primera vez que te curas 10 o más en un turno, robas 1 carta.",
+  "rarity": 2,
+  "class": "warrior",
+  "sprite": "Gema de Sangre"
+ },
+ "martyr_shield": {
+  "id": "r_martyr_shield",
+  "name": "Escudo del Mártir",
+  "description": "Cada vez que pierdes vida por tus cartas, ganas el doble de esa cantidad en escudo.",
+  "rarity": 3,
+  "class": "warrior",
+  "sprite": "Escudo del Mártir"
+ },
+ "crimson_chalice": {
+  "id": "r_crimson_chalice",
+  "name": "Cáliz Carmesí",
+  "description": "Tu curación sobrante también hace ese daño a un enemigo al azar.",
+  "rarity": 3,
+  "class": "warrior",
+  "sprite": "Cáliz Carmesí"
+ },
+ "war_drum": {
+  "id": "r_war_drum",
+  "name": "Tambor de Guerra",
+  "description": "Cada 3 veces que activas Aguante, +1 de Fuerza.",
+  "rarity": 3,
+  "class": "warrior",
+  "sprite": "Tambor de Guerra"
+ },
+ "brazier": {
+  "id": "r_brazier",
+  "name": "Brasero",
+  "description": "Si empiezas tu turno sin escudo, tus ataques hacen +3 de daño ese turno.",
+  "rarity": 3,
+  "class": "warrior",
+  "sprite": "Brasero"
+ },
+ "worn_roundel": {
+  "id": "r_worn_roundel",
+  "name": "Rodela Gastada",
+  "description": "Al empezar tu turno, en lugar de perder todo tu escudo, conservas la mitad.",
+  "rarity": 4,
+  "class": "warrior",
+  "sprite": "Rodela Gastada"
+ },
+ "berserker_helm": {
+  "id": "r_berserker_helm",
+  "name": "Yelmo del Berserker",
+  "description": "Mientras estés por debajo de la mitad de vida, tus ataques hacen +3 de daño.",
+  "rarity": 4,
+  "class": "warrior",
+  "sprite": "Yelmo del Berserker"
+ },
+ "blood_rune": {
+  "id": "r_blood_rune",
+  "name": "Runa de Sangre",
+  "description": "Furia también se activa si un enemigo te hizo daño en su último turno.",
+  "rarity": 4,
+  "class": "warrior",
+  "sprite": "Runa de Sangre"
+ },
+ "legion_banner": {
+  "id": "r_legion_banner",
+  "name": "Estandarte de la Legión",
+  "description": "Si empiezas tu turno con más escudo que todo el daño que anuncian los enemigos, +1 de Fuerza.",
+  "rarity": 4,
+  "class": "warrior",
+  "sprite": "Estandarte de la Legión"
+ },
+ "racing_heart": {
+  "id": "r_racing_heart",
+  "name": "Corazón Desbocado",
+  "description": "Tu Fuerza se duplica al empezar un combate contra un jefe.",
+  "rarity": 5,
+  "class": "warrior",
+  "sprite": "Corazón Desbocado"
+ },
+ "molten_iron": {
+  "id": "r_molten_iron",
+  "name": "Hierro Fundido",
+  "description": "Tu primer ataque de cada turno suma tu escudo a su daño (máx. +15).",
+  "rarity": 5,
+  "class": "warrior",
+  "sprite": "Hierro Fundido"
+ },
+ "tinder": {
+  "id": "r_tinder",
+  "name": "Yesca",
+  "description": "Tus cartas que aplican Fuego aplican +1.",
+  "rarity": 1,
+  "class": "mage",
+  "sprite": "Yesca"
+ },
+ "seashell": {
+  "id": "r_seashell",
+  "name": "Concha Marina",
+  "description": "Tus cartas que aplican Agua aplican +1.",
+  "rarity": 1,
+  "class": "mage",
+  "sprite": "Concha Marina"
+ },
+ "pumice": {
+  "id": "r_pumice",
+  "name": "Piedra Pómez",
+  "description": "Tus cartas que aplican Tierra aplican +1.",
+  "rarity": 1,
+  "class": "mage",
+  "sprite": "Piedra Pómez"
+ },
+ "griffin_feather": {
+  "id": "r_griffin_feather",
+  "name": "Pluma de Grifo",
+  "description": "Tus cartas que aplican Aire aplican +1.",
+  "rarity": 1,
+  "class": "mage",
+  "sprite": "Pluma de Grifo"
+ },
+ "willow_wand": {
+  "id": "r_willow_wand",
+  "name": "Varita de Sauce",
+  "description": "Al empezar cada combate, un enemigo al azar recibe 2 de Agua.",
+  "rarity": 1,
+  "class": "mage",
+  "sprite": "Varita de Sauce"
+ },
+ "water_clock": {
+  "id": "r_water_clock",
+  "name": "Reloj de Agua",
+  "description": "La primera vez que activas Vacío cada turno, ganas 4 de escudo.",
+  "rarity": 2,
+  "class": "mage",
+  "sprite": "Reloj de Agua"
+ },
+ "pointy_hat": {
+  "id": "r_pointy_hat",
+  "name": "Sombrero Puntiagudo",
+  "description": "Tus cartas de 0 de maná aplican +1 del elemento que tengan.",
+  "rarity": 2,
+  "class": "mage",
+  "sprite": "Sombrero Puntiagudo"
+ },
+ "lava_stone": {
+  "id": "r_lava_stone",
+  "name": "Piedra de Lava",
+  "description": "Incendio extiende 1 de Fuego más a cada enemigo.",
+  "rarity": 2,
+  "class": "mage",
+  "sprite": "Piedra de Lava"
+ },
+ "witch_broom": {
+  "id": "r_witch_broom",
+  "name": "Escoba de Brujo",
+  "description": "Tormenta de Arena aplica Débil 2 en lugar de 1.",
+  "rarity": 2,
+  "class": "mage",
+  "sprite": "Escoba de Brujo"
+ },
+ "cauldron": {
+  "id": "r_cauldron",
+  "name": "Caldero",
+  "description": "Vapor también aplica 1 de Débil.",
+  "rarity": 3,
+  "class": "mage",
+  "sprite": "Caldero"
+ },
+ "volcano_ember": {
+  "id": "r_volcano_ember",
+  "name": "Ascua de Volcán",
+  "description": "Magma hace además 5 de daño.",
+  "rarity": 3,
+  "class": "mage",
+  "sprite": "Ascua de Volcán"
+ },
+ "storm_orb": {
+  "id": "r_storm_orb",
+  "name": "Orbe de Tormenta",
+  "description": "Cada reacción que provocas hace 3 de daño a un enemigo al azar.",
+  "rarity": 3,
+  "class": "mage",
+  "sprite": "Orbe de Tormenta"
+ },
+ "blank_grimoire": {
+  "id": "r_blank_grimoire",
+  "name": "Grimorio en Blanco",
+  "description": "Cada 3 veces que activas Vacío, robas 1 carta.",
+  "rarity": 3,
+  "class": "mage",
+  "sprite": "Grimorio en Blanco"
+ },
+ "lesser_fount": {
+  "id": "r_lesser_fount",
+  "name": "Fuente Menor",
+  "description": "Cuando activas Vacío con una carta de 3 de maná o más, recuperas 1 de maná.",
+  "rarity": 3,
+  "class": "mage",
+  "sprite": "Fuente Menor"
+ },
+ "frost_crystal": {
+  "id": "r_frost_crystal",
+  "name": "Cristal de Escarcha",
+  "description": "Congelar dura 1 turno más en enemigos normales.",
+  "rarity": 4,
+  "class": "mage",
+  "sprite": "Cristal de Escarcha"
+ },
+ "prismatic_lens": {
+  "id": "r_prismatic_lens",
+  "name": "Lente Prismática",
+  "description": "La primera reacción de cada combate ocurre 2 veces.",
+  "rarity": 4,
+  "class": "mage",
+  "sprite": "Lente Prismática"
+ },
+ "archmage_cloak": {
+  "id": "r_archmage_cloak",
+  "name": "Capa del Archimago",
+  "description": "El Daño del héroe también se suma al daño en área de tus cartas.",
+  "rarity": 4,
+  "class": "mage",
+  "sprite": "Capa del Archimago"
+ },
+ "ring_of_four": {
+  "id": "r_ring_of_four",
+  "name": "Anillo de los Cuatro",
+  "description": "Si en un mismo turno aplicas los 4 elementos, +1 de maná máximo para el resto del combate.",
+  "rarity": 5,
+  "class": "mage",
+  "sprite": "Anillo de los Cuatro"
+ },
+ "pocket_sharpener": {
+  "id": "r_pocket_sharpener",
+  "name": "Afiladora de Bolsillo",
+  "description": "La primera Daga Oculta de cada combate hace +4 de daño.",
+  "rarity": 1,
+  "class": "rogue",
+  "sprite": "Afiladora de Bolsillo"
+ },
+ "folding_knife": {
+  "id": "r_folding_knife",
+  "name": "Navaja Plegable",
+  "description": "Al empezar cada combate, el enemigo con menos vida queda con 2 de Marcado.",
+  "rarity": 1,
+  "class": "rogue",
+  "sprite": "Navaja Plegable"
+ },
+ "marble_bag": {
+  "id": "r_marble_bag",
+  "name": "Bolsa de Canicas",
+  "description": "Al empezar cada combate, descarta 1 carta al azar de tu mano y ganas 3 de escudo (activa Despojo).",
+  "rarity": 1,
+  "class": "rogue",
+  "sprite": "Bolsa de Canicas"
+ },
+ "rascal_boots": {
+  "id": "r_rascal_boots",
+  "name": "Botas de Ratero",
+  "description": "Si ganas un combate sin perder vida, +2 de suerte permanente.",
+  "rarity": 1,
+  "class": "rogue",
+  "sprite": "Botas de Ratero"
+ },
+ "thief_glove": {
+  "id": "r_thief_glove",
+  "name": "Guante de Ladrón",
+  "description": "Cada vez que descartas por un efecto, ganas 1 de oro (máx. 10 por combate).",
+  "rarity": 2,
+  "class": "rogue",
+  "sprite": "Guante de Ladrón"
+ },
+ "scorpion_venom": {
+  "id": "r_scorpion_venom",
+  "name": "Veneno de Escorpión",
+  "description": "El Veneno que aplicas a un enemigo Marcado se duplica.",
+  "rarity": 2,
+  "class": "rogue",
+  "sprite": "Veneno de Escorpión"
+ },
+ "black_silk": {
+  "id": "r_black_silk",
+  "name": "Hilo de Seda Negra",
+  "description": "El Marcado de los enemigos dura hasta el final de tu siguiente turno.",
+  "rarity": 2,
+  "class": "rogue",
+  "sprite": "Hilo de Seda Negra"
+ },
+ "bone_die": {
+  "id": "r_bone_die",
+  "name": "Dado de Hueso",
+  "description": "Tus cartas de suerte tiran una vez más y se quedan con el mejor resultado.",
+  "rarity": 2,
+  "class": "rogue",
+  "sprite": "Dado de Hueso"
+ },
+ "mist_flask": {
+  "id": "r_mist_flask",
+  "name": "Frasco de Neblina",
+  "description": "La primera vez que activas Despojo cada turno, el enemigo con más vida recibe 1 de Débil.",
+  "rarity": 2,
+  "class": "rogue",
+  "sprite": "Frasco de Neblina"
+ },
+ "lockpick": {
+  "id": "r_lockpick",
+  "name": "Ganzúa",
+  "description": "Las salas del tesoro dan además 20 de oro.",
+  "rarity": 2,
+  "class": "rogue",
+  "sprite": "Ganzúa"
+ },
+ "harlequin_mask": {
+  "id": "r_harlequin_mask",
+  "name": "Máscara de Arlequín",
+  "description": "Tu tercer Combo de cada turno hace +5 de daño.",
+  "rarity": 3,
+  "class": "rogue",
+  "sprite": "Máscara de Arlequín"
+ },
+ "capuche": {
+  "id": "r_capuche",
+  "name": "Capucha de Sombras",
+  "description": "En el primer turno de cada combate, el primer ataque enemigo hace la mitad de daño.",
+  "rarity": 3,
+  "class": "rogue",
+  "sprite": "Capucha de Sombras"
+ },
+ "poisoned_scarf": {
+  "id": "r_poisoned_scarf",
+  "name": "Pañuelo Envenenado",
+  "description": "Tu primer Combo de cada turno aplica 2 de Veneno al objetivo.",
+  "rarity": 3,
+  "class": "rogue",
+  "sprite": "Pañuelo Envenenado"
+ },
+ "twin_daggers": {
+  "id": "r_twin_daggers",
+  "name": "Dagas Gemelas",
+  "description": "Tus Dagas Ocultas golpean también a otro enemigo por la mitad de daño.",
+  "rarity": 3,
+  "class": "rogue",
+  "sprite": "Dagas Gemelas"
+ },
+ "fox_tail": {
+  "id": "r_fox_tail",
+  "name": "Cola de Zorro",
+  "description": "Tus Dagas Ocultas hacen +1 de daño por cada 3 de Veneno del objetivo.",
+  "rarity": 3,
+  "class": "rogue",
+  "sprite": "Cola de Zorro"
+ },
+ "stolen_watch": {
+  "id": "r_stolen_watch",
+  "name": "Reloj de Bolsillo Robado",
+  "description": "Si juegas 6 cartas en un turno, la siguiente cuesta 0.",
+  "rarity": 4,
+  "class": "rogue",
+  "sprite": "Reloj de Bolsillo Robado"
+ },
+ "singular_locket": {
+  "id": "r_singular_locket",
+  "name": "Medallón Singular",
+  "description": "Si tu mazo no tiene cartas repetidas, empiezas cada combate con 1 Daga Oculta en la mano.",
+  "rarity": 4,
+  "class": "rogue",
+  "sprite": "Medallón Singular"
+ },
+ "thief_king_crown": {
+  "id": "r_thief_king_crown",
+  "name": "Corona del Rey Ladrón",
+  "description": "Cuando un enemigo muere envenenado, tu siguiente carta cuesta 1 menos.",
+  "rarity": 5,
+  "class": "rogue",
+  "sprite": "Corona del Rey Ladrón"
+ }
+}

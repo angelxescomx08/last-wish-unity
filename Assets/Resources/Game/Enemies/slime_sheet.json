@@ -1,0 +1,145 @@
+{
+ "cell_w": 160,
+ "cell_h": 108,
+ "columns": 15,
+ "anchor": [
+  112,
+  102
+ ],
+ "scale": 2,
+ "sheet": "slime_sheet.png",
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 12,
+   "durations_ms": [
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110
+   ],
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "frames": 12,
+   "durations_ms": [
+    100,
+    110,
+    55,
+    55,
+    55,
+    60,
+    75,
+    65,
+    80,
+    80,
+    75,
+    95
+   ],
+   "loop": false
+  },
+  "spit": {
+   "row": 2,
+   "frames": 10,
+   "durations_ms": [
+    100,
+    110,
+    55,
+    55,
+    55,
+    60,
+    80,
+    85,
+    90,
+    100
+   ],
+   "loop": false
+  },
+  "cast": {
+   "row": 3,
+   "frames": 10,
+   "durations_ms": [
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    110
+   ],
+   "loop": false
+  },
+  "hurt": {
+   "row": 4,
+   "frames": 6,
+   "durations_ms": [
+    55,
+    60,
+    70,
+    80,
+    85,
+    105
+   ],
+   "loop": false
+  },
+  "death": {
+   "row": 5,
+   "frames": 15,
+   "durations_ms": [
+    70,
+    100,
+    80,
+    80,
+    80,
+    80,
+    80,
+    80,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    120
+   ],
+   "loop": false
+  }
+ },
+ "events": {
+  "attack": {
+   "strikes": [
+    5
+   ]
+  },
+  "spit": {
+   "strikes": [
+    5
+   ]
+  }
+ },
+ "moves": {
+  "slam": "attack",
+  "spit": "spit",
+  "corrode": "cast",
+  "vengeance": "cast"
+ },
+ "top_native": 52,
+ "idle_bbox_native": [
+  68,
+  52,
+  155,
+  102
+ ]
+}

@@ -11,10 +11,19 @@ namespace LastWish.Domain
     public sealed class StatusSet
     {
         private readonly int[] amounts = new int[14];
+        private readonly List<StatusKind> order = new List<StatusKind>(14);
         public int this[StatusKind kind] => amounts[(int)kind];
         public void Add(StatusKind kind, int amount)
-        { if (amount > 0) amounts[(int)kind] = (int)Math.Min(int.MaxValue, (long)amounts[(int)kind] + amount); }
-        public void Remove(StatusKind kind) => amounts[(int)kind] = 0;
+        {
+            if (amount <= 0) return;
+            if (amounts[(int)kind] == 0) { order.Remove(kind); order.Add(kind); }
+            amounts[(int)kind] = (int)Math.Min(int.MaxValue, (long)amounts[(int)kind] + amount);
+        }
+        public void Remove(StatusKind kind) { amounts[(int)kind] = 0; order.Remove(kind); }
+        /// <summary>Active statuses in the order they were gained (the original keeps a list).</summary>
+        public IEnumerable<StatusKind> Active { get { foreach (var k in order) if (amounts[(int)k] > 0) yield return k; } }
+        public int Count { get { var n = 0; foreach (var k in order) if (amounts[(int)k] > 0) n++; return n; } }
+        public void CopyFrom(StatusSet other) { Array.Copy(other.amounts, amounts, amounts.Length); order.Clear(); order.AddRange(other.order); }
         public void Tick(StatusKind kind) { if (amounts[(int)kind] > 0) amounts[(int)kind]--; }
         public int DebuffKinds
         {
@@ -90,12 +99,20 @@ namespace LastWish.Domain
         public StatusSet Statuses { get; } = new StatusSet();
         public EnemyIntent Intent { get; internal set; }
         public string PartnerId { get; internal set; }
+        public string PairName { get; internal set; }
         public int Step { get; internal set; }
         public int Charges { get; internal set; }
         public bool Enraged { get; internal set; }
         public bool VengeanceUsed { get; internal set; }
         public EnemyState(string id, EnemyDefinition definition, int floor, int hp)
         { Id = id; Definition = definition; Floor = floor; MaxHp = Hp = hp; }
+        /// <summary>An independent copy (play previews); the intent object is shared because intents are never mutated after planning.</summary>
+        internal EnemyState Clone()
+        {
+            var copy = new EnemyState(Id, Definition, Floor, MaxHp) { Hp = Hp, Block = Block, Intent = Intent, PartnerId = PartnerId, PairName = PairName, Step = Step, Charges = Charges, Enraged = Enraged, VengeanceUsed = VengeanceUsed };
+            copy.Statuses.CopyFrom(Statuses);
+            return copy;
+        }
         public void GainBlock(int amount) { if (Alive && amount > 0) Block = (int)Math.Min(int.MaxValue, (long)Block + amount); }
         public void ClearBlock() => Block = 0;
         public int LoseHp(int amount)

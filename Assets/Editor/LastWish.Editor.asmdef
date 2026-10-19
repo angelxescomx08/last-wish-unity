@@ -1,7 +1,9 @@
 {
   "name": "LastWish.Editor",
   "references": [
-    "LastWish.Runtime"
+    "LastWish.Runtime",
+    "LastWish.Domain",
+    "LastWish.Presentation"
   ],
   "includePlatforms": [
     "Editor"

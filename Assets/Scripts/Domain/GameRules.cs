@@ -37,8 +37,8 @@ namespace LastWish.Domain
         public string AssetId => Kind.ToString().ToLowerInvariant();
         private HeroDefinition(HeroKind kind, string name, int hp, int mana, int attack, int dexterity = 0, int luck = 0)
         { Kind = kind; Name = name; MaxHp = hp; MaxMana = mana; AttackBonus = attack; Dexterity = dexterity; Luck = luck; }
-        public HeroDefinition WithBonuses(int attack, int mana, int hp) =>
-            new HeroDefinition(Kind, Name, MaxHp + hp, MaxMana + mana, AttackBonus + attack, Dexterity, Luck);
+        public HeroDefinition WithBonuses(int attack, int mana, int hp, int luck = 0, int dexterity = 0) =>
+            new HeroDefinition(Kind, Name, MaxHp + hp, MaxMana + mana, AttackBonus + attack, Dexterity + dexterity, Luck + luck);
         public static HeroDefinition OriginalFor(HeroKind kind)
         {
             switch (kind)
@@ -80,10 +80,19 @@ namespace LastWish.Domain
         public int ComboBlock { get; }
         public int EndureStrength { get; }
         public int FireStacks { get; }
+        public ChromaKind Chroma { get; }
+        public int CastCount => (int)Chroma + 1;
+        public bool PlayOnDraw { get; }
+        public bool Innate { get; }
         public CardDefinition Upgrade() => Upgraded ? this : new CardDefinition(Id, Name + "+", Damage.Value == 0 && Block == 0 && Cost > 0 ? Cost - 1 : Cost,
             Damage.Value > 0 ? Damage.Value + BigInteger.Max(3, Damage.Value / 3) : Damage.Value,
             Block > 0 ? (int)Math.Min(int.MaxValue, Block + (long)Math.Max(3, Block / 3)) : 0,
-            Draw + (Damage.Value == 0 && Block == 0 && Cost == 0 ? 1 : 0), ManaGain, true, Rarity, ClassId, Theme, ComboBlock, EndureStrength, FireStacks, UpgradedEffects(), Kind);
+            Draw + (Damage.Value == 0 && Block == 0 && Cost == 0 ? 1 : 0), ManaGain, true, Rarity, ClassId, Theme, ComboBlock, EndureStrength, FireStacks, UpgradedEffects(), Kind, Chroma, PlayOnDraw, Innate);
+
+        public CardDefinition WithChroma(ChromaKind chroma) => Copy(chroma, Innate);
+        public CardDefinition WithInnate() => Copy(Chroma, true);
+        private CardDefinition Copy(ChromaKind chroma, bool innate) => new CardDefinition(Id, Name, Cost, Damage.Value, Block, Draw, ManaGain,
+            Upgraded, Rarity, ClassId, Theme, ComboBlock, EndureStrength, FireStacks, Effects?.ToArray(), Kind, chroma, PlayOnDraw, innate);
 
         private EffectLayer[] UpgradedEffects()
         {
@@ -94,10 +103,14 @@ namespace LastWish.Domain
             return result;
         }
 
-        public CardDefinition(string id, string name, int cost, BigInteger damage, int block, int draw = 0, int manaGain = 0, bool upgraded = false, int rarity = 1, string classId = "neutral", string theme = "acero", int comboBlock = 0, int endureStrength = 0, int fireStacks = 0, EffectLayer[] effects = null, CardKind kind = CardKind.Auto)
+        /// <summary>A distinct object with the same values (each card of a fight is its own object, like the original's copy.copy).</summary>
+        public CardDefinition Copy() => (CardDefinition)MemberwiseClone();
+        public CardDefinition(string id, string name, int cost, BigInteger damage, int block, int draw = 0, int manaGain = 0, bool upgraded = false, int rarity = 1, string classId = "neutral", string theme = "acero", int comboBlock = 0, int endureStrength = 0, int fireStacks = 0, EffectLayer[] effects = null, CardKind kind = CardKind.Auto, ChromaKind chroma = ChromaKind.None, bool playOnDraw = false, bool innate = false)
         {
             if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name)) throw new ArgumentException();
             if (cost < 0 || block < 0 || draw < 0 || manaGain < 0 || rarity < 1 || rarity > 5 || comboBlock < 0 || endureStrength < 0 || fireStacks < 0) throw new ArgumentOutOfRangeException();
+            if (!Enum.IsDefined(typeof(ChromaKind), chroma)) throw new ArgumentOutOfRangeException(nameof(chroma));
+            Chroma = chroma; PlayOnDraw = playOnDraw; Innate = innate;
             Id = id; Name = name; Cost = cost; Damage = new BigValue(damage); Block = block; Draw = draw; ManaGain = manaGain; Upgraded = upgraded; Rarity = rarity; ClassId = classId; Theme = theme; ComboBlock = comboBlock; EndureStrength = endureStrength; FireStacks = fireStacks;
             if (effects != null && effects.Any(e => e == null)) throw new ArgumentException("Null effect layer");
             Effects = effects == null ? null : new List<EffectLayer>(effects).AsReadOnly();

@@ -1,0 +1,143 @@
+{
+ "cell_w": 152,
+ "cell_h": 108,
+ "columns": 12,
+ "anchor": [
+  104,
+  102
+ ],
+ "scale": 2,
+ "sheet": "mimic_sheet.png",
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 12,
+   "durations_ms": [
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110,
+    110
+   ],
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "frames": 10,
+   "durations_ms": [
+    100,
+    110,
+    130,
+    60,
+    60,
+    75,
+    80,
+    85,
+    90,
+    110
+   ],
+   "loop": false
+  },
+  "lick": {
+   "row": 2,
+   "frames": 12,
+   "durations_ms": [
+    90,
+    100,
+    90,
+    60,
+    70,
+    60,
+    70,
+    60,
+    80,
+    90,
+    90,
+    110
+   ],
+   "loop": false
+  },
+  "cast": {
+   "row": 3,
+   "frames": 9,
+   "durations_ms": [
+    70,
+    80,
+    90,
+    90,
+    100,
+    90,
+    90,
+    90,
+    110
+   ],
+   "loop": false
+  },
+  "hurt": {
+   "row": 4,
+   "frames": 6,
+   "durations_ms": [
+    55,
+    60,
+    70,
+    80,
+    90,
+    100
+   ],
+   "loop": false
+  },
+  "death": {
+   "row": 5,
+   "frames": 12,
+   "durations_ms": [
+    70,
+    90,
+    100,
+    100,
+    90,
+    90,
+    90,
+    90,
+    90,
+    90,
+    90,
+    120
+   ],
+   "loop": false
+  }
+ },
+ "events": {
+  "attack": {
+   "strikes": [
+    4
+   ]
+  },
+  "lick": {
+   "strikes": [
+    3,
+    5,
+    7
+   ]
+  }
+ },
+ "moves": {
+  "chomp": "attack",
+  "lick": "lick",
+  "feign": "cast",
+  "vengeance": "cast"
+ },
+ "top_native": 45,
+ "idle_bbox_native": [
+  65,
+  45,
+  144,
+  103
+ ]
+}

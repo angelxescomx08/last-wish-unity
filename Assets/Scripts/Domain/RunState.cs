@@ -2,189 +2,576 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Numerics;
 
 namespace LastWish.Domain
 {
+    public enum PullKind { Normal, Stellar }
+
+    public sealed class PullDefinition
+    {
+        public PullKind Kind { get; }
+        public string Name { get; }
+        public int BasePrice { get; }
+        public double[] Weights { get; }
+        public double ChromaBoost { get; }
+        public string Note { get; }
+        public PullDefinition(PullKind kind, string name, int basePrice, double[] weights, double boost, string note)
+        { Kind = kind; Name = name; BasePrice = basePrice; Weights = weights; ChromaBoost = boost; Note = note; }
+    }
+
+    public sealed class PullResult
+    {
+        public bool Success { get; internal set; }
+        public string Message { get; internal set; } = "";
+        public RelicOffer Relic { get; internal set; }
+        public PullKind Kind { get; internal set; }
+        public int Price { get; internal set; }
+        public bool Duplicate { get; internal set; }
+        public bool Settled { get; internal set; }
+        public bool Accepted { get; internal set; }
+        public int Rarity => Relic?.Definition.Rarity ?? 0;
+    }
+
+    /// <summary>A deck choice a relic asked for: "remove" (Tijeras del Sastre) or "innate" (Cartas Marcadas).</summary>
+    public sealed class DeckChoice
+    {
+        public string Kind { get; }
+        public int Count { get; }
+        public bool Remove => Kind == "remove";
+        public DeckChoice(string kind, int count)
+        { if (kind != "remove" && kind != "innate") throw new ArgumentException(nameof(kind)); if (count < 0 || count > 10000) throw new ArgumentOutOfRangeException(); Kind = kind; Count = count; }
+    }
+
+    /// <summary>
+    /// Everything that survives between rooms (domain/run.py) and the run use cases
+    /// (run_manager, card_rewards, gacha, warlock, purge, deck_choice), ported with the
+    /// original seeded generator so a seed replays the same run.
+    /// </summary>
     public sealed partial class RunState
     {
+        public const int MinDeck = 1, PurgeBase = 75, PurgeStep = 25, RewardCount = 3, PackSize = 5, EliteCardLuck = 5;
+        private static readonly BigInteger Mask64 = (BigInteger.One << 64) - 1;
+        private static readonly BigInteger Mask48 = (BigInteger.One << 48) - 1;
+        private const long EnemyPrime = 2654435761L, RewardPrime = 3141592653L;
+        private const long ChromaSalt = 0x5EEDC0DE, LuckySalt = 0x7C10FE11, GachaPrime = 0x9E3779B1;
+        private static readonly int[] UpgradePrices = { 50, 75, 100, 150, 200 };
+        public static readonly IReadOnlyList<PullDefinition> PullDefinitions = Array.AsReadOnly(new[] {
+            new PullDefinition(PullKind.Normal, "Tirada normal", 80, new[] { 50.0, 28.0, 14.0, 6.0, 2.0 }, 1.0, "Probabilidades de siempre."),
+            new PullDefinition(PullKind.Stellar, "Tirada estelar", 190, new[] { 0.0, 40.0, 34.0, 18.0, 8.0 }, 2.0, "Nunca Común · doble de dorada."),
+        });
+        public static readonly double[] BaseRarityWeight = { 50.0, 28.0, 14.0, 6.0, 2.0 };
+
         private readonly List<CardDefinition> deck = new List<CardDefinition>();
-        private readonly List<string> relics = new List<string>();
-        private readonly HashSet<string> sold = new HashSet<string>();
+        private readonly List<OwnedRelic> ownedRelics = new List<OwnedRelic>();
+        private readonly List<DeckChoice> choices = new List<DeckChoice>();
+
         public HeroKind HeroKind { get; }
         public HeroDefinition Hero => HeroDefinition.OriginalFor(HeroKind);
-        public int Seed { get; }
-        public int ForcedEncounter { get; set; }
-        public int ForcedBoss { get; set; }
-        public int ForcedElite { get; set; }
+        public long Seed { get; }
         public int Floor { get; private set; } = 1;
-        public int Gold { get; private set; } = 2000;
+        public int Gold { get; private set; }
         public int Hp { get; private set; }
-        public int MaxHp => Hero.MaxHp + RelicCount("iron") * 15 + RelicCount("vitality") * 10;
-        public int Pulls { get; private set; }
-        public int Removed { get; private set; }
         public RunMap Map { get; private set; }
         public string CurrentRoomId { get; private set; }
-        public bool RoomCompleted { get; private set; } = true;
-        public bool IsDead => Hp <= 0;
+        public int Pulls { get; private set; }
+        public int Removed { get; private set; }
+        public int InterestEarned { get; private set; }
+        public int LastInterest { get; private set; }
+        public int BonusMaxHp { get; private set; }
+        public int BonusLuck { get; private set; }
+        public int FreeGachaFloor { get; private set; }
         public ReadOnlyCollection<CardDefinition> Deck { get; }
-        public ReadOnlyCollection<string> Relics { get; }
-        public int PurgePrice => ShopPrice(checked(75 + 25 * Removed));
-        public int RelicCount(string id) => relics.Count(r => r == id);
-        public int ShopPrice(int value) => Math.Max(1, (int)Math.Round(value * (1 - Math.Min(.5, RelicCount("mask") * .1))));
+        public ReadOnlyCollection<OwnedRelic> OwnedRelics { get; }
+        public ReadOnlyCollection<DeckChoice> PendingChoices { get; }
+        public bool IsDead => Hp <= 0;
+        public MapRoom CurrentRoom => Map.Find(CurrentRoomId);
 
-        public RunState(HeroKind hero, int seed)
+        public RunState(HeroKind hero, long seed)
         {
-            HeroKind = hero; Seed = seed; Hp = Hero.MaxHp;
-            Deck = deck.AsReadOnly(); Relics = relics.AsReadOnly();
+            if (seed < 0) throw new ArgumentOutOfRangeException(nameof(seed));
+            HeroKind = hero; Seed = seed;
+            Deck = deck.AsReadOnly(); OwnedRelics = ownedRelics.AsReadOnly(); PendingChoices = choices.AsReadOnly();
+            Gold = Tuning.Current.StartingGold; Hp = Hero.MaxHp + Tuning.Current.ExtraMaxHp;
             deck.AddRange(RunContent.StarterDeck(hero)); Map = RunMap.Generate(seed, Floor);
         }
-        public bool Enter(string id)
+
+        private static int Clamp(long value) => (int)Math.Min(int.MaxValue, Math.Max(0, value));
+        private static int Clamp(BigInteger value) => value > int.MaxValue ? int.MaxValue : value < 0 ? 0 : (int)value;
+
+        // ------------------------------------------------------------ relic queries
+        public int RelicEffect(string tag, int amount = 1)
+        {
+            long total = 0;
+            foreach (var r in ownedRelics) if (r.Active && r.Definition.Tag == tag) total += (long)amount * r.Multiplier;
+            return Clamp(total);
+        }
+        public bool HasRelic(string tag) => RelicEffect(tag) > 0;
+        public int RelicMaxHpBonus => Clamp((long)RelicEffect("iron_heart", 15) + RelicEffect("vitality_amulet", 10) + RelicEffect("wild_fruit", 7) + RelicEffect("stone_heart", 30) + Tuning.Current.ExtraMaxHp);
+        public int MaxHp => Clamp((long)Hero.MaxHp + RelicMaxHpBonus + BonusMaxHp);
+        public int RelicLuck => Clamp((long)RelicEffect("seven_leaf_clover", 100) + RelicEffect("silver_horseshoe", 30) + RelicEffect("rabbit_foot", 15));
+        /// <summary>run_manager.run_luck: character + Pruebas + relics + what the run won.</summary>
+        public int Luck => Clamp((long)Tuning.HeroLuck(Hero.Luck) + RelicLuck + BonusLuck);
+        public int TreasureChoices => 1 + RelicEffect("master_key");
+
+        public HashSet<string> AllowedCardClasses()
+        {
+            if (Tuning.Current.AllClassCards) return new HashSet<string>(RunContent.ClassIds);
+            var result = new HashSet<string> { "neutral", RunContent.ClassOf(HeroKind) };
+            foreach (var r in ownedRelics) if (r.Active) foreach (var c in r.Definition.CardClasses) result.Add(c);
+            return result;
+        }
+
+        // ------------------------------------------------------------ rarity / chroma
+        public static double RarityWeight(int rarity, int luck) => BaseRarityWeight[rarity - 1] * (1.0 + 0.10 * Math.Max(0, luck) * (rarity - 1));
+
+        public static List<T> WeightedSample<T>(IEnumerable<T> items, int count, PyRandom rng, Func<T, int> rarityOf, int luck)
+        {
+            var remaining = items.ToList(); var chosen = new List<T>();
+            while (remaining.Count > 0 && chosen.Count < count)
+            {
+                var tiers = remaining.Select(rarityOf).Distinct().OrderBy(t => t).ToList();
+                var weights = tiers.Select(t => RarityWeight(t, luck)).ToList();
+                var tier = rng.WeightedChoice(tiers, weights);
+                var options = remaining.Where(i => rarityOf(i) == tier).ToList();
+                var pick = rng.Choice(options);
+                remaining.Remove(pick); chosen.Add(pick);
+            }
+            return chosen;
+        }
+
+        public static double LuckChromaMultiplier(int luck) => 1.0 + 0.10 * Math.Max(0, luck);
+
+        /// <summary>chroma.roll_chroma: one rng call; golden is the only droppable chroma.</summary>
+        public static ChromaKind RollChroma(PyRandom rng, string kind, int luck)
+        {
+            var boost = LuckChromaMultiplier(luck);
+            var roll = rng.Random();
+            var acc = Math.Min(1.0, Tuning.ChromaChance(ChromaKind.Golden, kind) * boost);
+            return roll < acc ? ChromaKind.Golden : ChromaKind.None;
+        }
+
+        public static (double first, double second) LuckyCardChances(int luck)
+        {
+            luck = Math.Max(0, luck);
+            return (Math.Min(1.0, luck / 100.0), Math.Min(1.0, Math.Max(0, luck - 100) / 200.0));
+        }
+
+        public static int LuckyCardCount(int luck, PyRandom rng)
+        {
+            var (first, second) = LuckyCardChances(luck);
+            double a = rng.Random(), b = rng.Random();
+            if (a >= first) return 0;
+            return b < second ? 2 : 1;
+        }
+
+        // ------------------------------------------------------------ seeds
+        private static uint Crc(string text) => PyRandom.Crc32(text ?? "None");
+        public BigInteger EnemySeed(string roomId) => ((BigInteger)Seed * EnemyPrime + (BigInteger)Floor * 997 + Crc(roomId)) & Mask64;
+        public BigInteger RewardSeed(string roomId) => ((BigInteger)Seed * RewardPrime + (BigInteger)Floor * 1999 + Crc(roomId)) & Mask64;
+
+        // ------------------------------------------------------------ rooms
+        /// <summary>Map click: mark the room visited (unlocking its neighbours), then the room relics.</summary>
+        public MapRoom EnterRoom(string id)
         {
             var node = Map.Find(id);
-            if (IsDead || !RoomCompleted || node == null || node.Visited || !node.Available) return false;
-            node.Visited = true; node.Available = false; CurrentRoomId = id; RoomCompleted = false; return true;
+            if (node == null || IsDead || choices.Count > 0 || node.Visited || !node.Available) return null;
+            Map.MarkVisited(id); CurrentRoomId = id; EnterRoomRelics(node.Kind);
+            return node;
         }
-        public bool CompleteRoom()
-        {
-            var node = Map.Find(CurrentRoomId);
-            if (node == null || RoomCompleted || IsDead) return false;
-            RoomCompleted = true; Map.Unlock(node); return true;
-        }
-        public bool AdvanceFloor()
-        {
-            if (IsDead || !RoomCompleted || CurrentRoomId != Map.BossId || Floor == int.MaxValue) return false;
-            Floor++; Map = RunMap.Generate(Seed, Floor); CurrentRoomId = null; sold.Clear(); return true;
-        }
-        public void GainGold(int value)
-        {
-            if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
-            Gold = (int)Math.Min(int.MaxValue, (long)Gold + value);
-        }
-        public bool Spend(int value)
-        { if (value < 0 || value > Gold || IsDead) return false; Gold -= value; return true; }
-        public void Heal(int value)
-        { if (value < 0) throw new ArgumentOutOfRangeException(nameof(value)); if (!IsDead) Hp = (int)Math.Min(MaxHp, (long)Hp + value); }
-        public void ApplyCombatResult(int hp, int reward)
-        {
-            if (hp < 0 || hp > MaxHp || reward < 0) throw new ArgumentOutOfRangeException();
-            Hp = hp;
-            if (!IsDead) { GainGold((int)Math.Min(int.MaxValue, Math.Round((reward + RelicCount("gold") * 15.0) * (1 + .25 * RelicCount("mask"))))); Heal(RelicCount("blood") * 8); }
-        }
-        public void AddCard(CardDefinition card) => deck.Add(card ?? throw new ArgumentNullException(nameof(card)));
-        public bool BuyCard(string offer, CardDefinition card, int price)
-        {
-            if (string.IsNullOrEmpty(offer) || card == null || sold.Contains(offer) || !Spend(price)) return false;
-            sold.Add(offer); deck.Add(card); return true;
-        }
-        public bool BuyPack(string offer, int price)
-        {
-            if (string.IsNullOrEmpty(offer) || sold.Contains(offer) || !Spend(price)) return false;
-            sold.Add(offer); return true;
-        }
-        public bool IsSold(string offer) => sold.Contains(offer);
-        public bool AcquireRelic(string id)
-        {
-            if (!RunContent.Relics.Any(r => r.Id == id)) return false;
-            var before = MaxHp; relics.Add(id); Hp += MaxHp - before; return true;
-        }
-        public bool BuyRelic(string offer, string id, int price)
-        {
-            if (sold.Contains(offer) || !RunContent.Relics.Any(r => r.Id == id) || !Spend(price)) return false;
-            sold.Add(offer); AcquireRelic(id); return true;
-        }
-        public bool Purge(int index)
-        {
-            if (index < 0 || index >= deck.Count || deck.Count <= 1 || !Spend(PurgePrice)) return false;
-            deck.RemoveAt(index); Removed++; return true;
-        }
-        public int UpgradePrice(int index) => index < 0 || index >= deck.Count ? int.MaxValue : new[] { 50, 75, 100, 150, 200 }[Math.Max(1, Math.Min(5, deck[index].Rarity)) - 1];
-        public bool Upgrade(int index)
-        {
-            if (index < 0 || index >= deck.Count || deck[index].Upgraded || !Spend(UpgradePrice(index))) return false;
-            deck[index] = deck[index].Upgrade(); return true;
-        }
-        public static int PullPrice(bool stellar, int pulls)
-        {
-            var raw = (stellar ? 190.0 : 80.0) * Math.Pow(1.5, Math.Max(0, pulls));
-            return raw >= int.MaxValue - 5 ? int.MaxValue : Math.Max(5, (int)Math.Round(raw / 5) * 5);
-        }
-        public RelicDefinition Pull(bool stellar)
-        {
-            var price = ShopPrice(PullPrice(stellar, Pulls));
-            if (Gold < price || IsDead) return null;
-            var pool = RunContent.Relics.Where(r => !relics.Contains(r.Id)).ToArray();
-            if (pool.Length == 0) pool = RunContent.Relics.ToArray();
-            if (pool.Length == 0 || !Spend(price)) return null;
-            var random = new Random(unchecked(Seed * 397 + Pulls * 7919));
-            var weights = stellar ? new[] { 0.0, 40, 34, 18, 8 } : new[] { 50.0, 28, 14, 6, 2 };
-            var tiers = pool.Select(r => r.Rarity).Distinct().OrderBy(t => t).ToArray();
-            var luck = HeroKind == HeroKind.Warrior ? 2 : HeroKind == HeroKind.Mage ? 5 : 8;
-            var total = tiers.Sum(t => weights[t - 1] * (1 + .1 * luck * (t - 1)));
-            var roll = random.NextDouble() * total; var tier = tiers[0];
-            foreach (var candidate in tiers) { roll -= weights[candidate - 1] * (1 + .1 * luck * (candidate - 1)); if (roll < 0) { tier = candidate; break; } }
-            var candidates = pool.Where(r => r.Rarity == tier).ToArray();
-            Pulls++; return candidates[random.Next(candidates.Length)];
-        }
-        public void RestoreProgress(string completedRoom, IEnumerable<string> visited)
-        {
-            if (completedRoom != null && Map.Find(completedRoom) == null) throw new ArgumentException(nameof(completedRoom));
-            foreach (var id in visited)
-            {
-                var node = Map.Find(id) ?? throw new ArgumentException(nameof(visited));
-                node.Visited = true; node.Available = false; Map.Unlock(node);
-            }
-            CurrentRoomId = completedRoom; RoomCompleted = true;
-            if (completedRoom != null) { Map.Find(completedRoom).Visited = true; Map.Find(completedRoom).Available = false; Map.Unlock(Map.Find(completedRoom)); }
-            foreach (var node in Map.Nodes.Where(n => n.Visited)) node.Available = false;
-        }
-        public CombatState CreateBattle()
-        {
-            var room = Map.Find(CurrentRoomId) ?? throw new InvalidOperationException("No active room");
-            var seed = unchecked(Seed * 397 ^ Floor * 997 ^ room.Row * 31 ^ room.Column);
-            var encounter = EnemyCatalog.Roll(seed, Floor, room.Id, room.Kind, room.Kind == RoomKind.Boss ? ForcedBoss : room.Kind == RoomKind.Elite ? ForcedElite : ForcedEncounter);
-            return new CombatState(Hero.WithBonuses(RelicCount("fire") * 2, RelicCount("amulet"), MaxHp - Hero.MaxHp), deck,
-                seed, Hp, encounter, RelicCount("totem"));
-        }
-    }
 
-    public sealed class RelicDefinition
-    {
-        public string Id { get; }
-        public string Name { get; }
-        public string Description { get; }
-        public int Rarity { get; }
-        public RelicDefinition(string id, string name, string description, int rarity)
-        { Id = id; Name = name; Description = description; Rarity = rarity; }
-    }
-    public static class RunContent
-    {
-        public static readonly IReadOnlyList<RelicDefinition> Relics = Array.AsReadOnly(new[] {
-            new RelicDefinition("amulet", "Amuleto de Combate", "+1 maná máximo en combate", 4),
-            new RelicDefinition("fire", "Orbe de Fuego", "+2 de daño en ataques", 2),
-            new RelicDefinition("totem", "Tótem Roto", "+1 carta al robar cada turno", 3),
-            new RelicDefinition("gold", "Anillo de Oro", "+15 de oro por victoria", 1),
-            new RelicDefinition("iron", "Corazón de Hierro", "+15 de vida máxima", 2),
-            new RelicDefinition("vitality", "Amuleto de Vitalidad", "+10 de vida máxima", 1),
-            new RelicDefinition("blood", "Poción de Sangre", "Recupera 8 de vida tras vencer", 1),
-            new RelicDefinition("mask", "Máscara del Ladrón", "Tienda -10 % y oro de combate +25 %", 1)
-        });
-        public static List<CardDefinition> StarterDeck(HeroKind kind)
+        /// <summary>run_manager.enter_room: Bolsa Agujereada, Hucha, Pico de Minero, Ganzúa.</summary>
+        public int EnterRoomRelics(RoomKind kind)
         {
-            var cards = new List<CardDefinition>();
-            var owner = kind.ToString().ToLowerInvariant();
-            var rogue = kind == HeroKind.Rogue;
-            var attackId = rogue ? "punalada_base" : kind == HeroKind.Mage ? "proyectil_base" : "espadazo_base";
-            var attackName = rogue ? "Puñalada" : kind == HeroKind.Mage ? "Proyectil Arcano" : "Espadazo";
-            var blockId = rogue ? "esquiva_base" : kind == HeroKind.Mage ? "egida_base" : "bloqueo_base";
-            var blockName = rogue ? "Esquiva" : kind == HeroKind.Mage ? "Égida" : "Bloqueo";
-            for (var i = 0; i < (kind == HeroKind.Warrior ? 5 : 4); i++) cards.Add(new CardDefinition(attackId, attackName, 1, 6, 0, classId: owner));
-            for (var i = 0; i < (kind == HeroKind.Mage ? 5 : 4); i++) cards.Add(new CardDefinition(blockId, blockName, 1, 0, rogue ? 6 : 5, classId: owner));
-            if (rogue) cards.Add(new CardDefinition("finta_base", "Finta", 1, 4, 0, classId: owner, comboBlock: 4));
-            else if (kind == HeroKind.Mage) cards.Add(new CardDefinition("chispa_ignea_base", "Chispa Ígnea", 1, 4, 0, classId: owner, fireStacks: 2));
-            else cards.Add(new CardDefinition("guardia_ferrea_base", "Guardia Férrea", 1, 0, 5, classId: owner, endureStrength: 1));
+            long gold = RelicEffect("leaky_purse", 5);
+            if (kind == RoomKind.Shop) gold += Math.Min(RelicEffect("piggy_bank", 15), (long)(Gold / 10) * RelicEffect("piggy_bank"));
+            if (kind == RoomKind.Treasure) gold += (long)RelicEffect("miner_pick", 25) + RelicEffect("lockpick", 20);
+            if (gold > 0) GainGold(Clamp(gold));
+            return Clamp(gold);
+        }
+
+        public void AdvanceFloor()
+        {
+            if (Floor == int.MaxValue) return;
+            Floor++; Map = RunMap.Generate(Seed, Floor); CurrentRoomId = null;
+        }
+
+        // ------------------------------------------------------------ enemies
+        public List<EnemyState> GenerateEnemies(string roomId)
+        {
+            if (Tuning.Current.BossRooms) return GenerateBoss();
+            if (Tuning.Current.EliteRooms) return GenerateElite(roomId);
+            return EnemyCatalog.RollEncounter(new PyRandom(EnemySeed(roomId)), Floor, roomId, Tuning.Current.ForcedEncounter);
+        }
+
+        public List<EnemyState> GenerateElite(string roomId) =>
+            EnemyCatalog.RollElite(new PyRandom(EnemySeed(roomId) ^ 0xE117E), Floor, roomId, Tuning.Current.ForcedElite);
+
+        public string FloorBossAi()
+        {
+            if (Floor != 1) return null;
+            var forced = Tuning.Current.ForcedBoss;
+            if (forced >= 1 && forced <= EnemyCatalog.Floor1Bosses.Count) return EnemyCatalog.Floor1Bosses[forced - 1];
+            return new PyRandom(((BigInteger)Seed * EnemyPrime) ^ 0xB055).Choice(EnemyCatalog.Floor1Bosses);
+        }
+
+        public List<EnemyState> GenerateBoss()
+        {
+            var ai = FloorBossAi();
+            return new List<EnemyState> { ai != null ? EnemyCatalog.Create(ai, Floor, "boss_f" + Floor) : EnemyCatalog.CreateCryptLord(Floor) };
+        }
+
+        /// <summary>combat_factory.create_combat_from_run: run deck, relics, HP and the Pruebas stats.</summary>
+        public CombatState CreateCombat(IEnumerable<EnemyState> enemies, int? combatSeed = null)
+        {
+            var t = Tuning.Current;
+            var hero = Hero.WithBonuses(t.ExtraDamage, t.ExtraMana, MaxHp - Hero.MaxHp, Luck - Hero.Luck, t.ExtraDexterity);
+            var seed = combatSeed ?? unchecked((int)(uint)(EnemySeed(CurrentRoomId ?? "combat") & uint.MaxValue));
+            return new CombatState(hero, deck, seed, Math.Min(Hp, hero.MaxHp), enemies, Math.Max(0, t.ExtraDraw), ownedRelics) { Invincible = t.Invincible };
+        }
+
+        // ------------------------------------------------------------ victory, gold, events
+        public int CombatGold(IEnumerable<EnemyState> enemies)
+        {
+            long worth = 0; foreach (var e in enemies) worth += Math.Max(1, e.MaxHp / 8);
+            worth += RelicEffect("gold_ring", 15);
+            var multiplier = 1.0 + 0.25 * RelicEffect("thief_mask");
+            return Clamp((long)Math.Round(worth * multiplier * Tuning.Current.GoldMultiplier, MidpointRounding.ToEven));
+        }
+
+        /// <summary>run_manager.apply_combat_victory. Returns the gold earned (before interest).</summary>
+        public int ApplyCombatVictory(int hpAfter, IEnumerable<EnemyState> enemies, int bonusGold = 0, int? hpLost = null, int? turns = null, bool elite = false, bool boss = false)
+        {
+            var list = enemies.ToList();
+            long hp = hpAfter;
+            if (elite && HasRelic("veteran_medal")) { BonusMaxHp = Clamp((long)BonusMaxHp + RelicEffect("veteran_medal", 3)); hp += RelicEffect("veteran_medal", 3); }
+            var newHp = Math.Min(hp + RelicEffect("blood_potion", 8), MaxHp);
+            if (boss && HasRelic("laurel_leaf")) newHp = MaxHp;
+            Hp = Math.Max(1, Clamp(newHp));
+            long gold = (long)CombatGold(list) + Math.Max(0, bonusGold);
+            if (hpLost.HasValue && hpLost.Value <= 0) { gold += RelicEffect("canteen", 15); BonusLuck = Clamp((long)BonusLuck + RelicEffect("rascal_boots", 2)); }
+            if (turns.HasValue && turns.Value <= 3) gold += RelicEffect("hunting_trophy", 20);
+            if (elite) gold += RelicEffect("grinning_skull", 30);
+            GainGold(Clamp(gold));
+            return Clamp(gold);
+        }
+
+        /// <summary>The run ended in a defeat: the hero is dead.</summary>
+        public void ApplyDefeat() { Hp = 0; }
+
+        /// <summary>run_manager.gain_gold (the single entry point of gold gains). Returns the interest paid.</summary>
+        public int GainGold(int amount)
+        {
+            LastInterest = 0;
+            if (amount <= 0) return 0;
+            Gold = Clamp((long)Gold + amount);
+            var interest = Clamp((long)Gold * RelicEffect("compound_interest", 10) / 100);
+            Gold = Clamp((long)Gold + interest);
+            LastInterest = interest; InterestEarned = Clamp((long)InterestEarned + interest);
+            return interest;
+        }
+
+        public bool Spend(int amount)
+        { if (amount < 0 || amount > Gold) return false; Gold -= amount; return true; }
+
+        public void Heal(int amount) { if (amount > 0 && !IsDead) Hp = (int)Math.Min(MaxHp, (long)Hp + amount); }
+
+        public int EventGold(string roomId)
+        {
+            var rng = new PyRandom(EnemySeed(roomId) ^ 0xABCD);
+            return Clamp((long)Math.Round(rng.RandInt(10 + Floor * 2, 25 + Floor * 3) * Tuning.Current.GoldMultiplier, MidpointRounding.ToEven));
+        }
+
+        // ------------------------------------------------------------ cards
+        public void AddCard(CardDefinition card)
+        {
+            if (card == null) throw new ArgumentNullException(nameof(card));
+            deck.Add(card.Chroma == ChromaKind.Golden && HasRelic("diamond_cards") ? card.WithChroma(ChromaKind.Diamond) : card);
+        }
+
+        public int RewardCardCount(int count = RewardCount) => count + RelicEffect("appraiser_lens");
+
+        private List<CardDefinition> PickCards(IEnumerable<CardDefinition> pool, int count, PyRandom rng, int luck)
+        {
+            var list = pool.ToList();
+            if (HasRelic("collector_seal")) { var high = list.Where(c => c.Rarity >= 3).ToList(); if (high.Count > 0) list = high; }
+            return WeightedSample(list, count, rng, c => c.Rarity, luck);
+        }
+
+        private static List<OfferedCard> WithChromas(IEnumerable<CardDefinition> cards, BigInteger seed, int luck, bool lucky = false)
+        {
+            var rng = new PyRandom(seed ^ ChromaSalt);
+            return cards.Select(c => new OfferedCard(c.WithChroma(RollChroma(rng, "card", luck)), lucky)).ToList();
+        }
+
+        private IEnumerable<CardDefinition> PoolForClasses(HashSet<string> allowed) => RunContent.Cards.Where(c => allowed.Contains(c.ClassId));
+
+        public List<OfferedCard> PickRewardCards(string roomId, int count = RewardCount, int luckBonus = 0)
+        {
+            var seed = RewardSeed(roomId);
+            var rng = new PyRandom(seed);
+            var chosen = PickCards(PoolForClasses(AllowedCardClasses()), RewardCardCount(count), rng, Luck + Math.Max(0, luckBonus));
+            var cards = WithChromas(chosen, seed, Luck);
+            cards.AddRange(LuckyCards(seed, new HashSet<string>(cards.Select(c => c.Card.Id))));
             return cards;
         }
-        public static CardDefinition[] ForHero(HeroKind kind) => Cards.Where(c => c.ClassId == "neutral" || c.ClassId == kind.ToString().ToLowerInvariant()).ToArray();
-        public static readonly IReadOnlyList<CardDefinition> Cards = NumericCards.All;
+
+        public List<OfferedCard> PickPackCards(PackTheme theme, int count = PackSize, int reroll = 0)
+        {
+            var themeId = RunContent.Pack(theme).Id;
+            var seed = RewardSeed("pack_" + themeId + "_" + Floor + (reroll != 0 ? "_r" + reroll : ""));
+            var rng = new PyRandom(seed);
+            var allowed = AllowedCardClasses();
+            var chosen = PickCards(RunContent.Cards.Where(c => c.Theme == themeId && allowed.Contains(c.ClassId)), count, rng, Luck);
+            if (chosen.Count < count)
+            {
+                var extra = PoolForClasses(allowed).Where(c => c.Theme != themeId && !chosen.Contains(c));
+                chosen.AddRange(PickCards(extra, count - chosen.Count, rng, Luck));
+            }
+            var cards = WithChromas(chosen, seed, Luck);
+            cards.AddRange(LuckyCards(seed, new HashSet<string>(cards.Select(c => c.Card.Id))));
+            return cards;
+        }
+
+        /// <summary>card_rewards.lucky_cards: luck's extra "Cartas de la suerte" (usually none).</summary>
+        public List<OfferedCard> LuckyCards(BigInteger seed, HashSet<string> exclude)
+        {
+            var luck = Luck;
+            var rng = new PyRandom(seed ^ LuckySalt);
+            var n = LuckyCardCount(luck, rng);
+            if (n == 0) return new List<OfferedCard>();
+            var pool = PoolForClasses(AllowedCardClasses()).Where(c => !exclude.Contains(c.Id)).ToList();
+            var rare = pool.Where(c => c.Rarity >= 3).ToList();
+            var chosen = PickCards(rare.Count >= n ? rare : pool, n, rng, luck);
+            return WithChromas(chosen, seed ^ LuckySalt, luck, true);
+        }
+
+        /// <summary>Cards you keep from a pack: its chroma multiplier; Bolsa sin Fondo makes golden keep 3.</summary>
+        public int PackPicks(ChromaKind chroma)
+        {
+            var picks = (int)chroma + 1;
+            if (chroma == ChromaKind.Golden && HasRelic("bottomless_bag")) picks++;
+            return picks;
+        }
+
+        // ------------------------------------------------------------ relics
+        public List<RelicDefinition> RelicPool(int minimum = 1)
+        {
+            var own = RunContent.ClassOf(HeroKind);
+            var allowed = RunContent.Relics.Where(r => r.ClassId == "neutral" || r.ClassId == own).ToList();
+            if (HasRelic("antiquary_seal")) { var high = allowed.Where(r => r.Rarity >= 3).ToList(); if (high.Count > 0) allowed = high; }
+            var owned = new HashSet<string>(ownedRelics.Select(r => r.Definition.Tag));
+            var pool = allowed.Where(r => !owned.Contains(r.Tag)).ToList();
+            return pool.Count >= minimum ? pool : allowed;
+        }
+
+        private static List<RelicOffer> WithRelicChroma(IEnumerable<RelicDefinition> relics, PyRandom rng, int luck) =>
+            relics.ToList().Select(r => new RelicOffer(r, RollChroma(rng, "relic", luck))).ToList();
+
+        private static List<RelicDefinition> PickRelics(List<RelicDefinition> pool, int count, PyRandom rng, int luck) => WeightedSample(pool, count, rng, r => r.Rarity, luck);
+
+        public List<RelicOffer> PickTreasureRelics(string roomId)
+        {
+            var count = TreasureChoices;
+            var pool = RelicPool(count);
+            var rng = new PyRandom(EnemySeed(roomId) ^ 0x1234);
+            return WithRelicChroma(PickRelics(pool, Math.Min(count, pool.Count), rng, Luck), rng, Luck);
+        }
+
+        public RelicOffer PickEliteRelic(string roomId)
+        {
+            var rng = new PyRandom(EnemySeed(roomId) ^ 0xE1173);
+            return WithRelicChroma(PickRelics(RelicPool(1), 1, rng, Luck), rng, Luck)[0];
+        }
+
+        public List<RelicOffer> PickBossRelics(int count = 3)
+        {
+            var rng = new PyRandom((BigInteger)Seed * 37 + (BigInteger)Floor * 13);
+            return WithRelicChroma(PickRelics(RelicPool(count), count, rng, Luck), rng, Luck);
+        }
+
+        public int ShopPrice(int value)
+        {
+            var discount = Math.Min(0.5, 0.10 * RelicEffect("thief_mask"));
+            return Math.Max(1, (int)Math.Round(value * (1.0 - discount), MidpointRounding.ToEven));
+        }
+
+        /// <summary>run_manager.pick_shop_stock: three packs and three relics, stable for this room.</summary>
+        public (List<PackOffer> packs, List<RelicOffer> relics) PickShopStock()
+        {
+            var rng = new PyRandom("shop:" + Seed + ":" + Floor + ":" + (CurrentRoomId ?? "None"));
+            var pool = RelicPool(3);
+            var packs = rng.Sample(RunContent.Packs, 3);
+            var relics = WithRelicChroma(PickRelics(pool, 3, rng, Luck), rng, Luck);
+            var packOffers = packs.Select(p => new PackOffer(p, RollChroma(rng, "pack", Luck))).ToList();
+            return (packOffers, relics);
+        }
+
+        /// <summary>Shop price now: Máscara del Ladrón, Tarjeta de Socio (first purchase half), Vale de Descuento.</summary>
+        public int ShopOfferPrice(int basePrice, bool relic, int purchases)
+        {
+            if (relic && HasRelic("voucher")) return 0;
+            var price = ShopPrice(basePrice);
+            if (purchases == 0 && HasRelic("member_card")) price = Math.Max(1, price / 2);
+            return price;
+        }
+
+        public bool UseVoucher()
+        {
+            var voucher = ownedRelics.FirstOrDefault(r => r.Active && r.Definition.Tag == "voucher");
+            if (voucher == null) return false;
+            voucher.Restore(false, voucher.TimesTriggered); return true;
+        }
+
+        public OwnedRelic AcquireRelic(RelicOffer offer)
+        {
+            if (offer == null) throw new ArgumentNullException(nameof(offer));
+            var relic = new OwnedRelic(offer.Definition, offer.Chroma);
+            ownedRelics.Add(relic); ApplyPickup(relic); return relic;
+        }
+        public OwnedRelic AcquireRelic(string idOrTag, ChromaKind chroma = ChromaKind.None)
+        {
+            var definition = RunContent.RelicById(idOrTag) ?? RunContent.RelicByTag(idOrTag);
+            return definition == null ? null : AcquireRelic(new RelicOffer(definition, chroma));
+        }
+
+        private void ApplyPickup(OwnedRelic relic)
+        {
+            Hp = Math.Min(Hp, MaxHp);
+            var times = relic.Multiplier;
+            switch (relic.Definition.Tag)
+            {
+                case "singular_mirror":
+                    var best = new Dictionary<string, int>(); var order = new List<string>();
+                    for (var i = 0; i < deck.Count; i++)
+                    {
+                        if (!best.TryGetValue(deck[i].Id, out var previous)) { best[deck[i].Id] = i; order.Add(deck[i].Id); }
+                        else if (deck[previous].Chroma == ChromaKind.None && deck[i].Chroma != ChromaKind.None) best[deck[i].Id] = i;
+                    }
+                    var kept = order.Select(id => deck[best[id]]).ToList(); deck.Clear(); deck.AddRange(kept); break;
+                case "diamond_cards":
+                    for (var i = 0; i < deck.Count; i++) if (deck[i].Chroma == ChromaKind.Golden) deck[i] = deck[i].WithChroma(ChromaKind.Diamond);
+                    break;
+                case "portable_anvil":
+                    var rng = new PyRandom((BigInteger)Seed * 31 + ownedRelics.Count);
+                    for (var t = 0; t < times; t++)
+                    {
+                        var options = Enumerable.Range(0, deck.Count).Where(i => CanUpgrade(deck[i])).ToList();
+                        if (options.Count > 0) { var index = rng.Choice(options); deck[index] = deck[index].Upgrade(); }
+                    }
+                    break;
+                case "iron_file":
+                    for (var t = 0; t < times; t++) { var index = deck.FindIndex(c => c.Id.EndsWith("_base", StringComparison.Ordinal)); if (index >= 0 && deck.Count > 1) deck.RemoveAt(index); }
+                    break;
+                case "tailor_scissors": choices.Add(new DeckChoice("remove", 3 * times)); break;
+                case "marked_cards": choices.Add(new DeckChoice("innate", times)); break;
+            }
+        }
+
+        // ------------------------------------------------------------ deck choices
+        public int ChoiceLimit(string kind, int count) =>
+            kind == "remove" ? Math.Max(0, Math.Min(count, deck.Count - MinDeck)) : Math.Max(0, Math.Min(count, deck.Count));
+
+        /// <summary>deck_choice.apply_choice: invalid or repeated indices are ignored. Returns the cards affected.</summary>
+        public int ApplyChoice(string kind, IEnumerable<int> indices)
+        {
+            var valid = indices.Where(i => i >= 0 && i < deck.Count).Distinct().OrderBy(i => i).ToList();
+            valid = valid.Take(ChoiceLimit(kind, valid.Count)).ToList();
+            if (kind == "remove") for (var k = valid.Count - 1; k >= 0; k--) deck.RemoveAt(valid[k]);
+            else if (kind == "innate") foreach (var i in valid) deck[i] = deck[i].WithInnate();
+            return valid.Count;
+        }
+
+        public DeckChoice NextChoice()
+        {
+            if (choices.Count == 0) return null;
+            var next = choices[0]; choices.RemoveAt(0); return next;
+        }
+
+        // ------------------------------------------------------------ warlock / purge
+        public static bool CanUpgrade(CardDefinition card) => !card.Upgraded;
+        public int UpgradePrice(CardDefinition card)
+        {
+            var price = UpgradePrices[Math.Max(1, Math.Min(5, card.Rarity)) - 1] * (card.Upgraded ? 2 : 1);
+            return HasRelic("smith_hammer") ? (price + 1) / 2 : price;
+        }
+        public bool CanBuyUpgrade(CardDefinition card) => CanUpgrade(card) && Gold >= UpgradePrice(card);
+        public bool BuyUpgrade(int index)
+        {
+            if (index < 0 || index >= deck.Count || !CanBuyUpgrade(deck[index])) return false;
+            Gold -= UpgradePrice(deck[index]); deck[index] = deck[index].Upgrade(); return true;
+        }
+
+        public int PurgePrice => ShopPrice(PurgeBase + PurgeStep * Math.Max(0, Removed));
+        public string PurgeBlockReason()
+        {
+            if (deck.Count <= MinDeck) return "Es tu última carta: tu mazo no puede quedarse vacío";
+            if (Gold < PurgePrice) return "No tienes suficiente oro";
+            return "";
+        }
+        public bool CanPurge => PurgeBlockReason() == "";
+        public CardDefinition PurgeCard(int index)
+        {
+            if (index < 0 || index >= deck.Count || !CanPurge) return null;
+            Gold -= PurgePrice; Removed++;
+            var card = deck[index]; deck.RemoveAt(index); return card;
+        }
+
+        // ------------------------------------------------------------ gachapón
+        public static int PullPrice(PullKind kind, int pullsDone)
+        {
+            var raw = PullDefinitions[(int)kind].BasePrice * Math.Pow(1.5, Math.Max(0, pullsDone));
+            if (raw >= int.MaxValue - 5) return int.MaxValue;
+            return Math.Max(5, (int)Math.Round(raw / 5.0, MidpointRounding.ToEven) * 5);
+        }
+
+        public static double TierWeight(PullKind kind, int rarity, int luck) =>
+            PullDefinitions[(int)kind].Weights[rarity - 1] * (1.0 + 0.10 * Math.Max(0, luck) * (rarity - 1));
+
+        public static Dictionary<int, double> PullOdds(PullKind kind, int luck, IEnumerable<int> tiers = null)
+        {
+            var list = (tiers ?? new[] { 1, 2, 3, 4, 5 }).ToList();
+            var weights = list.ToDictionary(t => t, t => TierWeight(kind, t, luck));
+            var total = weights.Values.Sum();
+            if (total <= 0) { weights = list.ToDictionary(t => t, t => 1.0); total = list.Count == 0 ? 1.0 : list.Count; }
+            return weights.ToDictionary(p => p.Key, p => p.Value / total);
+        }
+
+        public bool FreePullReady(PullKind kind) => kind == PullKind.Normal && FreeGachaFloor != Floor && HasRelic("two_faced_coin");
+        public int GachaPrice(PullKind kind) => FreePullReady(kind) ? 0 : ShopPrice(PullPrice(kind, Pulls));
+        public bool CanPull(PullKind kind) => Gold >= GachaPrice(kind);
+        public Dictionary<int, double> GachaOdds(PullKind kind) => PullOdds(kind, Luck);
+
+        public PullResult Pull(PullKind kind)
+        {
+            var price = GachaPrice(kind);
+            if (Gold < price) return new PullResult { Success = false, Message = "¡No tienes oro suficiente!", Kind = kind, Price = price };
+            var rng = new PyRandom(((BigInteger)Seed * GachaPrime + 7919L * (Pulls + 1)) & Mask48);
+            var owned = new HashSet<string>(ownedRelics.Select(r => r.Definition.Tag));
+            var pool = RelicPool();
+            var luck = Luck;
+            if (pool.Count == 0) return new PullResult { Success = false, Message = "La máquina está vacía.", Kind = kind, Price = price };
+            var present = pool.Select(r => r.Rarity).Distinct().OrderBy(t => t).ToList();
+            var odds = PullOdds(kind, luck, present);
+            var tier = rng.WeightedChoice(present, present.Select(t => odds[t]).ToList());
+            var relic = rng.Choice(pool.Where(r => r.Rarity == tier).ToList());
+            if (FreePullReady(kind)) FreeGachaFloor = Floor;
+            Gold -= price; Pulls++;
+            var boost = PullDefinitions[(int)kind].ChromaBoost;
+            var chroma = RollChroma(rng, "relic", (int)(luck * boost + 10 * (boost - 1)));
+            return new PullResult { Success = true, Message = "¡" + relic.Name + "!", Relic = new RelicOffer(relic, chroma), Kind = kind, Price = price, Duplicate = owned.Contains(relic.Tag) };
+        }
+
+        public bool AcceptPull(PullResult result)
+        {
+            if (result == null || !result.Success || result.Relic == null || result.Settled) return false;
+            AcquireRelic(result.Relic); result.Settled = result.Accepted = true; return true;
+        }
+
+        public static bool DeclinePull(PullResult result)
+        {
+            if (result == null || !result.Success || result.Relic == null || result.Settled) return false;
+            result.Settled = true; result.Accepted = false; return true;
+        }
     }
 }
