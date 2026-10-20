@@ -1,0 +1,142 @@
+{
+ "cell_w": 144,
+ "cell_h": 108,
+ "columns": 13,
+ "anchor": [
+  96,
+  102
+ ],
+ "scale": 2,
+ "sheet": "crow_sheet.png",
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 12,
+   "durations_ms": [
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105
+   ],
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "frames": 11,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    55,
+    95,
+    100,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "gouge": {
+   "row": 2,
+   "frames": 10,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    55,
+    60,
+    85,
+    90,
+    95,
+    110
+   ],
+   "loop": false
+  },
+  "cast": {
+   "row": 3,
+   "frames": 9,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    60,
+    80,
+    85,
+    90,
+    95,
+    110
+   ],
+   "loop": false
+  },
+  "hurt": {
+   "row": 4,
+   "frames": 6,
+   "durations_ms": [
+    55,
+    60,
+    70,
+    80,
+    90,
+    100
+   ],
+   "loop": false
+  },
+  "death": {
+   "row": 5,
+   "frames": 13,
+   "durations_ms": [
+    70,
+    90,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    120
+   ],
+   "loop": false
+  }
+ },
+ "events": {
+  "attack": {
+   "strikes": [
+    4,
+    6
+   ]
+  },
+  "gouge": {
+   "strikes": [
+    5
+   ]
+  }
+ },
+ "moves": {
+  "peck": "attack",
+  "gouge": "gouge",
+  "caw": "cast",
+  "vengeance": "cast"
+ },
+ "top_native": 50,
+ "idle_bbox_native": [
+  70,
+  50,
+  131,
+  103
+ ]
+}

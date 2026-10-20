@@ -1,0 +1,159 @@
+{
+ "cell_w": 160,
+ "cell_h": 108,
+ "columns": 14,
+ "anchor": [
+  112,
+  102
+ ],
+ "scale": 2,
+ "sheet": "toad_sheet.png",
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 12,
+   "durations_ms": [
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105
+   ],
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "frames": 10,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "tongue": {
+   "row": 2,
+   "frames": 10,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "swallow": {
+   "row": 3,
+   "frames": 11,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    55,
+    80,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "cast": {
+   "row": 4,
+   "frames": 9,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    60,
+    80,
+    85,
+    90,
+    95,
+    110
+   ],
+   "loop": false
+  },
+  "hurt": {
+   "row": 5,
+   "frames": 6,
+   "durations_ms": [
+    55,
+    60,
+    70,
+    80,
+    90,
+    100
+   ],
+   "loop": false
+  },
+  "death": {
+   "row": 6,
+   "frames": 14,
+   "durations_ms": [
+    70,
+    90,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    120
+   ],
+   "loop": false
+  }
+ },
+ "events": {
+  "attack": {
+   "strikes": [
+    4
+   ]
+  },
+  "tongue": {
+   "strikes": [
+    4
+   ]
+  }
+ },
+ "moves": {
+  "belly": "attack",
+  "tongue": "tongue",
+  "swallow": "swallow",
+  "vengeance": "cast"
+ },
+ "top_native": 58,
+ "idle_bbox_native": [
+  83,
+  58,
+  149,
+  105
+ ]
+}

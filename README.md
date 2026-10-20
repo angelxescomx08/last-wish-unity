@@ -41,7 +41,7 @@ mazo y las reliquias pasan de sala en sala. Como en el original, no hay guardado
 ## Estructura
 
 ```text
-Assets/Scripts/Domain/        Reglas C# puras (sin UnityEngine): combate, cartas, reliquias, enemigos, run
+Assets/Scripts/Domain/        Reglas C# puras (sin UnityEngine): combate, cartas, reliquias, enemigos (originales y del piso 1), run
 Assets/Scripts/Presentation/  Escenas, UI y efectos del original sobre un lienzo virtual 1280×720 (C# puro)
 Assets/Scripts/Runtime/       Unity: GameBootstrap (bucle de main.py), backend de dibujo, entrada, audio, archivos
 Assets/Editor/                Importador de pixel art, configuración y build
@@ -90,6 +90,26 @@ python Tools/ExportPixelFonts.py --source-dir RUTA_PYTHON
 ```
 
 El arte original se conserva sin redibujar. Consulta `THIRD_PARTY_NOTICES.md`.
+
+## Enemigos nuevos del piso 1
+
+La partida del menú añade al piso 1 diecisiete enemigos que no existen en el original:
+- 7 normales, 3 esbirros invocables y 3 élites.
+- 4 jefes repartidos en 3 combates, uno de ellos la pareja Los Hermanos Lápida.
+- 6 grupos nuevos.
+
+Mecánicas nuevas:
+- Invocación con un máximo de 3 enemigos en pantalla. Los esbirros no dan oro.
+- Pinchos, Desvío, Blindaje, Carroña, Buche, Carga/Aturdido y Vigilancia.
+- Combos de jefe contra estrategias: robar Fuerza, arrancar escudo, mudar el veneno y los elementos, castigar jugar muchas cartas.
+
+Las pruebas de paridad siguen usando el contenido original (`EnemyRoster.Original`). El bestiario completo está en `docs/enemies.md`.
+Las hojas de sprites nuevas se generan así:
+
+```powershell
+python Tools/GenerateEnemyArt.py           # escribe las 17 hojas (Python 3.11 + Pillow 11)
+python Tools/GenerateEnemyArt.py --check   # comprueba que coinciden con el repositorio
+```
 
 ## Capturas
 

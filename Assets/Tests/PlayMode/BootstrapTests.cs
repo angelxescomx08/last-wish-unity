@@ -28,6 +28,7 @@ namespace LastWish.Tests
             GameDriver.Key(Key.Return);                         // La Guerrera
             yield return GameDriver.Until(() => manager.Top is MapScene, 5, "Confirming must start a run on the map");
             Assert.That(manager.Run, Is.Not.Null);
+            Assert.That(manager.Run.Roster, Is.EqualTo(EnemyRoster.Expanded), "the menu run plays the floor-1 expansion");
             GameDriver.Capture("map");
 
             var map = (MapScene)manager.Top;

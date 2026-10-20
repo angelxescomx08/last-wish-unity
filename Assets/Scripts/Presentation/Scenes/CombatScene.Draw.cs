@@ -84,11 +84,21 @@ namespace LastWish.Presentation
         }
 
         // ------------------------------------------------------------------ battlefield
-        private IRect BossRect(EnemyAnimator anim)
+        private IRect BossRect(EnemyAnimator anim, EnemyFormation.Place place)
         {
             var height = Math.Max(120, anim.Sheet.Anchor.y - anim.Sheet.Top - 4);
-            var top = Math.Max(TopBarH + 60, BossGround - height);
-            return new IRect(BossCx - BossW / 2, top, BossW, BossGround - 6 - top);
+            var top = Math.Max(TopBarH + 60, place.Y - height);
+            return new IRect(place.X - place.W / 2, top, place.W, place.Y - 6 - top);
+        }
+
+        /// <summary>The ground point an animator stands on in that place.</summary>
+        private static (float x, float y) AnchorOf(EnemyFormation.Place place, bool large) =>
+            large ? (place.X, place.Y) : (place.X + EntityWidget.EnemyW / 2, place.Y + EntityWidget.EnemyH + 6);
+
+        private EnemyFormation.Place PlaceOf(string id, int fallback)
+        {
+            var slot = slotOf.TryGetValue(id, out var s) ? s : fallback;
+            return formation.Places[Math.Max(0, Math.Min(slot, formation.Places.Count - 1))];
         }
 
         private void DrawBattlefield(Canvas canvas)
@@ -100,30 +110,31 @@ namespace LastWish.Presentation
             var t = idleTime;
             foreach (var (anim, slot) in gone)
             {
-                var (gx, gy) = EnemySlots[Math.Min(slot, EnemySlots.Length - 1)];
-                anim.Draw(canvas, Art, (gx + EntityWidget.EnemyW / 2, gy + EntityWidget.EnemyH + 6));
+                var place = formation.Places[Math.Max(0, Math.Min(slot, formation.Places.Count - 1))];
+                anim.Draw(canvas, Art, AnchorOf(place, anim.Sheet.IsBoss && place.Large));
             }
             ReactionTargets();
             var g = Game.Data.Glossary;
             for (var i = 0; i < EnemyCount; i++)
             {
                 var enemy = E(i);
-                var slot = slotOf.TryGetValue(enemy.Id, out var s) ? s : i;
-                if (slot >= EnemySlots.Length) break;
-                var (ex, ey) = EnemySlots[slot];
-                DrawEnemyFloor(canvas, i, enemy, ex, ey);
+                var place = PlaceOf(enemy.Id, i);
+                int ex = place.X, ey = place.Y;
+                if (place.Large) { ex = place.X - EntityWidget.EnemyW / 2; ey = EnemyY; }
+                DrawEnemyFloor(canvas, i, enemy, place);
                 (int, int)? shown = shownEnemies != null && i < shownEnemies.Count ? shownEnemies[i] : ((int, int)?)null;
                 var aliveShown = shown.HasValue ? shown.Value.Item1 > 0 : enemy.Alive;
                 enemyAnims.TryGetValue(i, out var anim);
+                if (anim != null && anim.Hidden) aliveShown = false;   // a summon that has not arrived yet
                 var hit = enemy.HitDamage(state.HeroStatuses);
                 while (enemyHitboxes.Count <= i) enemyHitboxes.Add(new EntityHitboxes());
                 var boxes = enemyHitboxes[i]; boxes.Clear();
                 var attacking = lethal && enemy.Intent.Kind == IntentKind.Attack;
                 IRect rect;
-                if (anim != null && anim.Sheet.IsBoss)
+                if (anim != null && anim.Sheet.IsBoss && place.Large)
                 {
-                    rect = BossRect(anim);
-                    anim.Draw(canvas, Art, (BossCx, BossGround));
+                    rect = BossRect(anim, place);
+                    anim.Draw(canvas, Art, (place.X, place.Y));
                     if (aliveShown) rect = EntityWidget.DrawEnemy(canvas, Art, g, enemy, rect.X, rect.Y, false, false, null, false, (rect.W, rect.H), hit, attacking, t, boxes, shown);
                 }
                 else if (anim != null)
@@ -392,15 +403,15 @@ namespace LastWish.Presentation
             foreach (var pair in reactDomain) { var v = ViewOf(pair.Key); if (v.HasValue) reactHints[v.Value] = pair.Value; }
         }
 
-        private void DrawEnemyFloor(Canvas canvas, int i, EnemyState enemy, int ex, int ey)
+        private void DrawEnemyFloor(Canvas canvas, int i, EnemyState enemy, EnemyFormation.Place place)
         {
             var held = enemy.Alive ? ElementPreview.Held(enemy) : null;
             var hasHint = reactHints.TryGetValue(i, out var hint);
             if (!held.HasValue && !hasHint) return;
             enemyAnims.TryGetValue(i, out var anim);
             int fx0, fy0, width;
-            if (anim != null && anim.Sheet.IsBoss) { fx0 = BossCx; fy0 = BossGround; width = 220; }
-            else { fx0 = ex + EntityWidget.EnemyW / 2; fy0 = ey + EntityWidget.EnemyH + (anim != null ? 6 : 0); width = 150; }
+            if (anim != null && anim.Sheet.IsBoss && place.Large) { fx0 = place.X; fy0 = place.Y; width = Math.Min(220, place.W - 10); }
+            else { fx0 = place.X + EntityWidget.EnemyW / 2; fy0 = place.Y + EntityWidget.EnemyH + (anim != null ? 6 : 0); width = 150; }
             var g = Game.Data.Glossary;
             var color = hasHint ? ElementPreview.ReactionColor(g, hint) : ElementPreview.Ink(g, held.Value.Item1);
             ElementPreview.DrawElementFloor(canvas, fx0, fy0, color, fxTime, width, hasHint);

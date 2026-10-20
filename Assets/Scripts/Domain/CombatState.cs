@@ -101,6 +101,7 @@ namespace LastWish.Domain
         public bool PlayCard(int index)
         {
             if (!CanPlay(index)) return false;
+            var snapshot = ExpansionSnapshot();
             var card = hand[index]; var target = SelectedEnemy; var endure = Block > 0;
             var mask = ActiveConditions(card); resolvingCard = card; resolvingMask = mask; var paidCost = CardCost(card); reactions.Clear();
             Mana -= CardCost(card); nextDiscount = 0; hand.RemoveAt(index);
@@ -146,7 +147,8 @@ namespace LastWish.Domain
             var tailHp = enemies.Select(e => e.Hp).ToArray(); var tailDrawn = drawnToHand;
             AfterPlayRelics(target, paidCost);
             cardsPlayed++; EffectVersion++; AfterCompletedPlay();
-            EnemyPatterns.ReactToDeaths(enemies); EnsureTarget();
+            AfterCardExpansion(result, snapshot);
+            EnemyPatterns.ReactToDeaths(enemies); HandleEnemyDeaths(); EnsureTarget();
             MergeTail(result, tailHp, tailDrawn);
             return true;
         }
@@ -164,12 +166,13 @@ namespace LastWish.Domain
             }
             hand.Clear();
             HeroStatuses.Tick(StatusKind.Weak); HeroStatuses.Tick(StatusKind.Vulnerable); HeroStatuses.Tick(StatusKind.Frail);
-            foreach (var enemy in enemies) { enemy.ClearBlock(); if (ClearMarked(enemy)) enemy.Statuses.Remove(StatusKind.Marked); }
-            hitLastEnemyTurn = false;
-            if (legacy) ExecuteLegacy(); else foreach (var enemy in enemies) ExecuteEnemy(enemy);
+            foreach (var enemy in enemies) { enemy.KeepBlock(enemy.Statuses[StatusKind.Shell]); if (ClearMarked(enemy)) enemy.Statuses.Remove(StatusKind.Marked); }
+            hitLastEnemyTurn = false; deathEvents.Clear();
+            if (legacy) ExecuteLegacy(); else for (var i = 0; i < enemies.Count; i++) ExecuteEnemy(enemies[i]);
+            AppendQueuedSummons();
             if (!legacy)
                 foreach (var enemy in enemies) if (enemy.Alive) PlanEnemy(enemy);
-            EnemyPatterns.ReactToDeaths(enemies); CheckRelicDeaths(); SpreadPoison();
+            EnemyPatterns.ReactToDeaths(enemies); HandleEnemyDeaths(); CheckRelicDeaths(); SpreadPoison();
             if (!retainBlock && !(Turn == 1 && HasRelic("anchor"))) Block = HasRelic("worn_roundel") ? Block / 2 : 0; retainBlock = false; catalyst = 0;
             cardsPlayed = 0; discardsThisTurn = 0; decoys = 0; counterDamage = 0; doubleComboUsed = false; turnStartAlive = enemies.Count(e => e.Alive); HpLostThisTurn = 0; EffectVersion++; ResetRelicTurn();
             {
@@ -178,6 +181,7 @@ namespace LastWish.Domain
                 var drawCount = Math.Max(0, handSize - HeroStatuses[StatusKind.Entangled]); HeroStatuses.Remove(StatusKind.Entangled);
                 { TriggerPowers(); var extra = pendingDraws; pendingDraws = 0; DrawCards(drawCount + extra + relicDraw); AfterHandDrawn(); }
             }
+            EnemyPatterns.ExpansionReact(enemies); HandleEnemyDeaths();   // deaths and broken Carga at the start of the hero's turn
             EnsureTarget(); return true;
         }
         private void ExecuteLegacy()
@@ -192,11 +196,21 @@ namespace LastWish.Domain
             if (!enemy.Alive) return;
             if (enemy.Statuses[StatusKind.Frozen] > 0 && !enemy.Definition.Boss && !enemy.Definition.Elite)
             { enemy.Statuses.Tick(StatusKind.Frozen); enemy.LoseHp(enemy.Statuses[StatusKind.Fire]); return; }
+            EnemyPatterns.BeforeAct(enemy, enemies);
             var intent = enemy.Intent;
+            var x = intent.Extras;
             var lost = 0L;
             var action = new EnemyAction { Index = enemies.IndexOf(enemy), MoveId = intent.Id };
             enemyLog.Add(action);
-            var hpAtStart = enemy.Hp;
+            if (intent.Kind == IntentKind.Stun) action.Stunned = true;
+            else ActOut(enemy, intent, x, action, ref lost);
+            enemy.Statuses.Tick(StatusKind.Weak); enemy.Statuses.Tick(StatusKind.Vulnerable); enemy.Statuses.Tick(StatusKind.Frozen);
+            if (enemy.Definition.Ai == "seta" && enemy.Statuses[StatusKind.Fuse] > 1) enemy.Statuses.Tick(StatusKind.Fuse);
+            enemy.LoseHp(enemy.Statuses[StatusKind.Fire]);
+        }
+        private void ActOut(EnemyState enemy, EnemyIntent intent, IntentExtras x, EnemyAction action, ref long lost)
+        {
+            if (x.Any) BeforeHitsExpansion(enemy, x, action);
             if (intent.Kind == IntentKind.Attack)
                 for (var hit = 0; hit < Math.Max(1, intent.Hits) && !Defeat && enemy.Alive; hit++) { var l = EnemyHit(enemy, enemy.HitDamage(HeroStatuses)); lost += l; action.Hits.Add(l); }
             if (intent.Kind == IntentKind.Block) enemy.GainBlock(intent.Value);
@@ -217,10 +231,9 @@ namespace LastWish.Domain
                 var healed = ally.Heal(intent.HealAllies);
                 if (ally == enemy) action.Healed += healed;
             }
+            if (x.Any) AfterEffectsExpansion(enemy, x, action);
             if (intent.SelfDestruct) { enemy.LoseHp(enemy.Hp); action.Exploded = true; }
-            enemy.Statuses.Tick(StatusKind.Weak); enemy.Statuses.Tick(StatusKind.Vulnerable); enemy.Statuses.Tick(StatusKind.Frozen);
-            if (enemy.Definition.Ai == "seta" && enemy.Statuses[StatusKind.Fuse] > 1) enemy.Statuses.Tick(StatusKind.Fuse);
-            enemy.LoseHp(enemy.Statuses[StatusKind.Fire]);
+            if (x.SplitInto != null) Split(enemy, x, action);
         }
         private int EnemyHit(EnemyState enemy, int damage)
         {

@@ -11,7 +11,8 @@ namespace LastWish.Presentation
         public const int Width = 560;
         private static readonly Dictionary<string, string> PileName = new Dictionary<string, string> { ["draw"] = "tu pila de robo", ["discard"] = "tu descarte", ["hand"] = "tu mano" };
         private static readonly Dictionary<IntentKind, string> Generic = new Dictionary<IntentKind, string>
-        { [IntentKind.Attack] = "ataca", [IntentKind.Block] = "se defiende", [IntentKind.Buff] = "se fortalece", [IntentKind.Debuff] = "te debilita", [IntentKind.Unknown] = "actúa" };
+        { [IntentKind.Attack] = "ataca", [IntentKind.Block] = "se defiende", [IntentKind.Buff] = "se fortalece", [IntentKind.Debuff] = "te debilita", [IntentKind.Unknown] = "actúa",
+          [IntentKind.Summon] = "invoca", [IntentKind.Stun] = "está aturdido" };
 
         public sealed class Banner
         {
@@ -58,6 +59,16 @@ namespace LastWish.Presentation
             if (intent.AllyBuffs != null) foreach (var b in intent.AllyBuffs) parts.Add("da " + b.Amount + " de " + NameOf(g, b.Kind) + " a sus aliados");
             if (action.Healed > 0) parts.Add("recupera " + action.Healed + " de vida");
             if (action.Exploded) parts.Add("¡explota y muere!");
+            if (action.Stunned) parts.Add("pierde su turno");
+            if (action.StrengthStolen > 0) parts.Add("te roba " + action.StrengthStolen + " de Fuerza");
+            if (action.StrengthGained > 0) parts.Add("no tenías Fuerza: gana " + action.StrengthGained);
+            if (action.BlockStolen > 0) parts.Add("te arranca " + action.BlockStolen + " de escudo");
+            if (action.Cleansed > 0) parts.Add("se libra de " + action.Cleansed + " acumulaciones");
+            foreach (var card in action.Swallowed) parts.Add("se traga " + card);
+            if (action.Split) parts.Add("se divide en dos");
+            if (action.Revived != null) parts.Add("¡desentierra a su hermana!");
+            else if (action.Summoned.Count > 0) parts.Add("invoca " + action.Summoned.Count + " " + (action.Summoned.Count == 1 ? "esbirro" : "esbirros"));
+            if (action.SummonBlocked) parts.Add("no cabe nadie más");
             return (Tooltip.IntentIcon(intent), title, string.Join(" · ", parts));
         }
 

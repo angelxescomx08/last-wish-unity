@@ -165,6 +165,7 @@ namespace LastWish.Presentation
                 { "FRAIL", StatusKind.Frail }, { "ENTANGLED", StatusKind.Entangled }, { "STRENGTH", StatusKind.Strength }, { "BLADES", StatusKind.Blades },
                 { "FUSE", StatusKind.Fuse }, { "FIRE", StatusKind.Fire }, { "WATER", StatusKind.Water }, { "EARTH", StatusKind.Earth }, { "AIR", StatusKind.Air }, { "FROZEN", StatusKind.Frozen } };
             foreach (var p in names) StatusName[map[p.Key]] = Json.Str(p.Value);
+            GlossaryExpansion.Apply(this);
             highlights = AllTerms.Select(t => (t.Pattern, t.Color)).ToList();
         }
 

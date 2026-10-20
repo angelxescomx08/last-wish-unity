@@ -34,15 +34,12 @@ namespace LastWish.Domain
         /// <summary>Pruebas encounter list (enemy_roster.ENCOUNTERS): each regular alone, then each pair.</summary>
         public static int EncounterCount => Regulars.Count() + Pairs.Count;
 
-        public static EnemyDefinition Definition(string ai) => Definitions.FirstOrDefault(d => d.Ai == ai) ?? throw new ArgumentException("Unknown enemy: " + ai);
+        public static EnemyDefinition Definition(string ai) => AllDefinitions.FirstOrDefault(d => d.Ai == ai) ?? throw new ArgumentException("Unknown enemy: " + ai);
         public static int Scale(int value, int floor) => (int)Math.Min(int.MaxValue, Math.Floor(value * (1 + .15 * (Math.Max(1, floor) - 1.0))));
 
         public static EnemyState Create(string ai, int floor, string id, double hpFactor = 1)
         {
-            var definition = Definition(ai);
-            var enemy = new EnemyState(id, definition, Math.Max(1, floor), Math.Max(1, (int)(Scale(definition.BaseHp, floor) * hpFactor)));
-            if (ai == "seta") enemy.Statuses.Add(StatusKind.Fuse, 3);
-            if (ai == "caballero") enemy.Statuses.Add(StatusKind.Blades, 2);
+            var enemy = CreateUnplanned(ai, floor, id, hpFactor);
             enemy.Plan(new StatusSet(), new[] { enemy }); return enemy;
         }
 

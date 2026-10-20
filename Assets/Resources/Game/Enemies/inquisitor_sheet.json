@@ -1,0 +1,203 @@
+{
+ "cell_w": 224,
+ "cell_h": 124,
+ "columns": 16,
+ "anchor": [
+  150,
+  116
+ ],
+ "scale": 2,
+ "sheet": "inquisitor_sheet.png",
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 16,
+   "durations_ms": [
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105
+   ],
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "frames": 10,
+   "durations_ms": [
+    110,
+    120,
+    55,
+    60,
+    85,
+    60,
+    95,
+    60,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "judgment": {
+   "row": 2,
+   "frames": 12,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    110,
+    120,
+    55,
+    60,
+    85,
+    90,
+    95,
+    110
+   ],
+   "loop": false
+  },
+  "pyre": {
+   "row": 3,
+   "frames": 14,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "confiscate": {
+   "row": 4,
+   "frames": 12,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    110,
+    60,
+    80,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "cast": {
+   "row": 5,
+   "frames": 10,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    55,
+    80,
+    85,
+    90,
+    95,
+    110
+   ],
+   "loop": false
+  },
+  "hurt": {
+   "row": 6,
+   "frames": 6,
+   "durations_ms": [
+    55,
+    60,
+    70,
+    80,
+    90,
+    100
+   ],
+   "loop": false
+  },
+  "death": {
+   "row": 7,
+   "frames": 15,
+   "durations_ms": [
+    70,
+    90,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    120
+   ],
+   "loop": false
+  }
+ },
+ "events": {
+  "attack": {
+   "strikes": [
+    3,
+    5,
+    7
+   ]
+  },
+  "judgment": {
+   "strikes": [
+    7
+   ]
+  },
+  "pyre": {
+   "strikes": [
+    8
+   ]
+  }
+ },
+ "moves": {
+  "sentence": "attack",
+  "verdict": "attack",
+  "judgment": "judgment",
+  "pyre": "pyre",
+  "confiscate": "confiscate",
+  "edict": "cast",
+  "penance": "cast",
+  "expiation": "cast",
+  "auto_de_fe": "cast",
+  "vengeance": "cast"
+ },
+ "boss": true,
+ "top_native": 7,
+ "idle_bbox_native": [
+  104,
+  7,
+  179,
+  116
+ ]
+}

@@ -190,7 +190,7 @@ namespace LastWish.Presentation
             if (scene.Confirmed)
             {
                 scene.Confirmed = false;
-                Run = new RunState(scene.SelectedCharacter, scene.Seed);
+                Run = new RunState(scene.SelectedCharacter, scene.Seed, EnemyRoster.Expanded);   // the menu plays the floor-1 expansion
                 Pop();
                 Push(new MapScene(game, Run));
             }

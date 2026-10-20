@@ -103,9 +103,14 @@ namespace LastWish.Presentation
 
         // ------------------------------------------------------------------ intent
         private static readonly Dictionary<IntentKind, string> IntentShort = new Dictionary<IntentKind, string>
-        { [IntentKind.Attack] = "ATQ", [IntentKind.Block] = "BLQ", [IntentKind.Buff] = "BUFF", [IntentKind.Debuff] = "DEB", [IntentKind.Unknown] = "???" };
+        { [IntentKind.Attack] = "ATQ", [IntentKind.Block] = "BLQ", [IntentKind.Buff] = "BUFF", [IntentKind.Debuff] = "DEB", [IntentKind.Unknown] = "???",
+          [IntentKind.Summon] = "INV", [IntentKind.Stun] = "ATUR" };
         private static readonly Dictionary<IntentKind, Rgba> IntentColor = new Dictionary<IntentKind, Rgba>
-        { [IntentKind.Attack] = Colors.IntentAttack, [IntentKind.Block] = Colors.IntentBlock, [IntentKind.Buff] = Colors.IntentBuff, [IntentKind.Debuff] = Colors.IntentDebuff, [IntentKind.Unknown] = Colors.IntentUnknown };
+        { [IntentKind.Attack] = Colors.IntentAttack, [IntentKind.Block] = Colors.IntentBlock, [IntentKind.Buff] = Colors.IntentBuff, [IntentKind.Debuff] = Colors.IntentDebuff, [IntentKind.Unknown] = Colors.IntentUnknown,
+          [IntentKind.Summon] = Colors.IntentBuff, [IntentKind.Stun] = Colors.IntentUnknown };
+
+        /// <summary>Total minions or fragments an intent brings.</summary>
+        public static int SummonCount(EnemyIntent it) { var n = 0; foreach (var s in it.Extras.Summons) n += s.Count; return n; }
 
         private static bool Any<T>(T[] a) => a != null && a.Length > 0;
 
@@ -128,6 +133,7 @@ namespace LastWish.Presentation
         {
             if (it.Kind == IntentKind.Attack) { var v = damage ?? it.Value; return it.Hits > 1 ? v + "×" + it.Hits : v.ToString(); }
             if (it.Kind == IntentKind.Block && it.Value > 0) return it.Value.ToString();
+            if (it.Kind == IntentKind.Summon && SummonCount(it) > 1) return "×" + SummonCount(it);
             return "";
         }
 
@@ -143,6 +149,12 @@ namespace LastWish.Presentation
             if (Any(it.AllyBuffs) && !extras.Contains("status_buff") && it.Kind != IntentKind.Buff) extras.Add("status_buff");
             if (it.Lifesteal || it.HealAllies > 0) extras.Add("heal");
             if (it.SelfDestruct) extras.Add("fuse");
+            var x = it.Extras;
+            if (x.StealStrength > 0) extras.Add("strength");
+            if (x.SiphonBlockPercent > 0 && !extras.Contains("block")) extras.Add("block");
+            if (x.Swallow > 0) extras.Add("cards");
+            if (x.Cleanse && !extras.Contains("status_buff")) extras.Add("status_buff");
+            if (x.ConsumesFocus) extras.Add("hourglass");
             return extras;
         }
 

@@ -18,6 +18,12 @@ namespace LastWish.Domain
         public readonly List<int[]> CastEnemyHp = new List<int[]>();
         public readonly List<int[]> CastEnemyBlock = new List<int[]>();
         public readonly List<int> CastPlayerBlock = new List<int>();
+        /// <summary>Hits the hero took after the card: Pinchos ("thorns") and Réplica ("riposte"), HP lost each.</summary>
+        public readonly List<(string enemyId, int amount, string kind)> HeroHits = new List<(string, int, string)>();
+        /// <summary>Hits each enemy parried during the card (Desvío).</summary>
+        public readonly Dictionary<string, int> Parried = new Dictionary<string, int>();
+        /// <summary>Enemies that gained 1 Strength from Vigilancia with this card.</summary>
+        public readonly List<string> VigilGains = new List<string>();
     }
 
     /// <summary>One enemy's action in the last enemy turn (combat.EnemyAction).</summary>
@@ -29,6 +35,13 @@ namespace LastWish.Domain
         public readonly List<StatusAmount> Debuffs = new List<StatusAmount>();
         public readonly List<StatusCardSpawn> Cards = new List<StatusCardSpawn>();
         public int Healed; public bool Exploded;
+        /// <summary>Ids of the minions or fragments it added (they arrive at the end of the enemy turn).</summary>
+        public readonly List<string> Summoned = new List<string>();
+        public bool SummonBlocked, Split, Stunned;
+        public int StrengthStolen, StrengthGained, BlockStolen, Cleansed;
+        public readonly List<string> Swallowed = new List<string>();
+        /// <summary>Id of the partner it brought back.</summary>
+        public string Revived;
     }
 
     /// <summary>Read-only values the combat screen and the hero sheet show, plus previews (no rules here).</summary>
@@ -124,6 +137,8 @@ namespace LastWish.Domain
             copy.random = random.Clone();
             copy.Hand = copy.hand.AsReadOnly(); copy.Enemies = copy.enemies.AsReadOnly(); copy.Reactions = copy.reactions.AsReadOnly();
             copy.lastPlay = null;
+            copy.deathsHandled = new HashSet<string>(deathsHandled); copy.arrivals = new List<QueuedArrival>();
+            copy.deathEvents = new List<EnemyDeathEvent>(deathEvents);
             return copy;
         }
     }

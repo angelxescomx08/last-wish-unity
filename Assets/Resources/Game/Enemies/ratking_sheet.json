@@ -1,0 +1,175 @@
+{
+ "cell_w": 208,
+ "cell_h": 120,
+ "columns": 15,
+ "anchor": [
+  142,
+  115
+ ],
+ "scale": 2,
+ "sheet": "ratking_sheet.png",
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 12,
+   "durations_ms": [
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105
+   ],
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "frames": 10,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "tail": {
+   "row": 2,
+   "frames": 12,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    55,
+    95,
+    55,
+    100,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "call": {
+   "row": 3,
+   "frames": 11,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    90,
+    95,
+    110
+   ],
+   "loop": false
+  },
+  "cast": {
+   "row": 4,
+   "frames": 10,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    55,
+    80,
+    85,
+    90,
+    95,
+    110
+   ],
+   "loop": false
+  },
+  "hurt": {
+   "row": 5,
+   "frames": 6,
+   "durations_ms": [
+    55,
+    60,
+    70,
+    80,
+    90,
+    100
+   ],
+   "loop": false
+  },
+  "death": {
+   "row": 6,
+   "frames": 15,
+   "durations_ms": [
+    70,
+    90,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    120
+   ],
+   "loop": false
+  }
+ },
+ "events": {
+  "attack": {
+   "strikes": [
+    4
+   ]
+  },
+  "tail": {
+   "strikes": [
+    4,
+    6,
+    8
+   ]
+  },
+  "call": {
+   "strikes": [
+    6
+   ]
+  }
+ },
+ "moves": {
+  "royal_bite": "attack",
+  "tail_whip": "tail",
+  "call_swarm": "call",
+  "plague_fury": "call",
+  "court_feast": "cast",
+  "rally": "cast",
+  "vengeance": "cast"
+ },
+ "boss": true,
+ "elite": true,
+ "top_native": 47,
+ "idle_bbox_native": [
+  98,
+  47,
+  192,
+  117
+ ]
+}

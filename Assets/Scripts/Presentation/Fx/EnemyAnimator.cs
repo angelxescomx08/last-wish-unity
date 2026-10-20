@@ -65,6 +65,12 @@ namespace LastWish.Presentation
         private static readonly Rgba[] IchorRed = { C(250, 222, 196), C(184, 92, 78), C(114, 38, 44), C(52, 15, 27) };
         private static readonly Rgba[] GoldPal = { C(255, 244, 198), C(255, 208, 104), C(212, 146, 42), C(146, 86, 22) };
         private static readonly Rgba[] Shell = { C(160, 70, 64), C(78, 23, 34), C(33, 11, 21), C(9, 5, 10) };
+        // floor-1 expansion palettes
+        private static readonly Rgba[] Feathers = { C(150, 120, 190), C(70, 56, 96), C(34, 26, 50), C(14, 10, 22) };
+        private static readonly Rgba[] Carapace = { C(176, 232, 214), C(84, 168, 156), C(176, 124, 58), C(58, 46, 34) };
+        private static readonly Rgba[] Gel = { C(255, 214, 246), C(226, 110, 210), C(150, 50, 150), C(70, 20, 80) };
+        private static readonly Rgba[] Molt = { C(250, 246, 230), C(222, 214, 190), C(176, 166, 140), C(120, 112, 96) };
+        private static readonly Rgba[] Tears = { C(230, 246, 255), C(150, 210, 255), C(80, 140, 230), C(40, 60, 130) };
         private static Rgba[] Tail(Rgba[] p) { var r = new Rgba[p.Length - 1]; Array.Copy(p, 1, r, 0, r.Length); return r; }
 
         public static readonly Dictionary<string, EnemyFxStyle> Styles = new Dictionary<string, EnemyFxStyle>
@@ -88,6 +94,24 @@ namespace LastWish.Presentation
             ["gargoyle"] = new EnemyFxStyle { Wisp = Grit, Ecto = Chips, Spark = Amber, Shreds = Flakes, Glow = C(150, 100, 30), Chest = (-12, -100), Eyes = (-54, -134), Body = (8, -96), Claw = (-138, -50), ShadowW = 150, AmbientRise = 0.5f, AmbientHeavy = true },
             ["minotaur"] = new EnemyFxStyle { Wisp = SteamPal, Ecto = FurBlood, Spark = Rage, Shreds = Dirt, Glow = C(150, 40, 20), Chest = (-24, -122), Eyes = (-57, -145), Body = (-10, -99), Claw = (-255, -111), ShadowW = 130, AmbientRise = 0.5f, AmbientHeavy = true },
             ["scorpion"] = new EnemyFxStyle { Wisp = Venom, Ecto = IchorRed, Spark = GoldPal, Shreds = Shell, Glow = C(50, 130, 40), Chest = (-64, -39), Eyes = (-66, -56), Body = (-4, -48), Claw = (-246, -37), ShadowW = 260, AmbientRise = 0.5f, AmbientHeavy = true },
+            // floor-1 expansion (points printed by `python Tools/GenerateEnemyArt.py --styles`)
+            ["broodmother"] = new EnemyFxStyle { Wisp = Tox, Ecto = Flesh, Spark = Tox, Shreds = Tail(Flesh), Glow = C(90, 120, 40), Chest = (-12, -60), Eyes = (-60, -68), Body = (12, -52), Claw = (-92, -60), ShadowW = 130, AmbientRise = 0.6f, AmbientHeavy = true },
+            ["larva"] = new EnemyFxStyle { Wisp = Flesh, Ecto = Tox, Spark = Tox, Shreds = Tail(Flesh), Glow = C(90, 110, 40), Chest = (-8, -28), Eyes = (-48, -36), Body = (4, -24), Claw = (-72, -24), ShadowW = 110, AmbientRise = 0.6f },
+            ["bonehog"] = new EnemyFxStyle { Wisp = Bone, Ecto = Blood, Spark = Bone, Shreds = Tail(Bone), Glow = C(130, 40, 40), Chest = (-12, -40), Eyes = (-44, -48), Body = (4, -40), Claw = (-68, -32), ShadowW = 110, AmbientRise = 1f },
+            ["toad"] = new EnemyFxStyle { Wisp = SwampMist, Ecto = SwampGoo, Spark = SwampGoo, Shreds = Tail(SwampGoo), Glow = C(60, 130, 40), Chest = (-20, -44), Eyes = (-44, -80), Body = (4, -44), Claw = (-80, -48), ShadowW = 110, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["crow"] = new EnemyFxStyle { Wisp = Feathers, Ecto = Blood, Spark = VioletGlow, Shreds = Feathers, Glow = C(80, 30, 110), Chest = (-4, -60), Eyes = (-32, -92), Body = (4, -60), Claw = (-68, -88), ShadowW = 100, AmbientRise = 0.7f },
+            ["rat"] = new EnemyFxStyle { Wisp = Fur, Ecto = Blood, Spark = Blood, Shreds = Fur, Glow = C(110, 20, 40), Chest = (-8, -28), Eyes = (-36, -36), Body = (4, -24), Claw = (-60, -28), ShadowW = 110, AmbientRise = 0.7f },
+            ["beetle"] = new EnemyFxStyle { Wisp = Carapace, Ecto = Acid, Spark = Steel, Shreds = Carapace, Glow = C(40, 120, 110), Chest = (-16, -40), Eyes = (-48, -36), Body = (4, -44), Claw = (-80, -48), ShadowW = 120, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["ooze"] = new EnemyFxStyle { Wisp = Gel, Ecto = Gel, Spark = VioletGlow, Shreds = Bone, Glow = C(140, 40, 120), Chest = (-8, -48), Eyes = (-24, -64), Body = (0, -44), Claw = (-80, -36), ShadowW = 100, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["ooze_small"] = new EnemyFxStyle { Wisp = Gel, Ecto = Gel, Spark = VioletGlow, Shreds = Tail(Gel), Glow = C(140, 40, 120), Chest = (-4, -24), Eyes = (-16, -32), Body = (0, -22), Claw = (-48, -20), ShadowW = 90, AmbientRise = 0.5f },
+            ["viper"] = new EnemyFxStyle { Wisp = Venom, Ecto = Venom, Spark = Venom, Shreds = Tail(Venom), Glow = C(50, 130, 40), Chest = (-12, -40), Eyes = (-32, -68), Body = (4, -28), Claw = (-60, -60), ShadowW = 90, AmbientRise = 0.7f },
+            ["ratking"] = new EnemyFxStyle { Wisp = Coins, Ecto = Blood, Spark = GoldPal, Shreds = Fur, Glow = C(150, 110, 30), Chest = (-16, -76), Eyes = (-60, -104), Body = (0, -68), Claw = (-112, -88), ShadowW = 150, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["colossus"] = new EnemyFxStyle { Wisp = EmberPal, Ecto = Steel, Spark = EmberPal, Shreds = Ash, Glow = C(170, 70, 20), Chest = (-8, -100), Eyes = (-28, -156), Body = (0, -92), Claw = (-120, -60), ShadowW = 130, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["duelist"] = new EnemyFxStyle { Wisp = WispPal, Ecto = EctoPal, Spark = SparkPal, Shreds = Steel, Glow = C(40, 150, 140), Chest = (-4, -112), Eyes = (-12, -152), Body = (0, -100), Claw = (-120, -108), ShadowW = 110, AmbientRise = 1f },
+            ["inquisitor"] = new EnemyFxStyle { Wisp = AshFall, Ecto = RedBlood, Spark = EmberPal, Shreds = Hood, Glow = C(160, 50, 20), Chest = (-12, -112), Eyes = (-20, -164), Body = (0, -96), Claw = (-100, -100), ShadowW = 120, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["serpent"] = new EnemyFxStyle { Wisp = Venom, Ecto = Amber, Spark = GoldPal, Shreds = Molt, Glow = C(50, 130, 40), Chest = (-28, -104), Eyes = (-68, -148), Body = (0, -60), Claw = (-116, -136), ShadowW = 150, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["gravedigger"] = new EnemyFxStyle { Wisp = Dirt, Ecto = Earth, Spark = Amber, Shreds = Wood, Glow = C(150, 100, 30), Chest = (-12, -92), Eyes = (-32, -136), Body = (0, -80), Claw = (-100, -80), ShadowW = 100, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["mourner"] = new EnemyFxStyle { Wisp = Tears, Ecto = VioletGlow, Spark = Tears, Shreds = VioletPal, Glow = C(90, 60, 160), Chest = (-8, -108), Eyes = (-16, -148), Body = (0, -100), Claw = (-80, -112), ShadowW = 90, AmbientRise = 1f },
         };
         public static EnemyFxStyle StyleFor(string sheetId) => sheetId != null && Styles.TryGetValue(sheetId, out var s) ? s : Styles["wraith"];
 
@@ -121,6 +145,17 @@ namespace LastWish.Presentation
             Particles = new BurstParticles(particles, seed + 7);
             Style = StyleFor(sheet.Id);
             bladeAngle = rng.UniformF(0f, (float)Tau);
+        }
+
+        private float appearDelay = -1f, appearFade = 1f;
+        /// <summary>A summoned enemy waiting for its arrival moment (nothing is drawn).</summary>
+        public bool Hidden => appearDelay > 0f;
+
+        /// <summary>Summon arrival: hidden for <paramref name="delay"/> s, then its <c>spawn</c> row if the sheet has one, else a 0.25 s fade-in.</summary>
+        public void Appear(float delay)
+        {
+            appearDelay = Math.Max(0.001f, delay);
+            appearFade = Sheet.Animations.ContainsKey("spawn") ? 1f : 0f;
         }
 
         public bool DeathDone => Dead && actionTime >= Sheet.Seconds(final);
@@ -164,6 +199,14 @@ namespace LastWish.Presentation
         {
             dt = Math.Min(MaxDt, Math.Max(0f, dt));
             fxTime += dt;
+            if (appearDelay > 0f)
+            {
+                appearDelay -= dt;
+                if (appearDelay > 0f) return;
+                if (Sheet.Animations.ContainsKey("spawn")) Start("spawn");
+                if (anchor.HasValue) Particles.Implode(anchor.Value.x + Style.Body.x, anchor.Value.y + Style.Body.y, 28, Style.Wisp, (60f, 120f), (0.3f, 0.5f));
+            }
+            if (appearFade < 1f) appearFade = Math.Min(1f, appearFade + dt / 0.25f);
             for (var i = 0; i < queue.Count; i++)
             {
                 var (n, d, h) = queue[i]; d -= dt;
@@ -407,8 +450,9 @@ namespace LastWish.Presentation
         public void Draw(Canvas canvas, Art art, (float x, float y) anchorPoint)
         {
             anchor = anchorPoint;
+            if (Hidden) return;
             int ax = (int)anchorPoint.x, ay = (int)anchorPoint.y;
-            var fade = 1f;
+            var fade = appearFade;
             if (Dead) fade = Math.Max(0f, 1f - actionTime / Math.Max(1e-6f, Sheet.Seconds(final)));
             var st = Style;
             if (fade > 0)
@@ -427,7 +471,8 @@ namespace LastWish.Presentation
             if (!DeathDone)
             {
                 var frame = CurrentFrame(); var (w, h) = Sheet.Anchor;
-                canvas.Blit(frame, ax - w, ay - h, Sheet.Scale);
+                if (appearFade < 1f) canvas.Blit(frame, ax - w, ay - h, Sheet.Scale, Rgba.White.WithAlpha((int)(255 * appearFade)));
+                else canvas.Blit(frame, ax - w, ay - h, Sheet.Scale);
             }
             if (st.Blades) DrawBlades(canvas, true);
             Particles.Draw(canvas, art);

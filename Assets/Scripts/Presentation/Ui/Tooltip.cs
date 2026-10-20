@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -155,7 +156,11 @@ namespace LastWish.Presentation
         public static string IntentIcon(EnemyIntent it, int? hitDamage = null)
         {
             if (it.Kind == IntentKind.Attack) return AttackIcon((long)(hitDamage ?? it.Value) * Math.Max(1, it.Hits));
-            switch (it.Kind) { case IntentKind.Block: return "defend"; case IntentKind.Buff: return "buff"; case IntentKind.Debuff: return "debuff"; default: return "unknown"; }
+            switch (it.Kind)
+            {
+                case IntentKind.Block: return "defend"; case IntentKind.Buff: return "buff"; case IntentKind.Debuff: return "debuff";
+                case IntentKind.Summon: return "ritual"; case IntentKind.Stun: return "unplayable"; default: return "unknown";
+            }
         }
         public static Rgba IntentAccent(EnemyIntent it)
         {
@@ -202,6 +207,8 @@ namespace LastWish.Presentation
             else if (it.Kind == IntentKind.Buff && (it.Buffs == null || it.Buffs.Length == 0)) lines.Add("[[buff]]Va a fortalecerse.");
             else if (it.Kind == IntentKind.Debuff && (it.Debuffs == null || it.Debuffs.Length == 0)) lines.Add("[[debuff]]Va a debilitarte.");
             else if (it.Kind == IntentKind.Unknown) lines.Add("[[unknown]]No se sabe qué hará.");
+            else if (it.Kind == IntentKind.Stun) lines.Add("[[unplayable]]Está Aturdido: pierde su turno.");
+            ExpansionIntentLines(game, enemy, player, lines);
             if (it.Block > 0) lines.Add("[[defend]]Ganará " + it.Block + " de escudo.");
             if (it.Buffs != null) foreach (var b in it.Buffs) lines.Add("[[buff]]Ganará " + b.Amount + " de " + StatusNameOf(g, b.Kind) + ".");
             if (it.Debuffs != null) foreach (var d in it.Debuffs) lines.Add("[[debuff]]Te aplicará " + d.Amount + " de " + StatusNameOf(g, d.Kind) + ".");
@@ -220,6 +227,50 @@ namespace LastWish.Presentation
             return lines;
         }
 
+        private static string EnemyName(string ai, int count)
+        {
+            var name = EnemyCatalog.Definition(ai).Name;
+            if (count == 1) return name;
+            var words = name.Split(' ');
+            words[0] = words[0].EndsWith("s") ? words[0] : words[0] + "s";
+            return string.Join(" ", words);
+        }
+
+        /// <summary>Lines of the expansion intent extras (summons, Strength theft, block siphon, molt, swallow, split, revival, Carga).</summary>
+        private static void ExpansionIntentLines(GameContext game, EnemyState enemy, CombatState player, List<string> lines)
+        {
+            var it = enemy.Intent; var x = it.Extras;
+            if (!x.Any) return;
+            foreach (var s in x.Summons)
+                lines.Add("[[ritual]]Invocará " + (s.Count == 1 ? "1 " : s.Count + " ") + EnemyName(s.Ai, s.Count) + " (máximo 3 enemigos en pantalla).");
+            if (x.SplitInto != null) lines.Add("[[ritual]]Se partirá en dos " + EnemyName(x.SplitInto, 2) + " con la mitad de su vida cada uno.");
+            if (x.ReviveAi != null) lines.Add("[[ritual]]Desenterrará a " + EnemyCatalog.Definition(x.ReviveAi).Name + " con la mitad de su vida.");
+            if (x.StealStrength > 0)
+            {
+                var have = player?.Strength ?? 0;
+                lines.Add(have > 0 ? "[[strength]]Te robará " + (x.StealStrength == int.MaxValue ? "toda tu Fuerza" : Math.Min(have, x.StealStrength) + " de Fuerza") + " (ahora " + have + ")."
+                    : "[[strength]]Te robaría Fuerza; como no tienes, ganará " + x.StrengthFallback + ".");
+            }
+            if (x.SiphonBlockPercent > 0)
+            {
+                var taken = (player?.Block ?? 0) * x.SiphonBlockPercent / 100;
+                lines.Add("[[block]]Te arrancará el " + x.SiphonBlockPercent + " % de tu escudo y se lo quedará" + (player != null ? " (ahora " + taken + ")." : "."));
+            }
+            if (x.Cleanse) lines.Add(x.CleanseBlockPerStack > 0
+                ? "[[buff]]Se librará de sus perjuicios y elementos: +" + x.CleanseBlockPerStack + " de escudo por acumulación (máx. " + x.CleanseBlockCap + ")."
+                : "[[buff]]Se librará de sus perjuicios y elementos.");
+            if (x.HealSelf > 0) lines.Add("[[heal]]Se curará " + x.HealSelf + " de vida.");
+            if (x.Swallow > 0) lines.Add("[[cards]]Se tragará " + x.Swallow + " carta" + (x.Swallow > 1 ? "s" : "") + " de tu descarte (vuelven al matarlo).");
+            foreach (var s in x.SetSelf)
+                if (s.Kind == StatusKind.Focus) lines.Add("[[hourglass]]Preparará un golpe con Carga " + s.Amount + ".");
+                else lines.Add("[[buff]]Pasará a tener " + s.Amount + " de " + StatusNameOf(game.Data.Glossary, s.Kind) + ".");
+            if (x.ConsumesFocus)
+            {
+                var focus = enemy.Statuses[StatusKind.Focus];
+                lines.Add(focus > 0 ? "[[hourglass]]Quítale " + focus + " de vida antes de que actúe para aturdirlo." : "[[hourglass]]Golpe preparado.");
+            }
+        }
+
         private static List<TooltipPanel> IntentPanels(GameContext game, EnemyState enemy)
         {
             var list = new List<TooltipPanel>();
@@ -233,7 +284,8 @@ namespace LastWish.Presentation
         }
 
         private static readonly Dictionary<IntentKind, string> IntentTitle = new Dictionary<IntentKind, string>
-        { [IntentKind.Attack] = "Va a atacar", [IntentKind.Block] = "Va a defenderse", [IntentKind.Buff] = "Va a fortalecerse", [IntentKind.Debuff] = "Va a debilitarte", [IntentKind.Unknown] = "Intención desconocida" };
+        { [IntentKind.Attack] = "Va a atacar", [IntentKind.Block] = "Va a defenderse", [IntentKind.Buff] = "Va a fortalecerse", [IntentKind.Debuff] = "Va a debilitarte", [IntentKind.Unknown] = "Intención desconocida",
+          [IntentKind.Summon] = "Va a invocar", [IntentKind.Stun] = "Está aturdido" };
 
         public static TooltipContent Intent(GameContext game, EnemyState enemy, int? hitDamage, CombatState player)
         {
@@ -268,8 +320,21 @@ namespace LastWish.Presentation
 
         public static string Identity(GameContext game, EnemyState enemy)
         {
+            var profile = EnemyCatalog.Profile(enemy.Definition.Ai);
+            if (profile != null) return profile.Identity.Length > 0 ? profile.Identity + ": " + profile.Title : profile.Title;
             if (enemy.Definition.Boss) return "";
             return game.Data.Enemies.TryGetValue(enemy.Definition.Ai, out var e) && !string.IsNullOrEmpty(e.Identity) ? e.Identity + ": " + e.Title : "";
+        }
+
+        /// <summary>Pair / group / minion line of the inspect tooltip.</summary>
+        public static string PairLine(EnemyState enemy)
+        {
+            if (!enemy.PaysGold) return "  Esbirro invocado: no da oro.";
+            if (string.IsNullOrEmpty(enemy.PairName)) return null;
+            if (!EnemyCatalog.IsExpansion(enemy.Definition.Ai)) return "  Pareja: " + enemy.PairName + ". Si cae su pareja, buscará Venganza.";
+            var fight = EnemyCatalog.BossEncounters.FirstOrDefault(b => b.Name == enemy.PairName);
+            if (fight != null) return "  Pareja: " + fight.Name + ". " + fight.Synergy;
+            return "  Grupo: " + enemy.PairName + ".";
         }
 
         public static TooltipContent Enemy(GameContext game, EnemyState enemy, int? hitDamage, CombatState player)
@@ -278,7 +343,10 @@ namespace LastWish.Presentation
             var lines = new List<string> { "Vida: " + enemy.Hp + " / " + enemy.MaxHp };
             var identity = Identity(game, enemy);
             if (identity.Length > 0) lines.Add(identity);
-            if (!string.IsNullOrEmpty(enemy.PairName)) lines.Add("  Pareja: " + enemy.PairName + ". Si cae su pareja, buscará Venganza.");
+            var profile = EnemyCatalog.Profile(enemy.Definition.Ai);
+            if (profile != null) foreach (var m in profile.Mechanics) lines.Add("  " + m);
+            var pairLine = PairLine(enemy);
+            if (pairLine != null) lines.Add(pairLine);
             if (enemy.Block > 0) lines.Add("Bloqueo: " + enemy.Block + " (absorbe el próximo daño)");
             var intentLines = IntentLines(game, enemy, hitDamage, player);
             if (!string.IsNullOrEmpty(it.Description)) intentLines.Add("  " + it.Description);
@@ -345,7 +413,8 @@ namespace LastWish.Presentation
             return new TooltipContent(enemy.Definition.Name)
             {
                 Lines = lines, Tag = boss ? "JEFE" : elite ? "ÉLITE" : "",
-                Subtitle = boss ? "Jefe del piso" : elite ? "Élite" : !string.IsNullOrEmpty(enemy.PairName) ? "Pareja: " + enemy.PairName : "Enemigo",
+                Subtitle = boss ? "Jefe del piso" : elite ? "Élite" : !enemy.PaysGold ? "Esbirro"
+                    : !string.IsNullOrEmpty(enemy.PairName) ? (EnemyCatalog.IsExpansion(enemy.Definition.Ai) ? "Grupo: " : "Pareja: ") + enemy.PairName : "Enemigo",
             };
         }
 

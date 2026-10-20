@@ -31,6 +31,8 @@ namespace LastWish.Domain
         public int hero, floor, gold, hp, pulls, removed;
         public long seed;
         public int bonusHp, bonusLuck, freeGachaFloor, interestEarned, lastInterest;
+        /// <summary><see cref="EnemyRoster"/> of the run (0 = Original in older checkpoints).</summary>
+        public int roster;
         public SavedRelic[] ownedRelics;
         public SavedChoice[] pendingChoices;
         public string currentRoom;
@@ -44,7 +46,7 @@ namespace LastWish.Domain
         {
             if (IsDead) throw new InvalidOperationException("A dead hero cannot be saved");
             return new RunSave {
-                hero = (int)HeroKind, seed = Seed, floor = Floor, gold = Gold, hp = Hp, pulls = Pulls, removed = Removed,
+                hero = (int)HeroKind, seed = Seed, roster = (int)Roster, floor = Floor, gold = Gold, hp = Hp, pulls = Pulls, removed = Removed,
                 bonusHp = BonusMaxHp, bonusLuck = BonusLuck, freeGachaFloor = FreeGachaFloor, interestEarned = InterestEarned, lastInterest = LastInterest,
                 ownedRelics = ownedRelics.Select(r => new SavedRelic { id = r.Definition.Id, chroma = (int)r.Chroma, uses = r.TimesTriggered, active = r.Active }).ToArray(),
                 pendingChoices = choices.Select(c => new SavedChoice { kind = c.Kind, count = c.Count }).ToArray(),
@@ -71,8 +73,8 @@ namespace LastWish.Domain
                 || save.floor < 1 || save.floor > 100000 || save.gold < 0 || save.hp < 1 || save.pulls < 0 || save.pulls > 100000
                 || save.removed < 0 || save.removed > 10000 || save.cards == null || save.cards.Length < 1 || save.cards.Length > 10000
                 || save.visited == null || save.visited.Length > 200 || save.available == null || save.available.Length > 200
-                || save.ownedRelics == null || save.ownedRelics.Length > 1000) throw new ArgumentException("Invalid checkpoint");
-            var run = new RunState((HeroKind)save.hero, save.seed);
+                || save.ownedRelics == null || save.ownedRelics.Length > 1000 || !Enum.IsDefined(typeof(EnemyRoster), save.roster)) throw new ArgumentException("Invalid checkpoint");
+            var run = new RunState((HeroKind)save.hero, save.seed, (EnemyRoster)save.roster);
             run.Floor = save.floor; run.Map = RunMap.Generate(save.seed, save.floor);
             run.deck.Clear();
             foreach (var card in save.cards) run.deck.Add(LoadCard(card));

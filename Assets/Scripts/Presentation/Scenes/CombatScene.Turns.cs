@@ -231,6 +231,7 @@ namespace LastWish.Presentation
                 (result.Spoil, "¡DESPOJO!", new Rgba(240, 150, 60)), (result.Reaction, "¡REACCIÓN!", new Rgba(255, 130, 205)) })
                 if (flag && playerRect.HasValue) { fx.AddText(playerRect.Value.CenterX, playerRect.Value.Y - 10 - 24 * shownCount, label, color, 1.1f); shownCount++; }
             AnnounceReactions(isAttack ? ReactionDelay : 0.1f);
+            ShowExpansionPlay(result, isAttack && heroFx != null ? heroSheets.StrikeSeconds : 0.1f);
             if (played != null)
             {
                 var viewResult = ViewResult(result);
@@ -254,6 +255,63 @@ namespace LastWish.Presentation
             {
                 var dmg = oldHp[i] - E(i).Hp;
                 if (dmg > 0 && i < enemyRects.Count) EnemyHit(i, dmg, !E(i).Alive, true, delay);
+            }
+        }
+
+        private static readonly Rgba ThornText = new Rgba(255, 150, 110), ParryText = new Rgba(120, 240, 220), StrengthText = new Rgba(255, 190, 90);
+
+        private IRect? RectOfEnemy(string id)
+        {
+            for (var i = 0; i < EnemyCount && i < enemyRects.Count; i++) if (E(i).Id == id) return enemyRects[i];
+            return null;
+        }
+        private string NameOfEnemy(string id) { foreach (var e in state.Enemies) if (e.Id == id) return e.Definition.Name; return ""; }
+
+        /// <summary>Pinchos / Réplica hits on the hero, Desvío, Vigilancia and death effects (returned cards, Carroña) of a card.</summary>
+        private void ShowExpansionPlay(PlayResult result, float delay)
+        {
+            var hitDelay = delay + 0.25f; var lostTotal = 0; var k = 0;
+            foreach (var (id, lost, kind) in result.HeroHits)
+            {
+                if (playerRect.HasValue)
+                {
+                    var pr = playerRect.Value;
+                    fx.AddText(pr.CenterX, pr.Y - 20 - 22 * k, kind == "thorns" ? "Pinchos" : "¡Réplica!", ThornText, 1.1f, hitDelay);
+                    if (lost > 0) fx.AddHitFlash(pr, lost, (k - (result.HeroHits.Count - 1) / 2f) * 18, hitDelay, false);
+                }
+                log.Effect(state.Turn, "damage", (kind == "thorns" ? "Pinchos de " : "Réplica de ") + NameOfEnemy(id), new[] { lost > 0 ? "Pierdes " + lost + " de vida." : "Tu escudo lo para." }, null);
+                lostTotal += lost; k++;
+            }
+            if (lostTotal > 0) { pendingHeroHurt = hitDelay; pendingHeroName = state.Hp > 0 ? "hurt" : "death"; Sound.PlayHit(); }
+            foreach (var pair in result.Parried)
+            {
+                var rect = RectOfEnemy(pair.Key);
+                if (rect.HasValue) fx.AddText(rect.Value.CenterX, rect.Value.Y - 30, pair.Value > 1 ? "¡Desvío x" + pair.Value + "!" : "¡Desvío!", ParryText, 1.2f, delay);
+            }
+            foreach (var id in result.VigilGains)
+            {
+                var rect = RectOfEnemy(id);
+                if (rect.HasValue) fx.AddText(rect.Value.CenterX, rect.Value.Y - 8, "+1 Fuerza", StrengthText, 1.1f, delay + 0.2f);
+                log.Effect(state.Turn, "combo", NameOfEnemy(id) + " gana 1 de Fuerza", new[] { "Vigilancia: castiga jugar muchas cartas en un turno." }, null);
+            }
+            ShowDeathEvents(delay + 0.4f);
+        }
+
+        private void ShowDeathEvents(float delay)
+        {
+            foreach (var ev in state.DeathEvents)
+            {
+                if (ev.ReturnedCards.Count > 0)
+                {
+                    fx.AddText(DiscardX + 30, DiscardY - 20, "+" + ev.ReturnedCards.Count + (ev.ReturnedCards.Count == 1 ? " carta" : " cartas"), HealText, 1.2f, delay);
+                    log.Effect(state.Turn, "cards", "Recuperas " + string.Join(", ", ev.ReturnedCards), new[] { "Vuelven a tu descarte desde el buche de " + NameOfEnemy(ev.EnemyId) + "." }, null);
+                }
+                foreach (var (feeder, strength, healed) in ev.Carrion)
+                {
+                    var rect = RectOfEnemy(feeder);
+                    if (rect.HasValue) fx.AddText(rect.Value.CenterX, rect.Value.Y - 8, "+" + strength + " Fuerza" + (healed > 0 ? " +" + healed : ""), StrengthText, 1.2f, delay);
+                    log.Effect(state.Turn, "fury", NameOfEnemy(feeder) + " se ceba", new[] { "Carroña: gana " + strength + " de Fuerza y se cura " + healed + "." }, null);
+                }
             }
         }
 
@@ -444,8 +502,42 @@ namespace LastWish.Presentation
                     if (anim.Busy) gone.Add((anim, slotOf.TryGetValue(enemy.Id, out var s) ? s : 0));
                     else animById.Remove(enemy.Id);
                 }
+            PlaceArrivals();
             enemyAnims.Clear();
             for (var i = 0; i < EnemyCount; i++) if (animById.TryGetValue(E(i).Id, out var a)) enemyAnims[i] = a;
+        }
+
+        /// <summary>Delay before each arriving enemy shows up (set by the enemy turn: after its summoner's move).</summary>
+        private readonly Dictionary<string, float> arrivalDelay = new Dictionary<string, float>();
+
+        /// <summary>Summons, split fragments and revived bosses: a slot of their size and an animator that appears on cue.</summary>
+        private void PlaceArrivals()
+        {
+            var taken = new HashSet<int>(); var dying = new HashSet<int>();
+            for (var i = 0; i < EnemyCount; i++) if (slotOf.TryGetValue(E(i).Id, out var s)) taken.Add(s);
+            foreach (var (anim, slot) in gone) if (anim.Busy) dying.Add(slot);
+            for (var i = 0; i < EnemyCount; i++)
+            {
+                var enemy = E(i);
+                if (slotOf.ContainsKey(enemy.Id)) continue;
+                var domainIndex = view[i];
+                var sheet = Art.SheetForEnemy(enemy.Definition.Name);
+                var large = sheet != null && sheet.IsBoss;
+                var preferred = -1;
+                if (enemy.SummonerId != null && slotOf.TryGetValue(enemy.SummonerId, out var own))
+                {
+                    var summoner = state.Enemies.FirstOrDefault(e => e.Id == enemy.SummonerId);
+                    if (summoner != null && !summoner.Alive) preferred = own;   // split fragments stand where the ooze was
+                }
+                var slot = formation.Pick(large, taken, dying, preferred);
+                if (slot < 0) slot = formation.AnyOfSize(large);
+                slotOf[enemy.Id] = slot; taken.Add(slot);
+                if (sheet == null || animById.ContainsKey(enemy.Id)) continue;
+                var anim = new EnemyAnimator(sheet, 31 + 17 * domainIndex, 0.47f * domainIndex);
+                anim.Appear(arrivalDelay.TryGetValue(enemy.Id, out var d) ? d : 0.4f);
+                animById[enemy.Id] = anim;
+            }
+            arrivalDelay.Clear();
         }
 
         private void AnnounceVengeance()
@@ -453,13 +545,24 @@ namespace LastWish.Presentation
             for (var i = 0; i < EnemyCount; i++)
             {
                 var enemy = E(i);
-                if (!enemy.Alive || enemy.Intent.Id != "vengeance" || avenging.Contains(enemy.Id) || i >= enemyRects.Count) continue;
-                avenging.Add(enemy.Id);
+                if (!enemy.Alive || i >= enemyRects.Count || !Callouts.TryGetValue(enemy.Intent.Id, out var callout)) continue;
+                if (!avenging.Add(enemy.Id + "/" + enemy.Intent.Id + "/" + state.Turn)) continue;
                 var rect = enemyRects[i];
-                fx.AddText(rect.CenterX, rect.Y - 46, "¡VENGANZA!", VengeanceText, 1.6f, VengeanceDelay);
-                if (enemyAnims.TryGetValue(i, out var anim)) anim.Play("cast", VengeanceDelay);
+                fx.AddText(rect.CenterX, rect.Y - 46, callout.text, callout.color, 1.6f, VengeanceDelay);
+                if (enemyAnims.TryGetValue(i, out var anim) && !anim.Busy) anim.Play(callout.anim, VengeanceDelay);
+                if (enemy.Intent.Id == "stunned") log.Effect(state.Turn, "unplayable", enemy.Definition.Name + " queda Aturdido", new[] { "Le quitaste toda la Carga: pierde su turno." }, null);
             }
         }
+
+        /// <summary>Intents that change on the spot and get a callout over the enemy (once per enemy, intent and turn).</summary>
+        private static readonly Dictionary<string, (string text, Rgba color, string anim)> Callouts = new Dictionary<string, (string, Rgba, string)>
+        {
+            ["vengeance"] = ("¡VENGANZA!", new Rgba(255, 90, 70), "cast"),
+            ["stunned"] = ("¡ATURDIDO!", new Rgba(150, 220, 255), "hurt"),
+            ["dig_grave"] = ("¡CAVA SU TUMBA!", new Rgba(220, 180, 110), "cast"),
+            ["soul_drain"] = ("¡ALMA EN PENA!", new Rgba(190, 150, 255), "cast"),
+            ["split"] = ("¡SE VA A DIVIDIR!", new Rgba(240, 120, 220), "hurt"),
+        };
 
         private void AnnouncePair()
         {
@@ -472,6 +575,15 @@ namespace LastWish.Presentation
             var names = new HashSet<string>(); for (var i = 0; i < EnemyCount; i++) if (!string.IsNullOrEmpty(E(i).PairName)) names.Add(E(i).PairName);
             foreach (var pair in Game.Data.Pairs.Values)
                 if (names.Contains(pair.name)) banners.Add("buff", "¡Pareja! " + pair.name, pair.synergy, 0.4f);
+            foreach (var group in EnemyCatalog.Groups)
+                if (names.Contains(group.Name)) banners.Add("buff", (group.Members.Count >= 3 ? "¡Trío! " : "¡Pareja! ") + group.Name, group.Synergy, 0.4f);
+            foreach (var fight in EnemyCatalog.BossEncounters)
+                if (fight.Linked && names.Contains(fight.Name)) banners.Add("buff", "¡Pareja de jefes! " + fight.Name, fight.Synergy, 0.4f);
+            for (var i = 0; i < EnemyCount; i++)
+            {
+                var profile = EnemyCatalog.Profile(E(i).Definition.Ai);
+                if (profile != null && profile.Tier == EnemyTier.Elite) banners.Add("buff", "¡Élite! " + E(i).Definition.Name, profile.Identity + ": " + profile.Title, 0.4f);
+            }
         }
 
         // ------------------------------------------------------------------ history of the enemy turn
@@ -545,6 +657,11 @@ namespace LastWish.Presentation
                 if (e.Alive && e.Statuses[StatusKind.Frozen] > 0 && !(e.Definition.Boss || e.Definition.Elite)) frozen.Add(i);
             }
             state.EndTurn();
+            foreach (var a in state.EnemyLog)   // a broken Carga (poison before acting) turns the planned blow into Aturdido
+            {
+                var vi = ToBefore(a.Index);
+                if (a.Stunned && vi.HasValue && intents.ContainsKey(vi.Value)) intents[vi.Value] = EnemyPatterns.Stunned(before[vi.Value].Floor);
+            }
             // the original drops the dead from its enemy list after the enemies act
             view.Clear(); for (var i = 0; i < state.Enemies.Count; i++) if (state.Enemies[i].Alive) view.Add(i);
             var g = Game.Data.Glossary;
@@ -576,6 +693,9 @@ namespace LastWish.Presentation
                 var hits = Math.Max(1, action.Hits.Count);
                 anim.Play(name, delay, hits);
                 var times = anim.StrikeTimes(name, hits).Select(t => delay + t).ToArray();
+                var cue = (times.Length > 0 ? times[0] : delay + anim.Seconds(name) * 0.5f) + 0.05f;
+                foreach (var id in action.Summoned) arrivalDelay[id] = cue;
+                if (action.Revived != null) arrivalDelay[action.Revived] = delay + anim.Seconds(name) + 0.1f;
                 if (action.Hits.Count > 0 && times.Length > 0)
                 {
                     strike = strike.HasValue ? Math.Min(strike.Value, times[0]) : times[0];
@@ -589,7 +709,7 @@ namespace LastWish.Presentation
                 if (!vi.HasValue || !animsBefore.ContainsKey(vi.Value)) AnnounceExtras(action, 0.2f);
             }
             var exploded = new HashSet<int>();
-            foreach (var a in state.EnemyLog) if (a.Exploded) { var vi = ToBefore(a.Index); if (vi.HasValue) exploded.Add(vi.Value); }
+            foreach (var a in state.EnemyLog) if (a.Exploded || a.Split) { var vi = ToBefore(a.Index); if (vi.HasValue) exploded.Add(vi.Value); }
             // _enemy_hit still works on the old indices here: rects and animators are re-keyed by SyncEnemyAnims below
             for (var i = 0; i < before.Count; i++)
             {

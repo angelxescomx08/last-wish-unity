@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using LastWish.Domain;
 
@@ -27,8 +28,7 @@ namespace LastWish.Presentation
         private const int DrawX = 1160, DrawY = 484, DiscardX = 1160, DiscardY = 596;
         private const int EndTurnX = 1074, EndTurnY = 9, EndTurnW = 196, EndTurnH = 48;
         private const float EnemyPhaseTime = 1.3f, DrawAfterCast = 0.28f, DrawAfterGoldenCast = 0.22f, DrawAfterEnemyTurn = 1.1f;
-        private static readonly (int x, int y)[] EnemySlots = { (762, EnemyY), (942, EnemyY), (1122, EnemyY) };
-        private const int BossCx = 905, BossGround = 314, BossW = 230;
+
         private static readonly Dictionary<string, string> CardNamesEs = new Dictionary<string, string> { ["status_espora"] = "Espora", ["status_moho"] = "Moho" };
         private static readonly Rgba Toxic = new Rgba(170, 230, 70), HealText = new Rgba(120, 236, 120), VengeanceText = new Rgba(255, 90, 70), DebuffText = new Rgba(220, 120, 240);
         private const float VengeanceDelay = 1.0f, ReactionDelay = 0.35f;
@@ -85,6 +85,7 @@ namespace LastWish.Presentation
         private readonly List<int> view = new List<int>();
         private readonly Dictionary<string, EnemyAnimator> animById = new Dictionary<string, EnemyAnimator>();
         private readonly Dictionary<string, int> slotOf = new Dictionary<string, int>();
+        private readonly EnemyFormation formation;
         private readonly List<(EnemyAnimator anim, int slot)> gone = new List<(EnemyAnimator, int)>();
         private readonly HashSet<string> avenging = new HashSet<string>();
         private readonly Dictionary<int, EnemyAnimator> enemyAnims = new Dictionary<int, EnemyAnimator>();
@@ -140,12 +141,30 @@ namespace LastWish.Presentation
             for (var i = 0; i < state.Enemies.Count; i++) { view.Add(i); if (state.Enemies[i].Definition.Elite) IsElite = true; }
             initialEnemyCount = state.Enemies.Count;
             fx = new FxLayer(game.Art, game.Fonts.Get(16));
+            var large = 0; var bringsSmall = false;
             for (var i = 0; i < state.Enemies.Count; i++)
             {
                 var enemy = state.Enemies[i];
-                slotOf[enemy.Id] = i;
                 var sheet = game.Art.SheetForEnemy(enemy.Definition.Name);
                 if (sheet != null) animById[enemy.Id] = new EnemyAnimator(sheet, 31 + 17 * i, 0.47f * i);
+                if (sheet != null && sheet.IsBoss) large++;
+                var profile = EnemyCatalog.Profile(enemy.Definition.Ai);
+                if (profile == null) continue;
+                foreach (var ai in profile.Summons.Concat(profile.Spawns))
+                {
+                    var spawned = EnemyCatalog.Definition(ai);
+                    _ = game.Art.SheetForEnemy(spawned.Name);   // preload: the first arrival does not stall
+                    if (!EnemyField.IsLarge(spawned)) bringsSmall = true;
+                }
+            }
+            formation = new EnemyFormation(EnemyFormation.Choose(large, bringsSmall));
+            for (var i = 0; i < state.Enemies.Count; i++)
+            {
+                var enemy = state.Enemies[i];
+                if (formation.Shape == EnemyFormation.Kind.Line3) { slotOf[enemy.Id] = i; continue; }
+                var isLarge = animById.TryGetValue(enemy.Id, out var a) && a.Sheet.IsBoss;
+                var slot = formation.Pick(isLarge, slotOf.Values.ToList(), Array.Empty<int>());
+                slotOf[enemy.Id] = slot >= 0 ? slot : formation.AnyOfSize(isLarge);
             }
             SyncEnemyAnims(null);
             var strike = hasHeroSprites ? heroSheets.StrikeSeconds : 0f;

@@ -35,10 +35,10 @@ namespace LastWish.Presentation
             t.ExtraLuck = (int)Num(data.Get("extra_luck"), 0, 0, 1000, true);
             t.ExtraDamage = (int)Num(data.Get("extra_damage"), 0, 0, 10000, true);
             t.ExtraDexterity = (int)Num(data.Get("extra_dexterity"), 0, 0, 10000, true);
-            t.ForcedBoss = (int)Num(data.Get("forced_boss"), 0, 0, 3, true);
+            t.ForcedBoss = (int)Num(data.Get("forced_boss"), 0, 0, EnemyCatalog.BossKeys(EnemyRoster.Expanded).Count, true);
             t.ForcedEncounter = (int)Num(data.Get("forced_encounter"), 0, 0, 99, true);
             t.BossRooms = data.Get("boss_rooms") is bool c && c;
-            t.ForcedElite = (int)Num(data.Get("forced_elite"), 0, 0, 5, true);
+            t.ForcedElite = (int)Num(data.Get("forced_elite"), 0, 0, EnemyCatalog.EliteList(EnemyRoster.Expanded).Count, true);
             t.EliteRooms = data.Get("elite_rooms") is bool d && d;
             t.GachaRooms = data.Get("gacha_rooms") is bool e && e;
         }
@@ -83,9 +83,10 @@ namespace LastWish.Presentation
 
         private static List<Row> BuildRows()
         {
-            var bosses = new[] { "Al azar" }.Concat(EnemyCatalog.Floor1Bosses.Select(a => EnemyCatalog.Definition(a).Name)).ToArray();
-            var encounters = Enumerable.Range(0, EnemyCatalog.EncounterCount + 1).Select(EnemyCatalog.EncounterLabel).ToArray();
-            var elites = Enumerable.Range(0, EnemyCatalog.EliteOrder.Count + 1).Select(EnemyCatalog.EliteLabel).ToArray();
+            const EnemyRoster roster = EnemyRoster.Expanded;   // the menu run uses the floor-1 expansion
+            var bosses = Enumerable.Range(0, EnemyCatalog.BossKeys(roster).Count + 1).Select(i => EnemyCatalog.BossLabel(i, roster)).ToArray();
+            var encounters = Enumerable.Range(0, EnemyCatalog.EncounterTotal(roster) + 1).Select(i => EnemyCatalog.EncounterLabel(i, roster)).ToArray();
+            var elites = Enumerable.Range(0, EnemyCatalog.EliteList(roster).Count + 1).Select(i => EnemyCatalog.EliteLabel(i, roster)).ToArray();
             var list = new List<Row>();
             foreach (var kind in Tuning.ChromaKinds)
                 list.Add(new Row { Label = "Probabilidad " + KindLabel[kind] + " " + (kind == "pack" ? "dorado" : "dorada") + "s", Kind = Kind.Percent, ChromaKind = kind });

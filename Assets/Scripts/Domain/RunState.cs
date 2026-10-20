@@ -87,10 +87,14 @@ namespace LastWish.Domain
         public bool IsDead => Hp <= 0;
         public MapRoom CurrentRoom => Map.Find(CurrentRoomId);
 
-        public RunState(HeroKind hero, long seed)
+        /// <summary>Enemy content of this run: <see cref="EnemyRoster.Original"/> (the Python game, parity tests) unless the menu asks for the expansion.</summary>
+        public EnemyRoster Roster { get; }
+
+        public RunState(HeroKind hero, long seed, EnemyRoster roster = EnemyRoster.Original)
         {
             if (seed < 0) throw new ArgumentOutOfRangeException(nameof(seed));
-            HeroKind = hero; Seed = seed;
+            if (!Enum.IsDefined(typeof(EnemyRoster), roster)) throw new ArgumentOutOfRangeException(nameof(roster));
+            HeroKind = hero; Seed = seed; Roster = roster;
             Deck = deck.AsReadOnly(); OwnedRelics = ownedRelics.AsReadOnly(); PendingChoices = choices.AsReadOnly();
             Gold = Tuning.Current.StartingGold; Hp = Hero.MaxHp + Tuning.Current.ExtraMaxHp;
             deck.AddRange(RunContent.StarterDeck(hero)); Map = RunMap.Generate(seed, Floor);
@@ -201,11 +205,11 @@ namespace LastWish.Domain
         {
             if (Tuning.Current.BossRooms) return GenerateBoss();
             if (Tuning.Current.EliteRooms) return GenerateElite(roomId);
-            return EnemyCatalog.RollEncounter(new PyRandom(EnemySeed(roomId)), Floor, roomId, Tuning.Current.ForcedEncounter);
+            return EnemyCatalog.RollEncounter(new PyRandom(EnemySeed(roomId)), Floor, roomId, Tuning.Current.ForcedEncounter, Roster);
         }
 
         public List<EnemyState> GenerateElite(string roomId) =>
-            EnemyCatalog.RollElite(new PyRandom(EnemySeed(roomId) ^ 0xE117E), Floor, roomId, Tuning.Current.ForcedElite);
+            EnemyCatalog.RollElite(new PyRandom(EnemySeed(roomId) ^ 0xE117E), Floor, roomId, Tuning.Current.ForcedElite, Roster);
 
         public string FloorBossAi()
         {
@@ -215,8 +219,20 @@ namespace LastWish.Domain
             return new PyRandom(((BigInteger)Seed * EnemyPrime) ^ 0xB055).Choice(EnemyCatalog.Floor1Bosses);
         }
 
+        /// <summary>The floor-1 boss fight of the expanded roster (same seeded choice, over 6 fights), or null on later floors.</summary>
+        public string FloorBossKey()
+        {
+            if (Floor != 1) return null;
+            if (Roster == EnemyRoster.Original) return FloorBossAi();
+            var keys = EnemyCatalog.BossKeys(Roster);
+            var forced = Tuning.Current.ForcedBoss;
+            if (forced >= 1 && forced <= keys.Count) return keys[forced - 1];
+            return new PyRandom(((BigInteger)Seed * EnemyPrime) ^ 0xB055).Choice(keys.ToList());
+        }
+
         public List<EnemyState> GenerateBoss()
         {
+            if (Roster == EnemyRoster.Expanded && Floor == 1) return EnemyCatalog.CreateBoss(FloorBossKey(), Floor);
             var ai = FloorBossAi();
             return new List<EnemyState> { ai != null ? EnemyCatalog.Create(ai, Floor, "boss_f" + Floor) : EnemyCatalog.CreateCryptLord(Floor) };
         }
@@ -233,7 +249,7 @@ namespace LastWish.Domain
         // ------------------------------------------------------------ victory, gold, events
         public int CombatGold(IEnumerable<EnemyState> enemies)
         {
-            long worth = 0; foreach (var e in enemies) worth += Math.Max(1, e.MaxHp / 8);
+            long worth = 0; foreach (var e in enemies) if (e.PaysGold) worth += Math.Max(1, e.MaxHp / 8);
             worth += RelicEffect("gold_ring", 15);
             var multiplier = 1.0 + 0.25 * RelicEffect("thief_mask");
             return Clamp((long)Math.Round(worth * multiplier * Tuning.Current.GoldMultiplier, MidpointRounding.ToEven));

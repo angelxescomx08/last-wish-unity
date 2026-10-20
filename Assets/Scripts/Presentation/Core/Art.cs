@@ -205,6 +205,11 @@ namespace LastWish.Presentation
             { "Diablillo", "imp" }, { "Mímico", "mimic" }, { "El Verdugo", "executioner" }, { "Bruja del Pantano", "hag" },
             { "Gárgola", "gargoyle" }, { "Minotauro", "minotaur" }, { "Escorpión Rey", "scorpion" },
         };
+        static Art()
+        {
+            // the floor-1 expansion sheets (Tools/GenerateEnemyArt.py), keyed by the Spanish name like the originals
+            foreach (var d in LastWish.Domain.EnemyCatalog.ExpansionDefinitions) EnemySheetIds[d.Name] = d.AssetId;
+        }
         public static readonly Dictionary<string, string> HeroIds = new Dictionary<string, string> {
             { "La Guerrera", "warrior" }, { "El Guerrero", "warrior" }, { "El Mago", "mage" }, { "La Pícara", "rogue" }, { "El Pícaro", "rogue" },
         };
@@ -317,7 +322,13 @@ namespace LastWish.Presentation
         public Sprite CardBack => new Sprite(Texture("Cards/back"));
         public bool HasCardArt(string cardId) => cardId != null && cardArt.Contains(cardId);
         public Sprite CardArt(string cardId) => HasCardArt(cardId) ? new Sprite(Texture("Cards/Art/" + cardId)) : default;
-        public Sprite CardPlaceholder(string type) => new Sprite(Texture("Cards/Placeholder/" + type.ToLowerInvariant()));
+        private static readonly HashSet<string> PlaceholderTypes = new HashSet<string> { "attack", "skill", "power" };
+        /// <summary>The generic icon of a card type without art; status cards without art (Herida) have none.</summary>
+        public Sprite CardPlaceholder(string type)
+        {
+            var key = (type ?? "").ToLowerInvariant();
+            return PlaceholderTypes.Contains(key) ? new Sprite(Texture("Cards/Placeholder/" + key)) : default;
+        }
 
         // ---------------------------------------------------------------- sheets
         public HeroSheets Hero(string id)

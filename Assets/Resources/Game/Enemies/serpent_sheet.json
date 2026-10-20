@@ -1,0 +1,203 @@
+{
+ "cell_w": 224,
+ "cell_h": 124,
+ "columns": 16,
+ "anchor": [
+  150,
+  116
+ ],
+ "scale": 2,
+ "sheet": "serpent_sheet.png",
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 16,
+   "durations_ms": [
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105
+   ],
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "frames": 10,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "tail": {
+   "row": 2,
+   "frames": 12,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    55,
+    95,
+    55,
+    100,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "constrict": {
+   "row": 3,
+   "frames": 12,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "molt": {
+   "row": 4,
+   "frames": 14,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    110,
+    120,
+    55,
+    80,
+    85,
+    90,
+    95,
+    100,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "cast": {
+   "row": 5,
+   "frames": 10,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    55,
+    80,
+    85,
+    90,
+    95,
+    110
+   ],
+   "loop": false
+  },
+  "hurt": {
+   "row": 6,
+   "frames": 6,
+   "durations_ms": [
+    55,
+    60,
+    70,
+    80,
+    90,
+    100
+   ],
+   "loop": false
+  },
+  "death": {
+   "row": 7,
+   "frames": 15,
+   "durations_ms": [
+    70,
+    90,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    120
+   ],
+   "loop": false
+  }
+ },
+ "events": {
+  "attack": {
+   "strikes": [
+    4
+   ]
+  },
+  "tail": {
+   "strikes": [
+    4,
+    6,
+    8
+   ]
+  },
+  "constrict": {
+   "strikes": [
+    6
+   ]
+  }
+ },
+ "moves": {
+  "fangs": "attack",
+  "death_bite": "attack",
+  "tail": "tail",
+  "constrict": "constrict",
+  "molt": "molt",
+  "new_skin": "molt",
+  "brood": "cast",
+  "brood_frenzy": "cast",
+  "hiss": "cast",
+  "vengeance": "cast"
+ },
+ "boss": true,
+ "top_native": 33,
+ "idle_bbox_native": [
+  109,
+  33,
+  204,
+  118
+ ]
+}
