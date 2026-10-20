@@ -323,7 +323,7 @@ namespace LastWish.Presentation
         public bool HasCardArt(string cardId) => cardId != null && cardArt.Contains(cardId);
         public Sprite CardArt(string cardId) => HasCardArt(cardId) ? new Sprite(Texture("Cards/Art/" + cardId)) : default;
         private static readonly HashSet<string> PlaceholderTypes = new HashSet<string> { "attack", "skill", "power" };
-        /// <summary>The generic icon of a card type without art; status cards without art (Herida) have none.</summary>
+        /// <summary>The generic icon of a card type without art (fallback; every catalog card has its own art); status cards have none.</summary>
         public Sprite CardPlaceholder(string type)
         {
             var key = (type ?? "").ToLowerInvariant();

@@ -91,6 +91,20 @@ python Tools/ExportPixelFonts.py --source-dir RUTA_PYTHON
 
 El arte original se conserva sin redibujar. Consulta `THIRD_PARTY_NOTICES.md`.
 
+## Ilustraciones de las cartas
+
+Cada carta tiene su propia ilustración en la ventana del marco (`Cards/Art/<id>.png`, 44×32 píxeles a ×4),
+en lugar del icono genérico de su tipo. Se componen con tiles CC0 de Dungeon Crawl Stone Soup (los mismos de
+los iconos genéricos) y efectos de píxel; Espora y Moho conservan su arte original:
+
+```powershell
+python Tools/GenerateCardArt.py            # escribe las 176 ilustraciones y la lista "art" de Cards/layout.json
+python Tools/GenerateCardArt.py --check    # comprueba que coinciden con el repositorio
+python Tools/GenerateCardArt.py --only a_tajo --preview TestResults/card-art   # hoja de contacto para revisar
+```
+
+Lee los tiles del repositorio Python (`--source-dir`, por defecto `../../python/last-wish`).
+
 ## Enemigos nuevos del piso 1
 
 La partida del menú añade al piso 1 diecisiete enemigos que no existen en el original:

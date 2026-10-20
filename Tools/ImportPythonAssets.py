@@ -74,7 +74,8 @@ def main():
         layout["packs"][theme] = "Cards/Packs/" + Path(rel).stem
     for art in (src / "cards-v2" / "art").glob("*.png"):
         copy(art, out / "Cards" / "Art" / art.name)
-    layout["art"] = sorted(p.stem for p in (src / "cards-v2" / "art").glob("*.png"))
+    # The original art plus the per-card illustrations written by Tools/GenerateCardArt.py.
+    layout["art"] = sorted({p.stem for p in (src / "cards-v2" / "art").glob("*.png")} | {p.stem for p in (out / "Cards" / "Art").glob("*.png")})
     copy(src / "Card Sprites" / "Card Back" / "crystal (1).png", out / "Cards" / "back.png")
     dcss = src / "dungeon-crawl-stone-soup-full"
     placeholders = {"ATTACK": "item/weapon/long_sword_1_new.png", "SKILL": "item/armor/shields/shield_2_kite.png", "POWER": "item/misc/misc_orb.png"}
