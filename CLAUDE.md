@@ -8,6 +8,8 @@ reference and as the source of the parity exporters in `Tools/`.
 Read `AGENTS.md`, `README.md` and `docs/port-status.md` before changes; `docs/enemies.md` for
 enemies. Code in English, on-screen text in Spanish.
 
+Git: commit and push directly to `main`; the user does not want separate branches (rule of 2026-10-27).
+
 Art: every new picture, sprite, animation or particle effect follows `docs/art-style.md`, the visual style the user
 approved on 2026-10-27 (the rogue's animated card illustrations); it replaces the earlier art guidelines.
 
