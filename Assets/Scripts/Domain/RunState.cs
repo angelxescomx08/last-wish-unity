@@ -219,20 +219,25 @@ namespace LastWish.Domain
             return new PyRandom(((BigInteger)Seed * EnemyPrime) ^ 0xB055).Choice(EnemyCatalog.Floor1Bosses);
         }
 
-        /// <summary>The floor-1 boss fight of the expanded roster (same seeded choice, over 6 fights), or null on later floors.</summary>
+        /// <summary>
+        /// The boss fight of the expanded roster: on floor 1 the same seeded choice as before over its 6 fights, on floors 2 and 3
+        /// a seeded choice over that floor's 3 fights (one salt per floor); a Pruebas boss (any of the 12) is forced on floors 1-3.
+        /// Null above floor 3.
+        /// </summary>
         public string FloorBossKey()
         {
-            if (Floor != 1) return null;
-            if (Roster == EnemyRoster.Original) return FloorBossAi();
+            if (Roster == EnemyRoster.Original) return Floor == 1 ? FloorBossAi() : null;
+            if (Floor < 1 || Floor > EnemyCatalog.LastExpandedFloor) return null;
             var keys = EnemyCatalog.BossKeys(Roster);
             var forced = Tuning.Current.ForcedBoss;
             if (forced >= 1 && forced <= keys.Count) return keys[forced - 1];
-            return new PyRandom(((BigInteger)Seed * EnemyPrime) ^ 0xB055).Choice(keys.ToList());
+            var salt = Floor == 1 ? 0xB055 : Floor == 2 ? 0xB0552 : 0xB0553;
+            return new PyRandom(((BigInteger)Seed * EnemyPrime) ^ salt).Choice(EnemyCatalog.FloorBossKeys(Floor).ToList());
         }
 
         public List<EnemyState> GenerateBoss()
         {
-            if (Roster == EnemyRoster.Expanded && Floor == 1) return EnemyCatalog.CreateBoss(FloorBossKey(), Floor);
+            if (Roster == EnemyRoster.Expanded && Floor >= 1 && Floor <= EnemyCatalog.LastExpandedFloor) return EnemyCatalog.CreateBoss(FloorBossKey(), Floor);
             var ai = FloorBossAi();
             return new List<EnemyState> { ai != null ? EnemyCatalog.Create(ai, Floor, "boss_f" + Floor) : EnemyCatalog.CreateCryptLord(Floor) };
         }

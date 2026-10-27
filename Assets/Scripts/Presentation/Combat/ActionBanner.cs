@@ -57,7 +57,7 @@ namespace LastWish.Presentation
             }
             if (intent.AllyBlock > 0) parts.Add("da " + intent.AllyBlock + " de escudo a su compañero");
             if (intent.AllyBuffs != null) foreach (var b in intent.AllyBuffs) parts.Add("da " + b.Amount + " de " + NameOf(g, b.Kind) + " a sus aliados");
-            if (action.Healed > 0) parts.Add("recupera " + action.Healed + " de vida");
+            if (action.Healed > 0) parts.Add(action.Rewound > 0 ? "rebobina el tiempo: recupera " + action.Healed + " de vida" : "recupera " + action.Healed + " de vida");
             if (action.Exploded) parts.Add("¡explota y muere!");
             if (action.Stunned) parts.Add("pierde su turno");
             if (action.StrengthStolen > 0) parts.Add("te roba " + action.StrengthStolen + " de Fuerza");
@@ -69,6 +69,13 @@ namespace LastWish.Presentation
             if (action.Revived != null) parts.Add("¡desentierra a su hermana!");
             else if (action.Summoned.Count > 0) parts.Add("invoca " + action.Summoned.Count + " " + (action.Summoned.Count == 1 ? "esbirro" : "esbirros"));
             if (action.SummonBlocked) parts.Add("no cabe nadie más");
+            if (action.DebuffsReturned > 0) parts.Add("te devuelve sus perjuicios");
+            if (action.Devoured != null) parts.Add("sacrifica a un esbirro y gana " + action.DevouredStrength + " de Fuerza");
+            if (action.RitualStrength > 0) parts.Add("su Rito le da " + action.RitualStrength + " de Fuerza");
+            if (action.Regenerated > 0) parts.Add("cicatriza " + action.Regenerated + " de vida");
+            if (action.Pierced > 0) parts.Add("atraviesa tu escudo (" + action.Pierced + ")");
+            if (action.RageSpent > 0) parts.Add("descarga " + action.RageSpent + " de Fuerza de su Cólera");
+            if (action.WoundUp != null) parts.Add("da cuerda al Relojero");
             return (Tooltip.IntentIcon(intent), title, string.Join(" · ", parts));
         }
 

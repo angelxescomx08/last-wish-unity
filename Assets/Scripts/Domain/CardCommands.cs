@@ -73,7 +73,7 @@ namespace LastWish.Domain
         }
         private void HealHero(long amount)
         {
-            if (amount <= 0 || HasRelic("stone_heart")) return;
+            if (amount <= 0 || HasRelic("stone_heart") || HeroStatuses[StatusKind.Necrosis] > 0) return;   // Necrosis: no healing at all
             amount += RelicPower("blood_cup",2);
             var healed = Math.Min(amount, Hero.MaxHp - Hp); Hp += (int)healed;
             var overflow=amount-healed;

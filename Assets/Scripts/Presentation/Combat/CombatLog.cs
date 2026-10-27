@@ -134,7 +134,7 @@ namespace LastWish.Presentation
                 var who = namesById.TryGetValue(ev.EnemyId, out var n) ? n : "";
                 lines.Add("¡" + ReactionName(g, ev.Kind) + "! en " + who + ": " + ReactionSummary(ev.Kind, ev.Stacks));
             }
-            foreach (var (flag, label) in new[] { (result.Combo, "¡Combo!"), (result.Singular, "¡Singular!"), (result.Void, "¡Vacío!"), (result.Spoil, "¡Despojo!"),
+            foreach (var (flag, label) in new[] { (result.Combo, result.ComboTimes > 1 ? "¡Combo ×" + result.ComboTimes + "!" : "¡Combo!"), (result.Singular, "¡Singular!"), (result.Void, "¡Vacío!"), (result.Spoil, "¡Despojo!"),
                 (result.Reaction, "¡Reacción!"), (result.Fury, "¡Furia!"), (result.Endure, "¡Aguante!") })
                 if (flag) lines.Add(label);
             var title = "Jugaste " + card.Name + (result.Casts > 1 ? " x" + result.Casts : "");

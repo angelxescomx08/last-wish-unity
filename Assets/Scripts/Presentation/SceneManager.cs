@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using LastWish.Domain;
 
 namespace LastWish.Presentation
@@ -25,6 +27,9 @@ namespace LastWish.Presentation
         private float uiTime;
         private RunState goldRun;
         private int interestSeen;
+        // power telemetry: the open choices of the screens on top and when the run started (game clock)
+        private ChoiceRecord cardChoice, relicChoice;
+        private float runStarted;
 
         public SceneManager(GameContext game, Scene initial)
         {
@@ -39,7 +44,7 @@ namespace LastWish.Presentation
         private SoundPlayer Sound => game.Sound;
 
         /// <summary>Start a run directly (tests and tools); the map is pushed on top of the current scene.</summary>
-        public void StartRun(RunState run) { Run = run; Push(new MapScene(game, run)); }
+        public void StartRun(RunState run) { Run = run; BeginTracking(run); Push(new MapScene(game, run)); }
 
         private bool CanPause()
         {
@@ -74,7 +79,7 @@ namespace LastWish.Presentation
             {
                 Pause.HandleEvent(e);
                 var action = Pause.Action;
-                if (action == PauseAction.Abandon) { Run = null; stack.Clear(); stack.Add(new MainMenuScene(game)); }
+                if (action == PauseAction.Abandon) { EndTracking(RunEnd.Abandon); Run = null; stack.Clear(); stack.Add(new MainMenuScene(game)); }
                 if (action != PauseAction.None) { Pause = null; Sound.PlayConfirm(); }
                 return;
             }
@@ -110,6 +115,7 @@ namespace LastWish.Presentation
             HandleTransitions(top);
             OpenDeckChoice();
             UpdateGold(dt);
+            CheckpointRun();
         }
 
         private void OpenDeckChoice()
@@ -191,14 +197,19 @@ namespace LastWish.Presentation
             {
                 scene.Confirmed = false;
                 Run = new RunState(scene.SelectedCharacter, scene.Seed, EnemyRoster.Expanded);   // the menu plays the floor-1 expansion
+                BeginTracking(Run);
                 Pop();
                 Push(new MapScene(game, Run));
             }
             else if (scene.BackToMenu) { scene.BackToMenu = false; Pop(); }
         }
 
-        private void PushCombat(List<EnemyState> enemies, bool boss = false)
-            => Push(new CombatScene(game, Run.CreateCombat(enemies), Run.OwnedRelics, boss));
+        private void PushCombat(List<EnemyState> enemies, RoomKind room)
+        {
+            var run = Run; var state = run.CreateCombat(enemies);
+            game.Track(p => p.BeginCombat(run, state, room, enemies));
+            Push(new CombatScene(game, state, run.OwnedRelics, room == RoomKind.Boss));
+        }
 
         private void TMap(MapScene scene)
         {
@@ -207,13 +218,17 @@ namespace LastWish.Presentation
             scene.SelectedNode = null;
             var run = Run;
             if (run.EnterRoom(node.Id) == null) return;
+            game.Track(p => p.RoomEntered());
             switch (node.Kind)
             {
                 case RoomKind.Combat when Tuning.Current.GachaRooms: Push(new GachaScene(game, run)); break;
-                case RoomKind.Combat: PushCombat(run.GenerateEnemies(node.Id)); break;
-                case RoomKind.Elite: PushCombat(run.GenerateElite(node.Id)); break;
-                case RoomKind.Boss: PushCombat(run.GenerateBoss(), true); break;
-                case RoomKind.Treasure: Push(new TreasureScene(game, run, run.PickTreasureRelics(node.Id))); break;
+                case RoomKind.Combat: PushCombat(run.GenerateEnemies(node.Id), RoomKind.Combat); break;
+                case RoomKind.Elite: PushCombat(run.GenerateElite(node.Id), RoomKind.Elite); break;
+                case RoomKind.Boss: PushCombat(run.GenerateBoss(), RoomKind.Boss); break;
+                case RoomKind.Treasure:
+                    var treasure = run.PickTreasureRelics(node.Id);
+                    relicChoice = game.Track(p => p.OfferRelics(run, "treasure", treasure.Select(r => r.Definition)));
+                    Push(new TreasureScene(game, run, treasure)); break;
                 case RoomKind.Shop: Push(new ShopScene(game, run)); break;
                 case RoomKind.Event: Push(new EventScene(game, run, run.EventGold(node.Id), node.Id)); break;
                 case RoomKind.Warlock: Push(new WarlockScene(game, run)); break;
@@ -232,27 +247,35 @@ namespace LastWish.Presentation
                 var state = scene.State;
                 var enemies = scene.ListedEnemies();      // the original's list: dead from earlier turns already dropped
                 var room = run.CurrentRoomId ?? "unknown";
+                game.Track(p => p.EndCombat(state, CombatOutcome.Won));
                 if (scene.IsBoss)
                 {
                     var gold = run.ApplyCombatVictory(state.Hp, enemies, state.GoldEarned, state.HpLostCombat, state.Turn, boss: true);
-                    Push(new BossRewardScene(game, run, gold, run.PickBossRelics()));
+                    var relics = run.PickBossRelics();
+                    relicChoice = game.Track(p => p.OfferRelics(run, "boss", relics.Select(r => r.Definition)));
+                    Push(new BossRewardScene(game, run, gold, relics));
                 }
                 else if (scene.IsElite)
                 {
                     var gold = run.ApplyCombatVictory(state.Hp, enemies, state.GoldEarned, state.HpLostCombat, state.Turn, elite: true);
                     var relic = run.PickEliteRelic(room);
-                    Push(new CombatRewardScene(game, run, gold, run.PickRewardCards(room, luckBonus: RunState.EliteCardLuck), relic));
+                    var cards = run.PickRewardCards(room, luckBonus: RunState.EliteCardLuck);
+                    cardChoice = game.Track(p => p.OfferCards(run, "elite_reward", cards.Select(c => c.Card)));
+                    Push(new CombatRewardScene(game, run, gold, cards, relic));
                 }
                 else
                 {
                     var gold = run.ApplyCombatVictory(state.Hp, enemies, state.GoldEarned, state.HpLostCombat, state.Turn);
-                    Push(new CombatRewardScene(game, run, gold, run.PickRewardCards(room)));
+                    var cards = run.PickRewardCards(room);
+                    cardChoice = game.Track(p => p.OfferCards(run, "reward", cards.Select(c => c.Card)));
+                    Push(new CombatRewardScene(game, run, gold, cards));
                 }
             }
             else if (scene.DeathOccurred && !scene.DeathAcknowledged)
             {
                 scene.DeathAcknowledged = true;
                 Sound.PlayDeath();
+                EndTracking(RunEnd.Death);
                 Push(new DeathScene(game, scene.TurnReached));
             }
         }
@@ -261,8 +284,10 @@ namespace LastWish.Presentation
         {
             if (!scene.Cleared) return;
             scene.Cleared = false;
-            if (scene.Relic != null) Run.AcquireRelic(scene.Relic);
-            if (scene.ChosenCard != null) Run.AddCard(scene.ChosenCard);
+            var run = Run;
+            if (scene.Relic != null) { run.AcquireRelic(scene.Relic); game.Track(p => p.RelicGained(run, scene.Relic.Definition, "elite")); }
+            if (scene.ChosenCard != null) { run.AddCard(scene.ChosenCard); var choice = cardChoice; game.Track(p => p.Pick(choice, scene.ChosenCard.Id)); }
+            cardChoice = null;
             Pop(); Pop();
         }
 
@@ -270,7 +295,8 @@ namespace LastWish.Presentation
         {
             if (!scene.Cleared) return;
             scene.Cleared = false;
-            if (scene.ChosenRelic != null) Run.AcquireRelic(scene.ChosenRelic);
+            if (scene.ChosenRelic != null) TakeRelic(scene.ChosenRelic, "treasure");
+            relicChoice = null;
             Pop();
         }
 
@@ -278,7 +304,12 @@ namespace LastWish.Presentation
         {
             var run = Run;
             if (run == null || !run.HasRelic("loaded_die")) return null;
-            return () => run.PickPackCards(theme, reroll: 1);
+            return () =>
+            {
+                var cards = run.PickPackCards(theme, reroll: 1);
+                var choice = cardChoice; game.Track(p => p.ReplaceOffer(choice, cards.Select(c => c.Card)));
+                return cards;
+            };
         }
 
         private void TShop(ShopScene scene)
@@ -289,6 +320,7 @@ namespace LastWish.Presentation
                 scene.SelectedPack = null; scene.SelectedPackChroma = ChromaKind.None;
                 var run = Run;
                 var cards = run.PickPackCards(theme);
+                cardChoice = game.Track(p => p.OfferCards(run, "pack", cards.Select(c => c.Card)));
                 var name = ChromaFx.Title(RunContent.Pack(theme).Name, chroma, true);
                 Push(new PackOpeningScene(game, cards, name, theme, run.Floor, chroma, CardBonus.ForRun(run), LuckReport.For(run), run.PackPicks(chroma), PackReroll(theme)));
             }
@@ -299,7 +331,9 @@ namespace LastWish.Presentation
         {
             if (!scene.Cleared) return;
             scene.Cleared = false;
-            foreach (var card in scene.ChosenCards) Run.AddCard(card);
+            var choice = cardChoice;
+            foreach (var card in scene.ChosenCards) { Run.AddCard(card); game.Track(p => p.Pick(choice, card.Id)); }
+            cardChoice = null;
             Pop();
             if (Top is BossRewardScene boss) boss.PackDone();
         }
@@ -319,13 +353,15 @@ namespace LastWish.Presentation
                 scene.OpenPackRequested = false;
                 var run = Run;
                 var cards = run.PickPackCards(PackTheme.Epico);
+                cardChoice = game.Track(p => p.OfferCards(run, "boss_pack", cards.Select(c => c.Card)));
                 Push(new PackOpeningScene(game, cards, RunContent.Pack(PackTheme.Epico).Name, PackTheme.Epico, run.Floor, ChromaKind.None,
                     CardBonus.ForRun(run), LuckReport.For(run), null, PackReroll(PackTheme.Epico)));
             }
             else if (scene.Cleared)
             {
                 scene.Cleared = false;
-                if (scene.ChosenRelic != null) Run.AcquireRelic(scene.ChosenRelic);
+                if (scene.ChosenRelic != null) TakeRelic(scene.ChosenRelic, "boss");
+                relicChoice = null;
                 Pop(); Pop();
                 Run.AdvanceFloor();
                 Push(new MapScene(game, Run));
@@ -341,5 +377,62 @@ namespace LastWish.Presentation
             if (action == DeathAction.NewGame) { PopAllExceptFirst(); Push(new CharacterSelectScene(game)); }
             else if (action == DeathAction.MainMenu) PopAllExceptFirst();
         }
+
+        // ------------------------------------------------------------------ power telemetry (docs/telemetry.md)
+        private void TakeRelic(RelicOffer relic, string source)
+        {
+            var run = Run; var choice = relicChoice;
+            run.AcquireRelic(relic);
+            game.Track(p => { p.Pick(choice, relic.Definition.Id); p.RelicGained(run, relic.Definition, source); });
+        }
+
+        private double PlayedSeconds => Math.Max(0.0, game.Time - runStarted);
+
+        /// <summary>A new run starts its own tracker (only when the runtime set a telemetry sink).</summary>
+        private void BeginTracking(RunState run)
+        {
+            EndTracking(RunEnd.Abandon, null);     // a tracker left open (tests, tools) keeps its last checkpoint
+            game.Power = null; cardChoice = relicChoice = null;
+            if (game.Telemetry == null || run == null) return;
+            runStarted = game.Time;
+            try
+            {
+                game.Power = new PowerTracker(run, Guid.NewGuid().ToString("D"), game.Telemetry.GameVersion, game.Telemetry.PlayerId,
+                    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture));
+            }
+            catch (Exception) { game.Power = null; }
+        }
+
+        /// <summary>The run ended: close its tracker and hand the record to the sink. An open fight is closed with it.</summary>
+        private void EndTracking(RunEnd end) => EndTracking(end, Run);
+
+        private void EndTracking(RunEnd end, RunState run)
+        {
+            var power = game.Power;
+            game.Power = null; cardChoice = relicChoice = null;
+            if (power == null || power.Finished) return;
+            try
+            {
+                var record = power.Finish(run, end, PlayedSeconds, (Top as CombatScene)?.State);
+                game.Telemetry?.Submit(record.RunId, PowerJson.Write(record));
+            }
+            catch (Exception) { }
+        }
+
+        /// <summary>Back on the map after something was recorded: save the run so far (it survives closing the game).</summary>
+        private void CheckpointRun()
+        {
+            var power = game.Power; var run = Run;
+            if (power == null || !power.Dirty || run == null || !(Top is MapScene) || HeroSheet != null || Pause != null) return;
+            try
+            {
+                var record = power.Checkpoint(run, PlayedSeconds);
+                game.Telemetry?.Checkpoint(record.RunId, PowerJson.Write(record));
+            }
+            catch (Exception) { game.Power = null; }
+        }
+
+        /// <summary>The game is closing: a run still on is sent as "quit" (the runtime uploads it on the next start if needed).</summary>
+        public void EndSession() => EndTracking(RunEnd.Quit);
     }
 }

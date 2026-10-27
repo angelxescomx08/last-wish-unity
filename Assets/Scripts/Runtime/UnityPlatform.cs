@@ -61,26 +61,35 @@ namespace LastWish.Runtime
     /// <summary>pygame.mixer equivalent: 8 effect voices and one streamed music source with a fade-in.</summary>
     public sealed class UnityAudio : IAudioBackend
     {
-        private static readonly string[] Effects = { "card", "attack", "block", "death", "end_turn", "hit", "win", "nav", "confirm", "cancel", "purchase", "open_pack", "reward", "error", "travel" };
+        /// <summary>Variants of each of <see cref="SoundPlayer.Effects"/> are name_0, name_1… up to the first missing file.</summary>
+        private const int MaxVariants = 8;
+        /// <summary>Seconds a stopped voice takes to fade out (an instant stop clicks).</summary>
+        private const float StopFade = .04f;
         private readonly Dictionary<string, AudioClip[]> clips = new Dictionary<string, AudioClip[]>();
         private readonly AudioSource[] voices;
+        private readonly float[] fadeLeft, fadeFrom;
         private readonly AudioSource music;
         private float musicTarget, musicFade;
         private readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
 
         public UnityAudio(GameObject host)
         {
-            voices = new AudioSource[8];
+            voices = new AudioSource[8]; fadeLeft = new float[voices.Length]; fadeFrom = new float[voices.Length];
             for (var i = 0; i < voices.Length; i++) { voices[i] = host.AddComponent<AudioSource>(); voices[i].playOnAwake = false; }
             music = host.AddComponent<AudioSource>(); music.loop = true; music.playOnAwake = false;
         }
 
         public void LoadEffects()
         {
-            foreach (var name in Effects)
+            foreach (var name in SoundPlayer.Effects)
             {
                 var list = new List<AudioClip>();
-                for (var v = 0; v < 3; v++) { var clip = Resources.Load<AudioClip>("Game/Audio/" + name + "_" + v); if (clip != null) list.Add(clip); }
+                for (var v = 0; v < MaxVariants; v++)
+                {
+                    var clip = Resources.Load<AudioClip>("Game/Audio/" + name + "_" + v);
+                    if (clip == null) break;
+                    list.Add(clip);
+                }
                 clips[name] = list.ToArray();
             }
         }
@@ -92,13 +101,25 @@ namespace LastWish.Runtime
         public bool Play(string name, int variant, float volume)
         {
             if (!clips.TryGetValue(name, out var list) || list.Length == 0) return true;
-            foreach (var voice in voices)
+            for (var i = 0; i < voices.Length; i++)
             {
+                var voice = voices[i];
                 if (voice.isPlaying) continue;
+                fadeLeft[i] = 0f;
                 voice.clip = list[variant % list.Length]; voice.volume = volume; voice.Play();
                 return true;
             }
             return false;
+        }
+
+        public void Stop(string name)
+        {
+            if (!clips.TryGetValue(name, out var list) || list.Length == 0) return;
+            for (var i = 0; i < voices.Length; i++)
+            {
+                if (!voices[i].isPlaying || fadeLeft[i] > 0f || Array.IndexOf(list, voices[i].clip) < 0) continue;
+                fadeLeft[i] = StopFade; fadeFrom[i] = voices[i].volume;
+            }
         }
 
         public void StartMusic(float volume)
@@ -110,9 +131,16 @@ namespace LastWish.Runtime
         public void StopMusic() { music.Stop(); }
         public void SetMusicVolume(float volume) { musicTarget = volume; if (musicFade >= 1.2f) music.volume = volume; }
 
-        /// <summary>The 1.2 s fade-in of pygame.mixer.music.play(fade_ms=1200).</summary>
+        /// <summary>The 1.2 s fade-in of pygame.mixer.music.play(fade_ms=1200), and the short fade of stopped effects.</summary>
         public void Tick(float dt)
         {
+            for (var i = 0; i < voices.Length; i++)
+            {
+                if (fadeLeft[i] <= 0f) continue;
+                fadeLeft[i] -= dt;
+                if (fadeLeft[i] > 0f && voices[i].isPlaying) { voices[i].volume = fadeFrom[i] * fadeLeft[i] / StopFade; continue; }
+                fadeLeft[i] = 0f; voices[i].Stop();
+            }
             if (!music.isPlaying || musicFade >= 1.2f) return;
             musicFade += dt; music.volume = musicTarget * Mathf.Clamp01(musicFade / 1.2f);
         }

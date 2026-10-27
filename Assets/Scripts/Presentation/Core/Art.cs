@@ -207,8 +207,11 @@ namespace LastWish.Presentation
         };
         static Art()
         {
-            // the floor-1 expansion sheets (Tools/GenerateEnemyArt.py), keyed by the Spanish name like the originals
+            // the floor-1, floor-2 and floor-3 expansion sheets (Tools/GenerateEnemyArt.py, Tools/GenerateEnemyArtFloor2.py,
+            // Tools/GenerateEnemyArtFloor3.py), keyed by the Spanish name like the originals
             foreach (var d in LastWish.Domain.EnemyCatalog.ExpansionDefinitions) EnemySheetIds[d.Name] = d.AssetId;
+            foreach (var d in LastWish.Domain.EnemyCatalog.Floor2Definitions) EnemySheetIds[d.Name] = d.AssetId;
+            foreach (var d in LastWish.Domain.EnemyCatalog.Floor3Definitions) EnemySheetIds[d.Name] = d.AssetId;
         }
         public static readonly Dictionary<string, string> HeroIds = new Dictionary<string, string> {
             { "La Guerrera", "warrior" }, { "El Guerrero", "warrior" }, { "El Mago", "mage" }, { "La Pícara", "rogue" }, { "El Pícaro", "rogue" },

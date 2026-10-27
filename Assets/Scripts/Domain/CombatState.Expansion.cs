@@ -27,12 +27,12 @@ namespace LastWish.Domain
         private (int hp, int hits)[] ExpansionSnapshot()
         {
             var snapshot = new (int, int)[enemies.Count];
-            for (var i = 0; i < enemies.Count; i++) { enemies[i].ParriedHits = 0; snapshot[i] = (enemies[i].Hp, enemies[i].DamagingHits); }
-            deathEvents.Clear();
+            for (var i = 0; i < enemies.Count; i++) { enemies[i].ParriedHits = 0; enemies[i].ReflectPending = 0; enemies[i].HeadsCut = 0; enemies[i].RageGained = 0; snapshot[i] = (enemies[i].Hp, enemies[i].DamagingHits); }
+            deathEvents.Clear(); thirstFeeds.Clear();
             return snapshot;
         }
 
-        /// <summary>After a card: Vigilancia, then Pinchos and Réplica (skipped when the card left no enemy alive).</summary>
+        /// <summary>After a card: Vigilancia, then Pinchos and Réplica (skipped when the card left no enemy alive), then floors 2 and 3.</summary>
         private void AfterCardExpansion(PlayResult result, (int hp, int hits)[] snapshot)
         {
             foreach (var enemy in enemies)
@@ -52,9 +52,12 @@ namespace LastWish.Domain
                 var enemy = enemies[i];
                 if (enemy.ParriedHits <= 0) continue;
                 result.Parried[enemy.Id] = enemy.ParriedHits;
-                for (var k = 0; k < enemy.ParriedHits && !Defeat; k++) result.HeroHits.Add((enemy.Id, HitHeroOwnTurn(enemy.Riposte), "riposte"));
+                if (enemy.Riposte > 0)   // an Ilusión blinks the hit away without answering
+                    for (var k = 0; k < enemy.ParriedHits && !Defeat; k++) result.HeroHits.Add((enemy.Id, HitHeroOwnTurn(enemy.Riposte), "riposte"));
                 enemy.ParriedHits = 0;
             }
+            AfterCardFloor2(result);
+            AfterCardFloor3(result);
             if (pendingDraws > 0) { var draws = pendingDraws; pendingDraws = 0; DrawCards(draws); }   // Venda Empapada after a Pinchos hit
         }
 
@@ -74,6 +77,7 @@ namespace LastWish.Domain
         /// <summary>Effects that happen before the hits of the same intent (Muda, Confiscación, Juicio).</summary>
         private void BeforeHitsExpansion(EnemyState enemy, IntentExtras x, EnemyAction action)
         {
+            if (x.ReturnDebuffs) ReturnDebuffs(enemy, action);
             if (x.Cleanse)
             {
                 var stacks = 0L;
@@ -106,6 +110,8 @@ namespace LastWish.Domain
             for (var n = 0; n < x.Swallow; n++) Swallow(enemy, action);
             foreach (var spec in x.Summons) QueueSummons(enemy, spec, action);
             if (x.ReviveAi != null) QueueRevive(enemy, x.ReviveAi, action);
+            if (x.Devour) Devour(enemy, x, action);
+            if (x.Rewind) Rewind(enemy, action);
             if (x.ConsumesFocus) enemy.Statuses.Remove(StatusKind.Focus);
         }
 
@@ -181,13 +187,25 @@ namespace LastWish.Domain
             arrivals.Clear();
         }
 
-        /// <summary>Deaths not handled yet, in list order: swallowed cards return to the discard pile and Carroña feeds.</summary>
-        private void HandleEnemyDeaths()
+        /// <summary>
+        /// Deaths not handled yet, in list order: swallowed cards return to the discard pile, Carroña feeds, Rencor hits the hero,
+        /// bound Ilusiones vanish with their summoner (their deaths are handled in the same call).
+        /// </summary>
+        private void HandleEnemyDeaths(bool ownTurn = true)
         {
-            foreach (var dead in enemies)
+            var handled = deathsHandled.Count;
+            HandleDeathsInOrder(ownTurn);
+            if (deathsHandled.Count != handled) { EnemyPatterns.Floor3Auras(enemies); EnemyPatterns.Floor2React(enemies); }   // Pendón, Inmortal; Cosecha de Almas counts the fallen
+        }
+
+        private void HandleDeathsInOrder(bool ownTurn)
+        {
+            for (var i = 0; i < enemies.Count; i++)
             {
+                var dead = enemies[i];
                 if (dead.Alive || !deathsHandled.Add(dead.Id)) continue;
                 var ev = new EnemyDeathEvent { EnemyId = dead.Id };
+                OnDeathFloor2(dead, ev, ownTurn);
                 foreach (var card in dead.Stomach) { discard.Add(card); ev.ReturnedCards.Add(card.Name); }
                 dead.Stomach.Clear(); dead.Statuses.Remove(StatusKind.Swallowed);
                 if (dead.PaysGold)   // summoned minions do not feed Carroña (no farming)
@@ -199,7 +217,8 @@ namespace LastWish.Domain
                         var healed = feeder.Heal(Saturate(3L * carrion));
                         ev.Carrion.Add((feeder.Id, carrion, healed));
                     }
-                if (ev.ReturnedCards.Count > 0 || ev.Carrion.Count > 0 || EnemyCatalog.IsExpansion(dead.Definition.Ai)) deathEvents.Add(ev);
+                if (ev.ReturnedCards.Count > 0 || ev.Carrion.Count > 0 || ev.GrudgeDamage > 0 || EnemyCatalog.IsExpansion(dead.Definition.Ai)) deathEvents.Add(ev);
+                if (DispelBound(dead)) i = -1;   // the vanished Ilusiones are handled from the start of the list
             }
         }
     }

@@ -1,7 +1,8 @@
 {
   "name": "LastWish.EditModeTests",
   "references": [
-    "LastWish.Domain"
+    "LastWish.Domain",
+    "LastWish.Presentation"
   ],
   "includePlatforms": [
     "Editor"

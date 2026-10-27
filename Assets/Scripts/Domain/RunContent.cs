@@ -56,7 +56,8 @@ namespace LastWish.Domain
     public static class RunContent
     {
         public static readonly IReadOnlyList<RelicDefinition> Relics = RelicCatalog.All;
-        public static readonly IReadOnlyList<CardDefinition> Cards = NumericCards.All;
+        /// <summary>The exported original cards with the Unity design changes applied (<see cref="CardDesign"/>).</summary>
+        public static readonly IReadOnlyList<CardDefinition> Cards = CardDesign.Apply(NumericCards.All);
         public static readonly IReadOnlyList<PackDefinition> Packs = Array.AsReadOnly(new[] {
             new PackDefinition(PackTheme.Acero, "acero", "Sobre de Acero", "Cartas de ataque", 75),
             new PackDefinition(PackTheme.Escudo, "escudo", "Sobre de Escudo", "Cartas defensivas", 75),

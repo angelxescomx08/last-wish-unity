@@ -83,7 +83,7 @@ namespace LastWish.Presentation
 
         private static List<Row> BuildRows()
         {
-            const EnemyRoster roster = EnemyRoster.Expanded;   // the menu run uses the floor-1 expansion
+            const EnemyRoster roster = EnemyRoster.Expanded;   // the menu run uses the floor-1 and floor-2 expansion
             var bosses = Enumerable.Range(0, EnemyCatalog.BossKeys(roster).Count + 1).Select(i => EnemyCatalog.BossLabel(i, roster)).ToArray();
             var encounters = Enumerable.Range(0, EnemyCatalog.EncounterTotal(roster) + 1).Select(i => EnemyCatalog.EncounterLabel(i, roster)).ToArray();
             var elites = Enumerable.Range(0, EnemyCatalog.EliteList(roster).Count + 1).Select(i => EnemyCatalog.EliteLabel(i, roster)).ToArray();
@@ -101,7 +101,7 @@ namespace LastWish.Presentation
                 new Row { Label = "HP máximo extra", Kind = Kind.Number, Attr = "extra_max_hp", Step = 25, Lo = 0, Hi = 1000, Fmt = "+{}", Column = 1 },
                 new Row { Label = "Maná extra por combate", Kind = Kind.Number, Attr = "extra_mana", Step = 1, Lo = 0, Hi = 10, Fmt = "+{}", Column = 1 },
                 new Row { Label = "Cartas extra por turno", Kind = Kind.Number, Attr = "extra_draw", Step = 1, Lo = 0, Hi = 10, Fmt = "+{}", Column = 1 },
-                new Row { Label = "Jefe del piso 1", Kind = Kind.Number, Attr = "forced_boss", Step = 1, Lo = 0, Hi = bosses.Length - 1, Column = 1, Labels = bosses },
+                new Row { Label = "Jefe forzado (pisos 1-3)", Kind = Kind.Number, Attr = "forced_boss", Step = 1, Lo = 0, Hi = bosses.Length - 1, Column = 1, Labels = bosses },
                 new Row { Label = "Enemigos de los combates", Kind = Kind.Number, Attr = "forced_encounter", Step = 1, Lo = 0, Hi = encounters.Length - 1, Column = 1, Labels = encounters },
                 new Row { Label = "Élite de las salas élite", Kind = Kind.Number, Attr = "forced_elite", Step = 1, Lo = 0, Hi = elites.Length - 1, Column = 1, Labels = elites },
                 new Row { Label = "Todas las salas: el jefe", Kind = Kind.Toggle, Attr = "boss_rooms", Column = 1 },

@@ -45,3 +45,11 @@ Thumbs.db
 *.alf
 *.keystore
 *.jks
+
+# Supabase CLI (local Docker stack for the power telemetry)
+supabase/.temp/
+supabase/.branches/
+
+# Python caches of the art tools
+__pycache__/
+*.py[cod]

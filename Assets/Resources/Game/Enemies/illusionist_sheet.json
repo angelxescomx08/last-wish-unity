@@ -1,0 +1,166 @@
+{
+ "cell_w": 144,
+ "cell_h": 108,
+ "columns": 14,
+ "anchor": [
+  96,
+  102
+ ],
+ "scale": 2,
+ "sheet": "illusionist_sheet.png",
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 12,
+   "durations_ms": [
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105
+   ],
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "frames": 10,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "flash": {
+   "row": 2,
+   "frames": 10,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "split": {
+   "row": 3,
+   "frames": 11,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    90,
+    95,
+    110
+   ],
+   "loop": false
+  },
+  "cast": {
+   "row": 4,
+   "frames": 10,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    55,
+    80,
+    85,
+    90,
+    95,
+    110
+   ],
+   "loop": false
+  },
+  "hurt": {
+   "row": 5,
+   "frames": 6,
+   "durations_ms": [
+    55,
+    60,
+    70,
+    80,
+    90,
+    100
+   ],
+   "loop": false
+  },
+  "death": {
+   "row": 6,
+   "frames": 14,
+   "durations_ms": [
+    70,
+    90,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    120
+   ],
+   "loop": false
+  }
+ },
+ "events": {
+  "attack": {
+   "strikes": [
+    4
+   ]
+  },
+  "flash": {
+   "strikes": [
+    4
+   ]
+  },
+  "split": {
+   "strikes": [
+    6
+   ]
+  }
+ },
+ "moves": {
+  "prism_ray": "attack",
+  "blinding_flash": "flash",
+  "mirror_split": "split",
+  "hypnotic_glow": "cast",
+  "vengeance": "cast"
+ },
+ "top_native": 18,
+ "idle_bbox_native": [
+  81,
+  18,
+  117,
+  102
+ ]
+}

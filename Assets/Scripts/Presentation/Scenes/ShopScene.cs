@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using LastWish.Domain;
 
 namespace LastWish.Presentation
@@ -33,6 +34,7 @@ namespace LastWish.Presentation
         private readonly List<PackOffer> packs; private readonly List<RelicOffer> relics;
         private readonly HashSet<int> soldPacks = new HashSet<int>(), soldRelics = new HashSet<int>();
         private int purchases;
+        private ChoiceRecord relicChoice;     // power telemetry: the three relics on sale
         private readonly List<IRect> packRects = new List<IRect>(), relicRects = new List<IRect>();
         private (string kind, int i)? hovered;
         private IRect? exitRect;
@@ -45,6 +47,7 @@ namespace LastWish.Presentation
         {
             this.run = run;
             (packs, relics) = run.PickShopStock();
+            relicChoice = game.Track(p => p.OfferRelics(run, "shop", relics.Select(r => r.Definition)));
         }
 
         public override void HandleEvent(in InputEvent e)
@@ -141,6 +144,8 @@ namespace LastWish.Presentation
                 if (price == 0) run.UseVoucher();
                 run.Spend(price); purchases++; soldRelics.Add(i);
                 run.AcquireRelic(relics[i]);
+                var bought = relics[i].Definition;
+                Game.Track(p => { p.Pick(relicChoice, bought.Id); p.RelicGained(run, bought, "shop"); });
                 Sound.PlayPurchase(); ShowFeedback(relics[i].Definition.Name + " obtenida");
                 return;
             }

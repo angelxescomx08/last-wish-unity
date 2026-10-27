@@ -34,6 +34,7 @@ namespace LastWish.Runtime
         private InputBridge input;
         private UnityAudio unityAudio;
         private LoadingScreen loading;
+        private SupabaseTelemetry telemetry;
         private float scale = 1f; private int offX, offY, destW, destH, lastW, lastH;
         private float fpsTime; private int fpsFrames; private float fps;
 
@@ -95,9 +96,11 @@ namespace LastWish.Runtime
             var sound = new SoundPlayer(unityAudio, prefs.SfxVolume, prefs.MusicVolume);
             Report("Preparando la mazmorra...", .90f);
             yield return null;
+            try { telemetry = SupabaseTelemetry.Create(gameObject); }      // power telemetry (docs/telemetry.md); null = off
+            catch (Exception error) { telemetry = null; Debug.LogWarning("Telemetría desactivada: " + error.Message); }
             try
             {
-                Context = new GameContext(canvas, art, sound, prefs, storage) { Data = new GameData(source), Quit = Quit };
+                Context = new GameContext(canvas, art, sound, prefs, storage) { Data = new GameData(source), Quit = Quit, Telemetry = telemetry };
                 Manager = new SceneManager(Context, new MainMenuScene(Context, false, false));
                 canvas.BeginFrame(); Manager.Draw(canvas); canvas.EndFrame(); Graphics.ExecuteCommandBuffer(backend.Commands);
             }
@@ -188,6 +191,13 @@ namespace LastWish.Runtime
 #else
             UnityEngine.Application.Quit();
 #endif
+        }
+
+        /// <summary>Closing the game (or leaving Play mode): a run still on is saved as "quit" before the process ends.</summary>
+        private void OnApplicationQuit()
+        {
+            try { Manager?.EndSession(); telemetry?.Flush(1500); }
+            catch (Exception error) { Debug.LogWarning("Telemetría: " + error.Message); }
         }
 
         private void OnDestroy()

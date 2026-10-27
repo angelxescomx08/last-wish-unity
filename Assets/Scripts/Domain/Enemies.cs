@@ -4,7 +4,11 @@ using System.Numerics;
 
 namespace LastWish.Domain
 {
-    public enum StatusKind { Poison, Marked, Weak, Vulnerable, Frail, Entangled, Strength, Blades, Fuse, Fire, Water, Earth, Air, Frozen, Thorns, Shell, Carrion, Swallowed, Focus, Parry, Vigil }
+    public enum StatusKind { Poison, Marked, Weak, Vulnerable, Frail, Entangled, Strength, Blades, Fuse, Fire, Water, Earth, Air, Frozen, Thorns, Shell, Carrion, Swallowed, Focus, Parry, Vigil,
+        // floor-2 expansion: enemy buffs, then the two hero debuffs (appended: existing values never move)
+        Ward, Ritual, Grudge, Regen, Heads, Reflect, Thirst, Bleed, Necrosis,
+        // floor-3 expansion: enemy buffs, then the two hero debuffs (appended after floor 2)
+        Banner, Inspired, Rage, Undying, Spring, Exhaustion, Frostbite }
     public enum ElementKind { Fire, Water, Earth, Air }
     public enum IntentKind { Unknown, Attack, Block, Buff, Debuff, Summon, Stun }
 
@@ -41,6 +45,10 @@ namespace LastWish.Domain
                 var count = 0;
                 for (var i = 0; i < (int)StatusKind.Thorns; i++)   // the expansion statuses are enemy buffs
                     if (amounts[i] > 0 && i != (int)StatusKind.Strength && i != (int)StatusKind.Blades && i != (int)StatusKind.Fuse) count++;
+                if (amounts[(int)StatusKind.Bleed] > 0) count++;     // the floor-2 hero debuffs
+                if (amounts[(int)StatusKind.Necrosis] > 0) count++;
+                if (amounts[(int)StatusKind.Exhaustion] > 0) count++;   // the floor-3 hero debuffs
+                if (amounts[(int)StatusKind.Frostbite] > 0) count++;
                 return count;
             }
         }
@@ -127,11 +135,29 @@ namespace LastWish.Domain
         public int SummonsMade { get; internal set; }
         internal bool PhaseTwo, PartnerHandled, ReviveUsed, AwaitingExhume, GriefUsed, SplitDone, FocusBroken;
         internal int ParriedHits, DamagingHits;
+        // ---- floor-2 expansion state
+        /// <summary>Thresholds already crossed (La Hidra grows heads at 2/3 and 1/3 of its HP).</summary>
+        internal int Stage;
+        /// <summary>Its summoned minions that died this fight (Cosecha de Almas).</summary>
+        public int MinionsLost { get; internal set; }
+        /// <summary>Reflejo owed to the hero by the hits of the current card (paid after the card).</summary>
+        internal int ReflectPending;
+        /// <summary>Heads cut by the hits of the current card.</summary>
+        internal int HeadsCut;
+        /// <summary>Vanishes when its summoner dies (Ilusión).</summary>
+        public bool Bound { get; internal set; }
+        // ---- floor-3 expansion state
+        /// <summary>Strength Cólera gave it since its last action (it loses it when it next acts).</summary>
+        public int RageStrength { get; internal set; }
+        /// <summary>Strength Cólera gave it during the current card.</summary>
+        internal int RageGained;
+        /// <summary>Its HP when the hero's turn began (Rebobinar heals back up to it).</summary>
+        public int HpAtTurnStart { get; internal set; }
         internal List<CardDefinition> Stomach = new List<CardDefinition>();
         /// <summary>Cards it swallowed (they go back to the discard pile when it dies).</summary>
         public IReadOnlyList<CardDefinition> SwallowedCards => Stomach;
         public EnemyState(string id, EnemyDefinition definition, int floor, int hp)
-        { Id = id; Definition = definition; Floor = floor; MaxHp = Hp = hp; }
+        { Id = id; Definition = definition; Floor = floor; MaxHp = Hp = HpAtTurnStart = hp; }
         /// <summary>An independent copy (play previews); the intent object is shared because intents are never mutated after planning.</summary>
         internal EnemyState Clone()
         {
@@ -141,6 +167,8 @@ namespace LastWish.Domain
             copy.PhaseTwo = PhaseTwo; copy.PartnerHandled = PartnerHandled; copy.ReviveUsed = ReviveUsed; copy.AwaitingExhume = AwaitingExhume;
             copy.GriefUsed = GriefUsed; copy.SplitDone = SplitDone; copy.FocusBroken = FocusBroken;
             copy.ParriedHits = ParriedHits; copy.DamagingHits = DamagingHits;
+            copy.Stage = Stage; copy.MinionsLost = MinionsLost; copy.ReflectPending = ReflectPending; copy.HeadsCut = HeadsCut; copy.Bound = Bound;
+            copy.RageStrength = RageStrength; copy.RageGained = RageGained; copy.HpAtTurnStart = HpAtTurnStart;
             copy.Stomach = new List<CardDefinition>(Stomach);
             return copy;
         }
@@ -150,7 +178,9 @@ namespace LastWish.Domain
         public void KeepBlock(int max) => Block = Math.Min(Block, Math.Max(0, max));
         public int LoseHp(int amount)
         {
-            var lost = Math.Min(Hp, Math.Max(0, amount)); Hp -= lost;
+            var lost = Math.Min(Hp, Math.Max(0, amount));
+            if (Statuses[StatusKind.Undying] > 0) lost = Math.Max(0, Math.Min(lost, Hp - 1));   // Inmortal: never below 1 while its Filacteria lives
+            Hp -= lost;
             if (lost > 0 && Statuses[StatusKind.Focus] > 0)
             {
                 var focus = Math.Max(0, Statuses[StatusKind.Focus] - lost);
@@ -166,15 +196,17 @@ namespace LastWish.Domain
             if (!Alive || amount <= 0) return 0;
             if (Statuses[StatusKind.Parry] > 0) { Statuses.Set(StatusKind.Parry, Statuses[StatusKind.Parry] - 1); ParriedHits++; return 0; }
             amount += (BigInteger)Statuses[StatusKind.Marked] + Statuses[StatusKind.Earth];
+            if (Statuses[StatusKind.Ward] > 0) { amount -= Statuses[StatusKind.Ward]; if (amount <= 0) return 0; }   // Amparo
             var absorbed = (int)BigInteger.Min(amount, Block); Block -= absorbed; amount -= absorbed;
             var lost = LoseHp((int)BigInteger.Min(amount, Hp));
             if (absorbed > 0 || lost > 0) DamagingHits++;
+            if (lost > 0) { Floor2Rules.AfterHit(this, lost); Floor3Rules.AfterHit(this); }
             return lost;
         }
         public void Plan(StatusSet hero, IReadOnlyList<EnemyState> enemies) => Intent = EnemyPatterns.Next(this, hero, enemies);
         public int HitDamage(StatusSet hero)
         {
-            var amount = Math.Max(0, (long)Intent.Value + Statuses[StatusKind.Strength] - Statuses[StatusKind.Water]);
+            var amount = Math.Max(0, (long)Intent.Value + Statuses[StatusKind.Strength] + Statuses[StatusKind.Inspired] - Statuses[StatusKind.Water]);
             if (Statuses[StatusKind.Weak] > 0) amount = amount * 3 / 4;
             if (Statuses[StatusKind.Frozen] > 0) amount = Definition.Boss || Definition.Elite ? amount / 2 : 0;
             if (hero[StatusKind.Vulnerable] > 0) amount = amount * 3 / 2;

@@ -41,7 +41,7 @@ mazo y las reliquias pasan de sala en sala. Como en el original, no hay guardado
 ## Estructura
 
 ```text
-Assets/Scripts/Domain/        Reglas C# puras (sin UnityEngine): combate, cartas, reliquias, enemigos (originales y del piso 1), run
+Assets/Scripts/Domain/        Reglas C# puras (sin UnityEngine): combate, cartas, reliquias, enemigos (originales y de los pisos 1 y 2), run
 Assets/Scripts/Presentation/  Escenas, UI y efectos del original sobre un lienzo virtual 1280×720 (C# puro)
 Assets/Scripts/Runtime/       Unity: GameBootstrap (bucle de main.py), backend de dibujo, entrada, audio, archivos
 Assets/Editor/                Importador de pixel art, configuración y build
@@ -50,6 +50,7 @@ Assets/Scenes/Bootstrap.unity Escena de entrada
 Assets/Tests/EditMode/        Reglas y paridad con el motor Python
 Assets/Tests/PlayMode/        El juego completo con entrada simulada y capturas
 Tools/                        Exportadores desde el repositorio Python y validación sin editor
+supabase/                     Telemetría de poder: Supabase local (Docker), esquema SQL y pruebas
 ```
 
 El backend de Unity mete todo el frame en una sola malla dinámica (submallas solo
@@ -89,7 +90,28 @@ python Tools/ExportCardFx.py --source-dir RUTA_PYTHON
 python Tools/ExportPixelFonts.py --source-dir RUTA_PYTHON
 ```
 
+Sonidos propios del gachapón (no existen en el original; solo la biblioteca estándar de Python):
+
+```powershell
+python Tools/GenerateGachaAudio.py                      # escribe Assets/Resources/Game/Audio/gacha_*.wav y sus .meta
+python Tools/GenerateGachaAudio.py --check              # comprueba que los WAV coinciden con las recetas
+python Tools/GenerateGachaAudio.py --preview TestResults/audio   # mezcla tiradas completas para escucharlas
+```
+
 El arte original se conserva sin redibujar. Consulta `THIRD_PARTY_NOTICES.md`.
+
+## Telemetría de poder
+
+Cada partida registra qué hacen las cartas, las reliquias y los encuentros (jugadas, daño y
+bloqueo por maná, vida perdida frente a la media del piso, elecciones, jefes que matan) y la
+guarda en Supabase para consultarla con SQL. Durante el combate solo se suman enteros; el JSON
+se escribe en disco en segundo plano y se sube sin bloquear el juego, incluso sin conexión.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File Tools/Telemetry/LocalSupabase.ps1 start   # Docker Desktop + Node.js
+```
+
+Studio local: <http://127.0.0.1:54323>. Consultas, métricas y paso a producción: `docs/telemetry.md`.
 
 ## Ilustraciones de las cartas
 
@@ -123,6 +145,47 @@ Las hojas de sprites nuevas se generan así:
 ```powershell
 python Tools/GenerateEnemyArt.py           # escribe las 17 hojas (Python 3.11 + Pillow 11)
 python Tools/GenerateEnemyArt.py --check   # comprueba que coinciden con el repositorio
+```
+
+## Enemigos nuevos del piso 2
+
+La partida del menú también tiene un piso 2 propio, con quince enemigos que no existen en el original:
+- 6 normales, 3 esbirros y 3 élites.
+- 3 jefes nuevos (El Nigromante, La Hidra de la Cisterna y La Reina de los Espejos), que sustituyen al Señor de la Cripta.
+- 6 grupos nuevos, mezclados con los enemigos originales.
+
+Mecánicas nuevas:
+- Amparo, Rito, Rencor, Cicatrización, Cabezas, Reflejo y Ansia de Sangre en los enemigos.
+- Sangrado y Necrosis, dos perjuicios nuevos para el héroe.
+- Ilusiones que desaparecen con su invocadora y sacrificios de esbirros (Ofrenda Oscura).
+- Combos de jefe contra estrategias: anular la curación, castigar los golpes enormes, devolver el veneno y los perjuicios, y regenerarse salvo con Fuego o Veneno.
+
+En Pruebas, los índices nuevos (combates 31-42, élites 9-11 y jefes 7-9) fuerzan ese contenido también en los pisos 1 y 3.
+Detalle y números en `docs/enemies.md`.
+
+```powershell
+python Tools/GenerateEnemyArtFloor2.py           # escribe las 15 hojas del piso 2 (Python 3.10+ y Pillow 11+)
+python Tools/GenerateEnemyArtFloor2.py --check   # comprueba que coinciden con el repositorio
+```
+
+## Enemigos nuevos del piso 3
+
+El piso 3 de la partida del menú es una ciudadela helada con quince enemigos nuevos:
+- 6 normales (uno, el Abanderado, solo sale acompañado), 3 esbirros y 3 élites.
+- 3 jefes nuevos (El Rey Liche con su Filacteria, El Relojero y La Dragona de Escarcha), que sustituyen al Señor de la Cripta.
+- 6 grupos nuevos, mezclados con los enemigos originales. Una de cada cuatro peleas de pareja trae un tercer enemigo, como en el original.
+
+Mecánicas nuevas:
+- Pendón (aura que da Inspiración a los aliados), Cólera, Inmortal y Cuerda en los enemigos.
+- Ataques Perforantes que ignoran el escudo y Rebobinar, que recupera la vida perdida en tu turno.
+- Agotamiento y Congelación, dos perjuicios nuevos para el héroe: menos maná, y vida perdida por cada carta que te quede en la mano.
+
+Los pisos 4 en adelante siguen como en el original. En Pruebas, los índices del piso 3 (combates 43-54, élites 12-14 y jefes
+10-12) fuerzan ese contenido en cualquiera de los pisos 1-3. Detalle y números en `docs/enemies.md`.
+
+```powershell
+python Tools/GenerateEnemyArtFloor3.py           # escribe las 15 hojas del piso 3 (Python 3.10+ y Pillow 11+)
+python Tools/GenerateEnemyArtFloor3.py --check   # comprueba que coinciden con el repositorio
 ```
 
 ## Capturas

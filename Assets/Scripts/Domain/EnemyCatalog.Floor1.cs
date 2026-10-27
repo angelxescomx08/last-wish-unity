@@ -36,8 +36,8 @@ namespace LastWish.Domain
             new EnemyDefinition("planidera", "La Plañidera", "mourner", 64, true),
         });
 
-        /// <summary>The 19 original definitions first, then the expansion.</summary>
-        public static IEnumerable<EnemyDefinition> AllDefinitions => Definitions.Concat(ExpansionDefinitions);
+        /// <summary>The 19 original definitions first, then the floor-1 expansion, then floors 2 and 3.</summary>
+        public static IEnumerable<EnemyDefinition> AllDefinitions => Definitions.Concat(ExpansionDefinitions).Concat(Floor2Definitions).Concat(Floor3Definitions);
 
         /// <summary>Spanish names of the expansion statuses (no collisions with cards, relics, identities or intents).</summary>
         public static readonly IReadOnlyDictionary<StatusKind, string> ExpansionStatusNames = new Dictionary<StatusKind, string> {
@@ -100,10 +100,13 @@ namespace LastWish.Domain
                     Mechanics = L("Si cae El Sepulturero, absorbe su alma: gana su Fuerza más 3 y se cura."),
                     Moves = L("lament", "wail", "requiem", "soul_drain", "banshee", "curse", "last_wail") },
             };
-            return list.ToDictionary(p => p.Ai);
+            var all = list.ToDictionary(p => p.Ai);
+            foreach (var p in BuildFloor2Profiles()) all.Add(p.Ai, p);
+            foreach (var p in BuildFloor3Profiles()) all.Add(p.Ai, p);
+            return all;
         }
 
-        /// <summary>Profiles of the expansion enemies by ai.</summary>
+        /// <summary>Profiles of the expansion enemies (floors 1-3) by ai.</summary>
         public static IReadOnlyDictionary<string, EnemyProfile> Profiles => profiles ??= BuildProfiles();
         /// <summary>The expansion profile, or null for the original enemies.</summary>
         public static EnemyProfile Profile(string ai) => ai != null && Profiles.TryGetValue(ai, out var p) ? p : null;
@@ -129,62 +132,95 @@ namespace LastWish.Domain
                 Synergy = "El Sepulturero protege a La Plañidera y la desentierra si cae; si cae él, ella absorbe su fuerza. Mátalos juntos." },
         });
 
-        public static EncounterGroup Group(string key) => Groups.FirstOrDefault(g => g.Key == key) ?? throw new ArgumentException("Unknown group: " + key);
-        public static BossEncounter BossFight(string key) => BossEncounters.FirstOrDefault(b => b.Key == key) ?? throw new ArgumentException("Unknown boss: " + key);
+        public static EncounterGroup Group(string key) => AllGroups.FirstOrDefault(g => g.Key == key) ?? throw new ArgumentException("Unknown group: " + key);
+        public static BossEncounter BossFight(string key) => AllBossEncounters.FirstOrDefault(b => b.Key == key) ?? throw new ArgumentException("Unknown boss: " + key);
 
         // ------------------------------------------------------------ roster lists
         private static readonly string[] NewSoloOrder = { "madre_larva", "erizo", "sapo", "cuervo", "rata", "escarabajo", "cieno" };
         private static readonly string[] NewElites = { "rey_rata", "coloso", "duelista" };
 
-        public static IReadOnlyList<string> EliteList(EnemyRoster roster) => Check(roster) == EnemyRoster.Original ? EliteOrder : EliteOrder.Concat(NewElites).ToList();
-        public static IReadOnlyList<string> BossKeys(EnemyRoster roster) => Check(roster) == EnemyRoster.Original ? Floor1Bosses : BossEncounters.Select(b => b.Key).ToList();
+        /// <summary>Pruebas elite list: 1-5 originals, 6-8 floor 1, 9-11 floor 2, 12-14 floor 3.</summary>
+        public static IReadOnlyList<string> EliteList(EnemyRoster roster) => Check(roster) == EnemyRoster.Original ? EliteOrder
+            : EliteOrder.Concat(NewElites).Concat(Floor2Elites).Concat(Floor3Elites).ToList();
+        /// <summary>Pruebas boss list: 1-6 the floor-1 fights (3 originals, 3 new), 7-9 the floor-2 fights, 10-12 the floor-3 fights.</summary>
+        public static IReadOnlyList<string> BossKeys(EnemyRoster roster) => Check(roster) == EnemyRoster.Original ? Floor1Bosses : AllBossEncounters.Select(b => b.Key).ToList();
 
         private static EnemyRoster Check(EnemyRoster roster) =>
             Enum.IsDefined(typeof(EnemyRoster), roster) ? roster : throw new ArgumentOutOfRangeException(nameof(roster));
 
-        /// <summary>Pruebas encounter list: 1-11 original regulars, 12-17 original pairs, then 18-24 new regulars and 25-30 new groups.</summary>
-        public static int EncounterTotal(EnemyRoster roster) => Check(roster) == EnemyRoster.Original ? EncounterCount : EncounterCount + NewSoloOrder.Length + Groups.Count;
+        /// <summary>
+        /// Pruebas encounter list: 1-11 original regulars, 12-17 original pairs, 18-24 floor-1 regulars, 25-30 floor-1 groups,
+        /// 31-36 floor-2 regulars, 37-42 floor-2 groups, 43-48 floor-3 regulars and 49-54 floor-3 groups.
+        /// </summary>
+        public static int EncounterTotal(EnemyRoster roster) => Check(roster) == EnemyRoster.Original ? EncounterCount
+            : EncounterCount + NewSoloOrder.Length + Groups.Count + Floor2SoloOrder.Length + Floor2Groups.Count + Floor3SoloOrder.Length + Floor3Groups.Count;
+
+        /// <summary>What an expanded Pruebas index after the originals names: a solo ai or a group key, and its floor.</summary>
+        private static (string solo, EncounterGroup group, int floor) ExpandedEntry(int index)
+        {
+            var k = index - EncounterCount - 1;
+            var floors = new[] { (NewSoloOrder, Groups), (Floor2SoloOrder, Floor2Groups), (Floor3SoloOrder, Floor3Groups) };
+            for (var f = 0; f < floors.Length; f++)
+            {
+                var (solos, groupList) = floors[f];
+                if (k < solos.Length) return (solos[k], null, f + 1);
+                k -= solos.Length;
+                if (k < groupList.Count) return (null, groupList[k], f + 1);
+                k -= groupList.Count;
+            }
+            throw new ArgumentOutOfRangeException(nameof(index));
+        }
+
+        private static string FloorSuffix(int floor) => floor >= 2 ? " (piso " + floor + ")" : "";
 
         public static string EncounterLabel(int index, EnemyRoster roster)
         {
             if (Check(roster) == EnemyRoster.Original || index <= EncounterCount) return EncounterLabel(index);
             if (index > EncounterTotal(roster)) return "Al azar";
-            var k = index - EncounterCount - 1;
-            return k < NewSoloOrder.Length ? Definition(NewSoloOrder[k]).Name : "Grupo: " + Groups[k - NewSoloOrder.Length].Name;
+            var (solo, group, floor) = ExpandedEntry(index);
+            return (solo != null ? Definition(solo).Name : "Grupo: " + group.Name) + FloorSuffix(floor);
         }
 
         public static List<EnemyState> CreateEncounter(int index, int floor, string roomId, EnemyRoster roster)
         {
             if (Check(roster) == EnemyRoster.Original || index <= EncounterCount) return CreateEncounter(index, floor, roomId);
-            var k = index - EncounterCount - 1;
-            if (k < NewSoloOrder.Length) return new List<EnemyState> { Create(NewSoloOrder[k], floor, roomId + "_e0") };
-            return CreateGroup(Groups[k - NewSoloOrder.Length].Key, floor, roomId);
+            var (solo, group, _) = ExpandedEntry(index);
+            return solo != null ? new List<EnemyState> { Create(solo, floor, roomId + "_e0") } : CreateGroup(group.Key, floor, roomId);
         }
 
         public static string EliteLabel(int index, EnemyRoster roster)
         {
             var list = EliteList(roster);
-            return index >= 1 && index <= list.Count ? Definition(list[index - 1]).Name : "Al azar";
+            return index >= 1 && index <= list.Count ? Definition(list[index - 1]).Name + FloorSuffix(EliteFloor(list[index - 1])) : "Al azar";
         }
 
         public static string BossLabel(int index, EnemyRoster roster)
         {
             if (Check(roster) == EnemyRoster.Original) return BossLabel(index);
-            return index >= 1 && index <= BossEncounters.Count ? BossEncounters[index - 1].Name : "Por semilla";
+            var fights = AllBossEncounters.ToList();
+            return index >= 1 && index <= fights.Count ? fights[index - 1].Name + FloorSuffix(BossFightFloor(fights[index - 1].Key)) : "Por semilla";
         }
 
-        /// <summary>enemy_roster.roll_encounter with the roster: the expanded pool only changes floor 1 (same rng calls).</summary>
+        /// <summary>
+        /// enemy_roster.roll_encounter with the roster: the expanded pools change floors 1-3 only (same rng calls, trio roll
+        /// included). On those floors any expanded Pruebas index works; above them the original code runs.
+        /// </summary>
         public static List<EnemyState> RollEncounter(PyRandom rng, int floor, string roomId, int forced, EnemyRoster roster)
         {
-            if (Check(roster) == EnemyRoster.Original || floor != 1) return RollEncounter(rng, floor, roomId, forced);
+            if (Check(roster) == EnemyRoster.Original || floor < 1 || floor > LastExpandedFloor) return RollEncounter(rng, floor, roomId, forced);
             if (forced >= 1 && forced <= EncounterTotal(roster)) return CreateEncounter(forced, floor, roomId, roster);
             if (rng.Random() < PairChance(floor))
             {
-                var keys = Pairs.Where(p => p.MinFloor <= floor).Select(p => p.Key).Concat(Groups.Where(g => g.MinFloor <= floor && floor <= g.MaxFloor).Select(g => g.Key))
+                var keys = Pairs.Where(p => p.MinFloor <= floor).Select(p => p.Key).Concat(AllGroups.Where(g => g.MinFloor <= floor && floor <= g.MaxFloor).Select(g => g.Key))
                     .OrderBy(k => k, StringComparer.Ordinal).ToList();
                 var key = rng.Choice(keys);
-                var enemies = Pairs.Any(p => p.Key == key) ? CreatePair(key, floor, roomId) : CreateGroup(key, floor, roomId);
-                rng.Random();   // the trio roll of the original (never succeeds on floor 1)
+                var pair = Pairs.FirstOrDefault(p => p.Key == key);
+                var enemies = pair != null ? CreatePair(key, floor, roomId) : CreateGroup(key, floor, roomId);
+                if (rng.Random() < TrioChance(floor))   // the trio roll of the original (it only succeeds from floor 3)
+                {
+                    var members = pair != null ? new[] { pair.FirstAi, pair.SecondAi } : Group(key).Members.ToArray();
+                    enemies.Add(Create(rng.Choice(TrioPool(floor, members)), floor, roomId + "_e2", PairHpFactor));
+                }
                 return enemies;
             }
             var ais = Regulars.Select(d => d.Ai).Concat(Profiles.Values.Where(p => p.SoloPool && p.Tier == EnemyTier.Normal && p.MinFloor <= floor && floor <= p.MaxFloor).Select(p => p.Ai))
@@ -195,9 +231,9 @@ namespace LastWish.Domain
 
         public static List<EnemyState> RollElite(PyRandom rng, int floor, string roomId, int forced, EnemyRoster roster)
         {
-            if (Check(roster) == EnemyRoster.Original || floor != 1) return RollElite(rng, floor, roomId, forced);
+            if (Check(roster) == EnemyRoster.Original || floor < 1 || floor > LastExpandedFloor) return RollElite(rng, floor, roomId, forced);
             var list = EliteList(roster);
-            var ai = forced >= 1 && forced <= list.Count ? list[forced - 1] : rng.Choice(list.ToList());
+            var ai = forced >= 1 && forced <= list.Count ? list[forced - 1] : rng.Choice(FloorElites(floor).ToList());
             return new List<EnemyState> { Create(ai, floor, roomId + "_elite") };
         }
 
@@ -233,11 +269,21 @@ namespace LastWish.Domain
             return enemies;
         }
 
-        /// <summary>A floor boss fight; the original bosses keep their id "boss_f&lt;floor&gt;".</summary>
+        /// <summary>
+        /// A floor boss fight; the original bosses keep their id "boss_f&lt;floor&gt;". A boss with escorts (El Rey Liche and its
+        /// Filacteria) keeps that id and its escorts get "boss_f&lt;floor&gt;_e&lt;n&gt;"; linked bosses are "_e0" and "_e1".
+        /// </summary>
         public static List<EnemyState> CreateBoss(string key, int floor)
         {
             var fight = BossFight(key);
-            if (!fight.Linked) return new List<EnemyState> { Create(fight.Members[0], floor, "boss_f" + floor, fight.HpFactor) };
+            if (!fight.Linked && fight.Members.Count == 1) return new List<EnemyState> { Create(fight.Members[0], floor, "boss_f" + floor, fight.HpFactor) };
+            if (!fight.Linked)
+            {
+                var party = new List<EnemyState>();
+                for (var i = 0; i < fight.Members.Count; i++) party.Add(Create(fight.Members[i], floor, i == 0 ? "boss_f" + floor : "boss_f" + floor + "_e" + i, fight.HpFactor));
+                foreach (var enemy in party) { enemy.Step = 0; enemy.Plan(new StatusSet(), party); }
+                return party;
+            }
             var enemies = new List<EnemyState>();
             for (var i = 0; i < fight.Members.Count; i++)
             {
@@ -254,6 +300,7 @@ namespace LastWish.Domain
         {
             var enemy = CreateUnplanned(ai, floor, id, hpFactor, exactHp);
             enemy.Summoned = true; enemy.SummonerId = summonerId; enemy.PaysGold = paysGold;
+            enemy.Bound = Profile(ai)?.BoundToSummoner ?? false;
             return enemy;
         }
     }

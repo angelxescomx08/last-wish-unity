@@ -1,4 +1,5 @@
 using System;
+using LastWish.Domain;
 
 namespace LastWish.Presentation
 {
@@ -60,6 +61,10 @@ namespace LastWish.Presentation
         public float Time { get; set; }
         public float Fps { get; set; }
         public Action Quit { get; set; }
+        /// <summary>Power telemetry output (runtime: disk + Supabase); null = nothing is recorded.</summary>
+        public ITelemetrySink Telemetry { get; set; }
+        /// <summary>Telemetry of the run being played (the scene manager starts and ends it), or null.</summary>
+        public PowerTracker Power { get; set; }
         public GameContext(Canvas canvas, Art art, SoundPlayer sound, Preferences prefs, IStorage storage)
         { Canvas = canvas; Art = art; Sound = sound; Prefs = prefs ?? new Preferences(); Storage = storage; }
     }

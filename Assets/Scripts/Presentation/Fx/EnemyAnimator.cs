@@ -71,6 +71,21 @@ namespace LastWish.Presentation
         private static readonly Rgba[] Gel = { C(255, 214, 246), C(226, 110, 210), C(150, 50, 150), C(70, 20, 80) };
         private static readonly Rgba[] Molt = { C(250, 246, 230), C(222, 214, 190), C(176, 166, 140), C(120, 112, 96) };
         private static readonly Rgba[] Tears = { C(230, 246, 255), C(150, 210, 255), C(80, 140, 230), C(40, 60, 130) };
+        // floor-2 expansion palettes
+        private static readonly Rgba[] Rune = { C(220, 250, 255), C(120, 230, 255), C(60, 150, 200), C(30, 70, 110) };
+        private static readonly Rgba[] Ink = { C(200, 80, 170), C(120, 30, 110), C(50, 14, 60), C(14, 6, 20) };
+        private static readonly Rgba[] Prism = { C(255, 140, 140), C(255, 230, 120), C(120, 255, 170), C(130, 190, 255) };
+        private static readonly Rgba[] GlassPal = { C(250, 255, 255), C(200, 235, 250), C(130, 180, 215), C(70, 110, 150) };
+        private static readonly Rgba[] NecroFire = { C(230, 255, 230), C(120, 255, 150), C(50, 180, 90), C(20, 80, 40) };
+        private static readonly Rgba[] Abyss = { C(240, 210, 255), C(170, 110, 255), C(100, 50, 180), C(40, 20, 80) };
+        // floor-3 expansion palettes
+        private static readonly Rgba[] IceFx = { C(240, 252, 255), C(170, 230, 255), C(90, 160, 210), C(40, 80, 130) };
+        private static readonly Rgba[] FrostSteel = { C(210, 226, 242), C(158, 182, 208), C(96, 118, 150), C(44, 58, 80) };
+        private static readonly Rgba[] BannerCloth = { C(236, 128, 116), C(206, 76, 76), C(140, 36, 44), C(70, 14, 22) };
+        private static readonly Rgba[] BrassPal = { C(255, 236, 170), C(232, 186, 96), C(176, 124, 48), C(100, 64, 24) };
+        private static readonly Rgba[] VoidPal = { C(240, 210, 255), C(180, 90, 255), C(100, 40, 170), C(40, 10, 70) };
+        private static readonly Rgba[] Snow = { C(255, 255, 255), C(232, 238, 246), C(196, 204, 216), C(150, 160, 176) };
+        private static readonly Rgba[] SandPal = { C(250, 232, 170), C(230, 196, 110), C(186, 140, 60), C(120, 84, 30) };
         private static Rgba[] Tail(Rgba[] p) { var r = new Rgba[p.Length - 1]; Array.Copy(p, 1, r, 0, r.Length); return r; }
 
         public static readonly Dictionary<string, EnemyFxStyle> Styles = new Dictionary<string, EnemyFxStyle>
@@ -112,6 +127,38 @@ namespace LastWish.Presentation
             ["serpent"] = new EnemyFxStyle { Wisp = Venom, Ecto = Amber, Spark = GoldPal, Shreds = Molt, Glow = C(50, 130, 40), Chest = (-28, -104), Eyes = (-68, -148), Body = (0, -60), Claw = (-116, -136), ShadowW = 150, AmbientRise = 0.5f, AmbientHeavy = true },
             ["gravedigger"] = new EnemyFxStyle { Wisp = Dirt, Ecto = Earth, Spark = Amber, Shreds = Wood, Glow = C(150, 100, 30), Chest = (-12, -92), Eyes = (-32, -136), Body = (0, -80), Claw = (-100, -80), ShadowW = 100, AmbientRise = 0.5f, AmbientHeavy = true },
             ["mourner"] = new EnemyFxStyle { Wisp = Tears, Ecto = VioletGlow, Spark = Tears, Shreds = VioletPal, Glow = C(90, 60, 160), Chest = (-8, -108), Eyes = (-16, -148), Body = (0, -100), Claw = (-80, -112), ShadowW = 90, AmbientRise = 1f },
+            // floor-2 expansion (points printed by `python Tools/GenerateEnemyArtFloor2.py --styles`)
+            ["sentinel"] = new EnemyFxStyle { Wisp = Rune, Ecto = Stone, Spark = Rune, Shreds = Chips, Glow = C(40, 140, 170), Chest = (-4, -88), Eyes = (-8, -140), Body = (0, -80), Claw = (-104, -24), ShadowW = 130, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["zealot"] = new EnemyFxStyle { Wisp = Abyss, Ecto = Blood, Spark = Abyss, Shreds = Tail(Abyss), Glow = C(90, 40, 140), Chest = (-8, -60), Eyes = (-24, -92), Body = (0, -56), Claw = (-72, -60), ShadowW = 90, AmbientRise = 0.7f },
+            ["shade"] = new EnemyFxStyle { Wisp = Ink, Ecto = Ink, Spark = Ichor, Shreds = Tail(Ink), Glow = C(120, 20, 90), Chest = (0, -72), Eyes = (-16, -104), Body = (0, -72), Claw = (-80, -72), ShadowW = 100, AmbientRise = 1f },
+            ["leech"] = new EnemyFxStyle { Wisp = Blood, Ecto = Blood, Spark = Blood, Shreds = Tail(Blood), Glow = C(120, 20, 30), Chest = (-20, -40), Eyes = (-72, -68), Body = (8, -32), Claw = (-100, -60), ShadowW = 130, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["troll"] = new EnemyFxStyle { Wisp = Moss, Ecto = Blood, Spark = Bone, Shreds = MossBits, Glow = C(60, 110, 50), Chest = (-12, -80), Eyes = (-52, -108), Body = (0, -76), Claw = (-112, -40), ShadowW = 110, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["illusionist"] = new EnemyFxStyle { Wisp = Prism, Ecto = VioletGlow, Spark = Prism, Shreds = Tail(Prism), Glow = C(140, 60, 150), Chest = (-4, -64), Eyes = (-12, -104), Body = (0, -60), Claw = (-60, -72), ShadowW = 90, AmbientRise = 0.8f },
+            ["illusion"] = new EnemyFxStyle { Wisp = VioletGlow, Ecto = VioletGlow, Spark = SparkPal, Shreds = Tail(VioletGlow), Glow = C(120, 100, 170), Chest = (-4, -56), Eyes = (-12, -92), Body = (0, -52), Claw = (-56, -60), ShadowW = 90, AmbientRise = 0.9f },
+            ["skeleton"] = new EnemyFxStyle { Wisp = NecroFire, Ecto = Bone, Spark = Bone, Shreds = Bone, Glow = C(60, 130, 70), Chest = (-4, -60), Eyes = (-16, -92), Body = (0, -56), Claw = (-60, -60), ShadowW = 90, AmbientRise = 0.6f },
+            ["shard"] = new EnemyFxStyle { Wisp = GlassPal, Ecto = GlassPal, Spark = SparkPal, Shreds = Tail(GlassPal), Glow = C(100, 150, 200), Chest = (0, -60), Eyes = (-8, -80), Body = (0, -60), Claw = (-52, -60), ShadowW = 90, AmbientRise = 0.8f },
+            ["paladin"] = new EnemyFxStyle { Wisp = AshFall, Ecto = RedBlood, Spark = GoldPal, Shreds = Steel, Glow = C(150, 100, 30), Chest = (-8, -100), Eyes = (-20, -148), Body = (0, -92), Claw = (-116, -60), ShadowW = 140, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["countess"] = new EnemyFxStyle { Wisp = Blood, Ecto = RedBlood, Spark = Blood, Shreds = Fur, Glow = C(140, 20, 40), Chest = (-4, -104), Eyes = (-16, -152), Body = (0, -88), Claw = (-100, -108), ShadowW = 90, AmbientRise = 0.6f },
+            ["highpriest"] = new EnemyFxStyle { Wisp = Abyss, Ecto = Abyss, Spark = Abyss, Shreds = Hood, Glow = C(100, 50, 170), Chest = (-8, -108), Eyes = (-16, -168), Body = (0, -96), Claw = (-96, -100), ShadowW = 90, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["necromancer"] = new EnemyFxStyle { Wisp = NecroFire, Ecto = Bone, Spark = NecroFire, Shreds = Rags, Glow = C(50, 140, 70), Chest = (-12, -112), Eyes = (-20, -168), Body = (0, -96), Claw = (-100, -108), ShadowW = 110, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["hydra"] = new EnemyFxStyle { Wisp = Tears, Ecto = Acid, Spark = Acid, Shreds = Tail(Moss), Glow = C(40, 120, 110), Chest = (-20, -80), Eyes = (-80, -152), Body = (0, -60), Claw = (-140, -100), ShadowW = 250, AmbientRise = 0.4f, AmbientHeavy = true },
+            ["mirrorqueen"] = new EnemyFxStyle { Wisp = GlassPal, Ecto = VioletGlow, Spark = Prism, Shreds = Tail(GlassPal), Glow = C(110, 90, 190), Chest = (-8, -112), Eyes = (-16, -164), Body = (0, -100), Claw = (-96, -120), ShadowW = 110, AmbientRise = 0.8f },
+            // floor-3 expansion (points printed by `python Tools/GenerateEnemyArtFloor3.py --styles`)
+            ["bannerman"] = new EnemyFxStyle { Wisp = Snow, Ecto = BannerCloth, Spark = IceFx, Shreds = FrostSteel, Glow = C(60, 110, 170), Chest = (-4, -68), Eyes = (-16, -104), Body = (0, -64), Claw = (-68, -80), ShadowW = 90, AmbientRise = 0.6f },
+            ["barbarian"] = new EnemyFxStyle { Wisp = Snow, Ecto = Blood, Spark = IceFx, Shreds = Fur, Glow = C(150, 60, 40), Chest = (-8, -80), Eyes = (-20, -124), Body = (0, -76), Claw = (-88, -80), ShadowW = 100, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["voidmage"] = new EnemyFxStyle { Wisp = VoidPal, Ecto = VoidPal, Spark = VoidPal, Shreds = Tail(VoidPal), Glow = C(100, 40, 170), Chest = (-4, -72), Eyes = (-12, -112), Body = (0, -68), Claw = (-68, -88), ShadowW = 90, AmbientRise = 0.8f },
+            ["frosthunter"] = new EnemyFxStyle { Wisp = Snow, Ecto = Blood, Spark = IceFx, Shreds = Fur, Glow = C(70, 130, 180), Chest = (-4, -64), Eyes = (-16, -100), Body = (0, -60), Claw = (-72, -76), ShadowW = 90, AmbientRise = 0.6f },
+            ["frostwisp"] = new EnemyFxStyle { Wisp = IceFx, Ecto = IceFx, Spark = Snow, Shreds = Tail(IceFx), Glow = C(90, 160, 210), Chest = (0, -76), Eyes = (-12, -92), Body = (0, -72), Claw = (-56, -72), ShadowW = 90, AmbientRise = 1f },
+            ["tinkerer"] = new EnemyFxStyle { Wisp = SteamPal, Ecto = Blood, Spark = BrassPal, Shreds = Tail(BrassPal), Glow = C(170, 120, 40), Chest = (-4, -48), Eyes = (-16, -76), Body = (0, -44), Claw = (-60, -52), ShadowW = 90, AmbientRise = 0.6f },
+            ["automaton"] = new EnemyFxStyle { Wisp = SteamPal, Ecto = BrassPal, Spark = BrassPal, Shreds = Tail(BrassPal), Glow = C(170, 120, 40), Chest = (0, -52), Eyes = (-12, -80), Body = (0, -48), Claw = (-56, -56), ShadowW = 90, AmbientRise = 0.6f },
+            ["squire"] = new EnemyFxStyle { Wisp = Snow, Ecto = Blood, Spark = Steel, Shreds = FrostSteel, Glow = C(60, 110, 170), Chest = (0, -60), Eyes = (-12, -92), Body = (0, -56), Claw = (-64, -60), ShadowW = 90, AmbientRise = 0.6f },
+            ["phylactery"] = new EnemyFxStyle { Wisp = IceFx, Ecto = IceFx, Spark = IceFx, Shreds = Tail(IceFx), Glow = C(90, 170, 220), Chest = (0, -72), Eyes = (-4, -80), Body = (0, -72), Claw = (-48, -72), ShadowW = 90, AmbientRise = 0.9f },
+            ["commander"] = new EnemyFxStyle { Wisp = Snow, Ecto = RedBlood, Spark = IceFx, Shreds = BannerCloth, Glow = C(60, 110, 170), Chest = (-8, -100), Eyes = (-20, -152), Body = (0, -92), Claw = (-120, -96), ShadowW = 130, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["wendigo"] = new EnemyFxStyle { Wisp = Snow, Ecto = RedBlood, Spark = IceFx, Shreds = Bone, Glow = C(120, 40, 50), Chest = (-12, -112), Eyes = (-32, -176), Body = (0, -100), Claw = (-120, -92), ShadowW = 90, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["chronomancer"] = new EnemyFxStyle { Wisp = SandPal, Ecto = VioletGlow, Spark = GoldPal, Shreds = Tail(SandPal), Glow = C(170, 140, 60), Chest = (-8, -104), Eyes = (-16, -160), Body = (0, -92), Claw = (-104, -108), ShadowW = 90, AmbientRise = 0.7f },
+            ["lichking"] = new EnemyFxStyle { Wisp = IceFx, Ecto = Bone, Spark = IceFx, Shreds = Tail(IceFx), Glow = C(80, 150, 210), Chest = (-12, -116), Eyes = (-20, -176), Body = (0, -100), Claw = (-108, -120), ShadowW = 100, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["clockmaker"] = new EnemyFxStyle { Wisp = SteamPal, Ecto = BrassPal, Spark = BrassPal, Shreds = Wood, Glow = C(170, 120, 40), Chest = (-8, -120), Eyes = (-16, -188), Body = (0, -108), Claw = (-120, -112), ShadowW = 150, AmbientRise = 0.5f, AmbientHeavy = true },
+            ["frostdragon"] = new EnemyFxStyle { Wisp = Snow, Ecto = IceFx, Spark = IceFx, Shreds = Tail(IceFx), Glow = C(80, 150, 210), Chest = (-40, -104), Eyes = (-124, -160), Body = (0, -92), Claw = (-140, -60), ShadowW = 220, AmbientRise = 0.4f, AmbientHeavy = true },
         };
         public static EnemyFxStyle StyleFor(string sheetId) => sheetId != null && Styles.TryGetValue(sheetId, out var s) ? s : Styles["wraith"];
 

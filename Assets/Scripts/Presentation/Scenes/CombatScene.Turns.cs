@@ -213,6 +213,7 @@ namespace LastWish.Presentation
             CardPose playedPose = null;
             if (played != null) motion.TryGetValue(played, out playedPose);
             var bonuses = played != null ? Bonuses(played) : (BigInteger.Zero, 0L);
+            var cost = played != null ? state.CardCost(played) : 0;     // power telemetry: mana paid
             var names = new List<string>(); var before = new List<EnemyState>();
             for (var i = 0; i < EnemyCount; i++) { names.Add(E(i).Definition.Name); before.Add(E(i)); }
 
@@ -223,9 +224,12 @@ namespace LastWish.Presentation
             Sound.PlayCard();
             if (played != null) { motion.Remove(played); deals.Remove(played); }
             var blockGained = state.Block - oldBlock;
+            Game.Track(p => p.CardPlayed(played, cost, result, blockGained));
             var action = isAttack ? "attack" : blockGained > 0 ? "guard" : "cast";
             PlanDraws(result, action);
-            if (result.Combo && playerRect.HasValue) fx.AddText(playerRect.Value.CenterX, playerRect.Value.Y - 10, "¡COMBO!", new Rgba(90, 235, 180), 1.1f);
+            if (result.Combo && playerRect.HasValue)
+                fx.AddText(playerRect.Value.CenterX, playerRect.Value.Y - 10, result.ComboTimes > 1 ? "¡COMBO ×" + result.ComboTimes + "!" : "¡COMBO!", new Rgba(90, 235, 180), result.ComboTimes > 1 ? 1.5f : 1.1f);
+            if (result.Combo && result.ComboTimes > 1) powerBar.Flash("r_sombra_gemela");
             var shownCount = result.Combo ? 1 : 0;
             foreach (var (flag, label, color) in new[] { (result.Singular, "¡SINGULAR!", new Rgba(185, 140, 255)), (result.Void, "¡VACÍO!", new Rgba(90, 170, 255)),
                 (result.Spoil, "¡DESPOJO!", new Rgba(240, 150, 60)), (result.Reaction, "¡REACCIÓN!", new Rgba(255, 130, 205)) })
@@ -258,7 +262,19 @@ namespace LastWish.Presentation
             }
         }
 
-        private static readonly Rgba ThornText = new Rgba(255, 150, 110), ParryText = new Rgba(120, 240, 220), StrengthText = new Rgba(255, 190, 90);
+        private static readonly Rgba ThornText = new Rgba(255, 150, 110), ParryText = new Rgba(120, 240, 220), StrengthText = new Rgba(255, 190, 90),
+            BleedText = new Rgba(235, 70, 80), VanishText = new Rgba(200, 170, 255), FrostText = new Rgba(150, 215, 255), ClockText = new Rgba(235, 205, 120);
+
+        /// <summary>Ansia de Sangre since the last card or end of turn: "+N Fuerza" over each thirsty enemy.</summary>
+        private void ShowThirst(float delay)
+        {
+            foreach (var (id, strength) in state.ThirstFeeds)
+            {
+                var rect = RectOfEnemy(id);
+                if (rect.HasValue) fx.AddText(rect.Value.CenterX, rect.Value.Y - 8, "+" + strength + " Fuerza", BleedText, 1.2f, delay);
+                log.Effect(state.Turn, "strength", NameOfEnemy(id) + " gana " + strength + " de Fuerza", new[] { "Ansia de Sangre: has perdido vida este turno." }, null);
+            }
+        }
 
         private IRect? RectOfEnemy(string id)
         {
@@ -267,22 +283,46 @@ namespace LastWish.Presentation
         }
         private string NameOfEnemy(string id) { foreach (var e in state.Enemies) if (e.Id == id) return e.Definition.Name; return ""; }
 
-        /// <summary>Pinchos / Réplica hits on the hero, Desvío, Vigilancia and death effects (returned cards, Carroña) of a card.</summary>
+        /// <summary>Floating label, history title and icon of each kind of non-attack hit on the hero.</summary>
+        private static (string label, string title, string icon) HeroHitText(string kind)
+        {
+            switch (kind)
+            {
+                case "thorns": return ("Pinchos", "Pinchos de ", "damage");
+                case "reflect": return ("¡Reflejo!", "Reflejo de ", "void");
+                case "bleed": return ("Sangrado", "Sangrado", "fury");
+                default: return ("¡Réplica!", "Réplica de ", "damage");
+            }
+        }
+
+        /// <summary>
+        /// Pinchos / Réplica / Reflejo / Sangrado hits on the hero, Desvío, Vigilancia, cut heads, Ansia de Sangre and death
+        /// effects (returned cards, Carroña, Rencor, vanished Ilusiones) of a card.
+        /// </summary>
         private void ShowExpansionPlay(PlayResult result, float delay)
         {
             var hitDelay = delay + 0.25f; var lostTotal = 0; var k = 0;
             foreach (var (id, lost, kind) in result.HeroHits)
             {
+                var (label, title, icon) = HeroHitText(kind);
                 if (playerRect.HasValue)
                 {
                     var pr = playerRect.Value;
-                    fx.AddText(pr.CenterX, pr.Y - 20 - 22 * k, kind == "thorns" ? "Pinchos" : "¡Réplica!", ThornText, 1.1f, hitDelay);
+                    fx.AddText(pr.CenterX, pr.Y - 20 - 22 * k, label, kind == "bleed" ? BleedText : ThornText, 1.1f, hitDelay);
                     if (lost > 0) fx.AddHitFlash(pr, lost, (k - (result.HeroHits.Count - 1) / 2f) * 18, hitDelay, false);
                 }
-                log.Effect(state.Turn, "damage", (kind == "thorns" ? "Pinchos de " : "Réplica de ") + NameOfEnemy(id), new[] { lost > 0 ? "Pierdes " + lost + " de vida." : "Tu escudo lo para." }, null);
+                log.Effect(state.Turn, icon, kind == "bleed" ? title : title + NameOfEnemy(id), new[] { lost > 0 ? "Pierdes " + lost + " de vida." : kind == "bleed" ? "No pierdes vida." : "Tu escudo lo para." }, null);
                 lostTotal += lost; k++;
             }
             if (lostTotal > 0) { pendingHeroHurt = hitDelay; pendingHeroName = state.Hp > 0 ? "hurt" : "death"; Sound.PlayHit(); }
+            foreach (var pair in result.HeadsCut)
+            {
+                var rect = RectOfEnemy(pair.Key);
+                if (rect.HasValue) fx.AddText(rect.Value.CenterX, rect.Value.Y - 30, pair.Value > 1 ? "¡" + pair.Value + " cabezas cortadas!" : "¡Cabeza cortada!", StrengthText, 1.3f, delay);
+                log.Effect(state.Turn, "attack_3", "Le cortas " + (pair.Value > 1 ? pair.Value + " cabezas" : "una cabeza") + " a " + NameOfEnemy(pair.Key),
+                    new[] { "Un golpe de " + Floor2Rules.HeadCut + " o más le corta una cabeza: muerde una vez menos." }, null);
+            }
+            ShowThirst(delay + 0.3f);
             foreach (var pair in result.Parried)
             {
                 var rect = RectOfEnemy(pair.Key);
@@ -294,13 +334,37 @@ namespace LastWish.Presentation
                 if (rect.HasValue) fx.AddText(rect.Value.CenterX, rect.Value.Y - 8, "+1 Fuerza", StrengthText, 1.1f, delay + 0.2f);
                 log.Effect(state.Turn, "combo", NameOfEnemy(id) + " gana 1 de Fuerza", new[] { "Vigilancia: castiga jugar muchas cartas en un turno." }, null);
             }
+            foreach (var pair in result.RageGains)
+            {
+                var rect = RectOfEnemy(pair.Key);
+                if (rect.HasValue) fx.AddText(rect.Value.CenterX, rect.Value.Y - 8, "+" + pair.Value + " Fuerza (Cólera)", StrengthText, 1.1f, delay + 0.2f);
+                log.Effect(state.Turn, "fury", NameOfEnemy(pair.Key) + " gana " + pair.Value + " de Fuerza",
+                    new[] { "Cólera: cada golpe que le quita vida lo enfurece hasta el final de su siguiente acción." }, null);
+            }
             ShowDeathEvents(delay + 0.4f);
         }
 
         private void ShowDeathEvents(float delay)
         {
+            var grudgeLost = 0; var g = 0;
             foreach (var ev in state.DeathEvents)
             {
+                if (ev.Dispelled)
+                {
+                    var rect = RectOfEnemy(ev.EnemyId);
+                    if (rect.HasValue) fx.AddText(rect.Value.CenterX, rect.Value.Y - 20, "¡Se desvanece!", VanishText, 1.2f, delay);
+                }
+                if (ev.GrudgeDamage > 0)
+                {
+                    if (playerRect.HasValue)
+                    {
+                        var pr = playerRect.Value;
+                        fx.AddText(pr.CenterX, pr.Y - 40 - 22 * g, "¡Rencor!", ThornText, 1.2f, delay);
+                        if (ev.GrudgeLost > 0) fx.AddHitFlash(pr, ev.GrudgeLost, g * 18, delay, false);
+                    }
+                    log.Effect(state.Turn, "lethal", "Rencor de " + NameOfEnemy(ev.EnemyId), new[] { ev.GrudgeLost > 0 ? "Al morir te hace " + ev.GrudgeDamage + ": pierdes " + ev.GrudgeLost + " de vida." : "Al morir te hace " + ev.GrudgeDamage + ": tu escudo lo para." }, null);
+                    grudgeLost += ev.GrudgeLost; g++;
+                }
                 if (ev.ReturnedCards.Count > 0)
                 {
                     fx.AddText(DiscardX + 30, DiscardY - 20, "+" + ev.ReturnedCards.Count + (ev.ReturnedCards.Count == 1 ? " carta" : " cartas"), HealText, 1.2f, delay);
@@ -313,13 +377,17 @@ namespace LastWish.Presentation
                     log.Effect(state.Turn, "fury", NameOfEnemy(feeder) + " se ceba", new[] { "Carroña: gana " + strength + " de Fuerza y se cura " + healed + "." }, null);
                 }
             }
+            if (grudgeLost > 0 && !pendingHeroHurt.HasValue) { pendingHeroHurt = delay; pendingHeroName = state.Hp > 0 ? "hurt" : "death"; Sound.PlayHit(); }
         }
+
+        /// <summary>HP the hero lost to Rencor in the deaths of the last card or enemy turn.</summary>
+        private int GrudgeLostNow() { var n = 0; foreach (var ev in state.DeathEvents) n += ev.GrudgeLost; return n; }
 
         /// <summary>The play's per-cast snapshots in display order (the original's list has no dead enemies from earlier turns).</summary>
         private PlayResult ViewResult(PlayResult result)
         {
             var r = new PlayResult { Success = result.Success, Message = result.Message, Combo = result.Combo, Singular = result.Singular, Void = result.Void, Spoil = result.Spoil,
-                Reaction = result.Reaction, Fury = result.Fury, Endure = result.Endure, Casts = result.Casts };
+                Reaction = result.Reaction, Fury = result.Fury, Endure = result.Endure, Casts = result.Casts, ComboTimes = result.ComboTimes };
             r.CastDrawn.AddRange(result.CastDrawn); r.CastPlayerBlock.AddRange(result.CastPlayerBlock);
             foreach (var a in result.CastHits) r.CastHits.Add(ToView(a));
             foreach (var a in result.CastEnemyHp) r.CastEnemyHp.Add(ToView(a));
@@ -474,6 +542,27 @@ namespace LastWish.Presentation
                 var c = action.Cards[j];
                 fx.AddText(x, y - 18 * (action.Debuffs.Count + j), "+" + c.Count + " " + (CardNamesEs.TryGetValue(c.Id, out var cn) ? cn : c.Id), Toxic, 1.4f, at + 0.15f);
             }
+            if (action.WoundUp != null)
+            {
+                var maker = RectOfEnemy(action.WoundUp);
+                if (maker.HasValue) fx.AddText(maker.Value.CenterX, maker.Value.Y - 8, "+1 Cuerda", ClockText, 1.1f, at + 0.2f);
+            }
+            if (action.Rewound > 0 || action.RageSpent > 0)
+            {
+                var actor = action.Index >= 0 && action.Index < state.Enemies.Count ? state.Enemies[action.Index] : null;
+                var rect = actor != null ? RectOfEnemy(actor.Id) : null;
+                if (rect.HasValue && action.Rewound > 0) fx.AddText(rect.Value.CenterX, rect.Value.Y - 30, "¡Rebobina! +" + action.Rewound, ClockText, 1.4f, at + 0.1f);
+            }
+            if (action.RitualStrength > 0 || action.DevouredStrength > 0)
+            {
+                var actor = action.Index >= 0 && action.Index < state.Enemies.Count ? state.Enemies[action.Index] : null;
+                var rect = actor != null ? RectOfEnemy(actor.Id) : null;
+                if (rect.HasValue)
+                {
+                    if (action.DevouredStrength > 0) fx.AddText(rect.Value.CenterX, rect.Value.Y - 30, "¡Ofrenda! +" + action.DevouredStrength + " Fuerza", BleedText, 1.4f, at + 0.1f);
+                    if (action.RitualStrength > 0) fx.AddText(rect.Value.CenterX, rect.Value.Y - 8, "+" + action.RitualStrength + " Fuerza (Rito)", StrengthText, 1.2f, at + 0.35f);
+                }
+            }
         }
 
         private void EnemyHit(int i, int dmg, bool killed, bool hold = true, float delay = 0f)
@@ -575,9 +664,9 @@ namespace LastWish.Presentation
             var names = new HashSet<string>(); for (var i = 0; i < EnemyCount; i++) if (!string.IsNullOrEmpty(E(i).PairName)) names.Add(E(i).PairName);
             foreach (var pair in Game.Data.Pairs.Values)
                 if (names.Contains(pair.name)) banners.Add("buff", "¡Pareja! " + pair.name, pair.synergy, 0.4f);
-            foreach (var group in EnemyCatalog.Groups)
+            foreach (var group in EnemyCatalog.AllGroups)
                 if (names.Contains(group.Name)) banners.Add("buff", (group.Members.Count >= 3 ? "¡Trío! " : "¡Pareja! ") + group.Name, group.Synergy, 0.4f);
-            foreach (var fight in EnemyCatalog.BossEncounters)
+            foreach (var fight in EnemyCatalog.AllBossEncounters)
                 if (fight.Linked && names.Contains(fight.Name)) banners.Add("buff", "¡Pareja de jefes! " + fight.Name, fight.Synergy, 0.4f);
             for (var i = 0; i < EnemyCount; i++)
             {
@@ -656,6 +745,7 @@ namespace LastWish.Presentation
                 var e = before[i];
                 if (e.Alive && e.Statuses[StatusKind.Frozen] > 0 && !(e.Definition.Boss || e.Definition.Elite)) frozen.Add(i);
             }
+            powerBar.FlashWhere(c => PowerText.AtTurnEnd.Contains(c.Id));
             state.EndTurn();
             foreach (var a in state.EnemyLog)   // a broken Carga (poison before acting) turns the planned blow into Aturdido
             {
@@ -672,7 +762,25 @@ namespace LastWish.Presentation
                     fx.AddText(rect.CenterX, rect.CenterY, "¡Congelado!", g.IceInk, 1.4f, 0.3f, "frozen");
                 }
             AnnounceReactions(1.4f);
+            var frost = state.FrostbiteLost;
+            if (frost > 0)
+            {
+                if (playerRect.HasValue)
+                {
+                    var pr = playerRect.Value;
+                    fx.AddText(pr.CenterX, pr.Y - 20, "Congelación", FrostText, 1.2f, 0.05f);
+                    fx.AddHitFlash(pr, frost, 0, 0.05f, false);
+                }
+                log.Effect(state.Turn - 1, "frozen", "Congelación", new[] { "Te quedaban cartas en la mano al terminar el turno: pierdes " + frost + " de vida." }, null);
+            }
             LogEnemyTurn(state.Turn - 1, intents, names, frozen, before, ToBefore);
+            if (state.ManaExhausted > 0)
+            {
+                fx.AddText(ManaCx, ManaCy - ManaR - 14, "Agotamiento −" + state.ManaExhausted, FrostText, 1.3f, 1.2f);
+                log.Effect(state.Turn, "mana", "Agotamiento", new[] { "Empiezas el turno con " + state.ManaExhausted + " de maná menos." }, null);
+            }
+            var grudgeLost = GrudgeLostNow();
+            ShowDeathEvents(1.0f); ShowThirst(1.6f);
             motion.Clear(); deals.Clear();
             dealPlan.Clear(); for (var j = 0; j < state.Hand.Count; j++) dealPlan.Add(DrawAfterEnemyTurn + j * CardDeal.DealStagger);
             AnnounceActions(state.EnemyLog, intents, names, ToBefore);
@@ -739,7 +847,7 @@ namespace LastWish.Presentation
                 {
                     var spread = shown.Count;
                     for (var j = 0; j < shown.Count; j++) fx.AddHitFlash(pr, shown[j].lost, (j - (spread - 1) / 2f) * 18, shown[j].t, false);
-                    var rest = dmg - shownSum;
+                    var rest = dmg - shownSum - grudgeLost - frost;   // Rencor and Congelación show their own hits
                     if (rest > 0)
                     {
                         var last = shown.Count > 0 ? shown.Max(h => h.t) : 0f;
@@ -747,7 +855,7 @@ namespace LastWish.Presentation
                         fx.AddText(pr.CenterX + 60, pr.Y + 50, "Veneno", Toxic, 1f, last + 0.25f);
                     }
                 }
-                else fx.AddHitFlash(pr, dmg, 0, wait, heroFx == null);
+                else if (dmg - grudgeLost - frost > 0) fx.AddHitFlash(pr, dmg - grudgeLost - frost, 0, wait, heroFx == null);
                 Sound.PlayHit();
             }
         }

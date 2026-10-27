@@ -24,17 +24,17 @@ namespace LastWish.Domain
         /// <summary>Builds an intent of the expansion; values (attack, block, ally block, heals) are given at floor 1 and scaled here.</summary>
         private static EnemyIntent Make(string id, string name, string description, int floor, int attack = 0, int hits = 1, int guard = 0, int block = 0,
             StatusAmount[] buffs = null, StatusAmount[] debuffs = null, StatusAmount[] allyBuffs = null, StatusCardSpawn[] cards = null,
-            int allyBlock = 0, int healAllies = 0, IntentExtras extras = null)
+            int allyBlock = 0, int healAllies = 0, IntentExtras extras = null, bool lifesteal = false)
         {
             var x = extras ?? IntentExtras.None;
             IntentKind kind; var value = 0;
             if (attack > 0) { kind = IntentKind.Attack; value = EnemyCatalog.Scale(attack, floor); }
             else if (x.Summons.Length > 0 || x.ReviveAi != null || x.SplitInto != null) kind = IntentKind.Summon;
             else if (guard > 0) { kind = IntentKind.Block; value = EnemyCatalog.Scale(guard, floor); }
-            else if (debuffs != null && debuffs.Length > 0 || cards != null && cards.Length > 0 || x.StealStrength > 0 || x.SiphonBlockPercent > 0 || x.Swallow > 0) kind = IntentKind.Debuff;
+            else if (debuffs != null && debuffs.Length > 0 || cards != null && cards.Length > 0 || x.StealStrength > 0 || x.SiphonBlockPercent > 0 || x.Swallow > 0 || x.ReturnDebuffs) kind = IntentKind.Debuff;
             else kind = IntentKind.Buff;
             return new EnemyIntent(kind, value, hits, name, id, description, block: EnemyCatalog.Scale(block, floor), buffs: buffs, debuffs: debuffs,
-                allyBuffs: allyBuffs, cards: cards, allyBlock: EnemyCatalog.Scale(allyBlock, floor), healAllies: EnemyCatalog.Scale(healAllies, floor)) { Extras = x };
+                allyBuffs: allyBuffs, cards: cards, lifesteal: lifesteal, allyBlock: EnemyCatalog.Scale(allyBlock, floor), healAllies: EnemyCatalog.Scale(healAllies, floor)) { Extras = x };
         }
 
         /// <summary>The intent of an enemy whose Carga was broken: it loses its turn.</summary>
@@ -79,6 +79,8 @@ namespace LastWish.Domain
         // ------------------------------------------------------------------ planning
         private static EnemyIntent ExpansionNext(EnemyState enemy, StatusSet hero, IReadOnlyList<EnemyState> enemies)
         {
+            if (EnemyCatalog.IsFloor2(enemy.Definition.Ai)) return Floor2Next(enemy, hero, enemies);
+            if (EnemyCatalog.IsFloor3(enemy.Definition.Ai)) return Floor3Next(enemy, hero, enemies);
             var profile = EnemyCatalog.Profile(enemy.Definition.Ai);
             EnemyIntent intent = null;
             if (profile.HasPhase && !enemy.PhaseTwo && enemy.Hp * 2L <= enemy.MaxHp && enemy.Statuses[StatusKind.Focus] == 0)
@@ -349,6 +351,7 @@ namespace LastWish.Domain
         /// </summary>
         public static void ExpansionReact(IReadOnlyList<EnemyState> enemies)
         {
+            Floor3Auras(enemies);
             for (var i = 0; i < enemies.Count; i++)
             {
                 var e = enemies[i];
@@ -360,15 +363,20 @@ namespace LastWish.Domain
                 }
                 Interrupt(e);
                 Refresh(e, enemies);
+                Floor2Refresh(e, enemies);
+                Floor3Refresh(e, enemies);
             }
         }
 
         /// <summary>Right before the enemy acts (after its poison): a Carga broken now still stuns it.</summary>
         public static void BeforeAct(EnemyState enemy, IReadOnlyList<EnemyState> enemies)
         {
+            Floor3Auras(enemies);   // Pendón of an ally that died earlier in this enemy turn (poison, fire) no longer inspires
             if (!enemy.Alive || !EnemyCatalog.IsExpansion(enemy.Definition.Ai)) return;
             Interrupt(enemy);
             Refresh(enemy, enemies);
+            Floor2Refresh(enemy, enemies);
+            Floor3Refresh(enemy, enemies);
         }
 
         private static void Interrupt(EnemyState e)

@@ -91,6 +91,9 @@ namespace LastWish.Domain
 
         public CardDefinition WithChroma(ChromaKind chroma) => Copy(chroma, Innate);
         public CardDefinition WithInnate() => Copy(Chroma, true);
+        /// <summary>The same card as another type (design changes such as a one-shot power turned into a skill).</summary>
+        public CardDefinition WithKind(CardKind kind) => new CardDefinition(Id, Name, Cost, Damage.Value, Block, Draw, ManaGain,
+            Upgraded, Rarity, ClassId, Theme, ComboBlock, EndureStrength, FireStacks, Effects?.ToArray(), kind, Chroma, PlayOnDraw, Innate);
         private CardDefinition Copy(ChromaKind chroma, bool innate) => new CardDefinition(Id, Name, Cost, Damage.Value, Block, Draw, ManaGain,
             Upgraded, Rarity, ClassId, Theme, ComboBlock, EndureStrength, FireStacks, Effects?.ToArray(), Kind, chroma, PlayOnDraw, innate);
 

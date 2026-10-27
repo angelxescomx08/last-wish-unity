@@ -1,0 +1,147 @@
+{
+ "cell_w": 160,
+ "cell_h": 116,
+ "columns": 14,
+ "anchor": [
+  108,
+  110
+ ],
+ "scale": 2,
+ "sheet": "barbarian_sheet.png",
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 12,
+   "durations_ms": [
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105
+   ],
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "frames": 10,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    55,
+    60,
+    85,
+    90,
+    95,
+    110
+   ],
+   "loop": false
+  },
+  "whirl": {
+   "row": 2,
+   "frames": 12,
+   "durations_ms": [
+    110,
+    120,
+    55,
+    60,
+    85,
+    90,
+    55,
+    100,
+    100,
+    60,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "cast": {
+   "row": 3,
+   "frames": 11,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    55,
+    80,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "hurt": {
+   "row": 4,
+   "frames": 6,
+   "durations_ms": [
+    55,
+    60,
+    70,
+    80,
+    90,
+    100
+   ],
+   "loop": false
+  },
+  "death": {
+   "row": 5,
+   "frames": 14,
+   "durations_ms": [
+    70,
+    90,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    120
+   ],
+   "loop": false
+  }
+ },
+ "events": {
+  "attack": {
+   "strikes": [
+    5
+   ]
+  },
+  "whirl": {
+   "strikes": [
+    3,
+    6,
+    9
+   ]
+  }
+ },
+ "moves": {
+  "axe_chop": "attack",
+  "whirlwind": "whirl",
+  "war_cry": "cast",
+  "vengeance": "cast"
+ },
+ "top_native": 7,
+ "idle_bbox_native": [
+  74,
+  7,
+  135,
+  111
+ ]
+}

@@ -111,6 +111,9 @@ namespace LastWish.Presentation
         private Detail? hoveredDetail;
         private readonly List<EntityHitboxes> enemyHitboxes = new List<EntityHitboxes>();
         private readonly EntityHitboxes playerHitboxes = new EntityHitboxes();
+        /// <summary>Active powers as badges under the hero's statuses (Detail.Owner == PowerOwner on hover).</summary>
+        private readonly PowerBar powerBar = new PowerBar();
+        private const int PowerOwner = -2;
 
         private IOverlay overlay;
         private string feedbackText = "";
@@ -294,7 +297,10 @@ namespace LastWish.Presentation
             feedbackTime = Math.Max(0f, feedbackTime - dt);
             banners.Update(dt);
             orb.Update(dt, state.Mana, state.ManaMaximum);
+            var wasEnemyPhase = enemyPhase > 0;
             enemyPhase = Math.Max(0f, enemyPhase - pdt);
+            if (wasEnemyPhase && enemyPhase <= 0) powerBar.FlashWhere(PowerText.ActsAtTurnStart);
+            powerBar.Update(pdt);
             fx.Update(dt);
             fxTime += pdt;
             AdvanceCards(pdt);
@@ -347,6 +353,8 @@ namespace LastWish.Presentation
                 for (var j = 0; j < boxes.Statuses.Count; j++) if (boxes.Statuses[j].Rect.Contains(pos.x, pos.y)) return new Detail { Owner = i, J = j };
             }
             for (var j = 0; j < playerHitboxes.Statuses.Count; j++) if (playerHitboxes.Statuses[j].Rect.Contains(pos.x, pos.y)) return new Detail { Owner = -1, J = j };
+            var power = powerBar.At(pos.x, pos.y);
+            if (power.HasValue) return new Detail { Owner = PowerOwner, J = power.Value };
             return null;
         }
 

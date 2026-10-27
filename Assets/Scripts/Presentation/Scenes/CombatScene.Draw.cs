@@ -50,7 +50,9 @@ namespace LastWish.Presentation
                         if (hoveredEnemy.HasValue && hoveredEnemy.Value < enemyRects.Count) beside = enemyRects[hoveredEnemy.Value];
                         else if (hoveredPlayer && playerRect.HasValue) beside = playerRect.Value;
                     }
-                    Tooltip.Draw(canvas, Game, tooltip, mouse, beside);
+                    if (HoveredPower.HasValue) beside = powerBar.Badges[HoveredPower.Value].Rect;
+                    var tip = Tooltip.Draw(canvas, Game, tooltip, mouse, beside);
+                    DrawPowerCard(canvas, tip);
                 }
             }
         }
@@ -105,8 +107,7 @@ namespace LastWish.Presentation
         {
             canvas.Line(0, HandAreaY, Canvas.Width, HandAreaY, Colors.PanelBorder);
             enemyRects.Clear();
-            var incoming = IncomingDamage();
-            var lethal = incoming - state.Block >= state.Hp && state.Hp > 0;
+            var lethal = Tooltip.LossFrom(state, IncomingDamage()) >= state.Hp && state.Hp > 0;   // Perforante ignores the block
             var t = idleTime;
             foreach (var (anim, slot) in gone)
             {
@@ -150,14 +151,14 @@ namespace LastWish.Presentation
             }
             while (enemyHitboxes.Count > EnemyCount) enemyHitboxes.RemoveAt(enemyHitboxes.Count - 1);
             DrawPlayer(canvas);
-            if (state.ActivePowers.Count > 0) DrawActivePowers(canvas);
+            DrawPowers(canvas);
         }
 
         private void DrawPlayer(Canvas canvas)
         {
             (float, float) center = (PlayerX + EntityWidget.PlayerW / 2f, PlayerY + EntityWidget.PlayerH / 2f);
             heroFx?.DrawShadow(canvas, Art, center);
-            var loss = shownEnemies == null ? Math.Max(0, IncomingDamage() - state.Block) : 0;
+            var loss = shownEnemies == null ? Tooltip.LossFrom(state, IncomingDamage()) : 0;
             if (hasHeroSprites)
             {
                 var frame = heroSheets.Frame(heroAction ?? "idle", heroAction != null ? heroActionTime : idleTime, 192, out var scale);
@@ -169,11 +170,27 @@ namespace LastWish.Presentation
             heroFx?.Draw(canvas, Art, center);
         }
 
-        private void DrawActivePowers(Canvas canvas)
+        /// <summary>Power badges under the hero's statuses, like Slay the Spire's buffs (hover → what each does now).</summary>
+        private void DrawPowers(Canvas canvas)
         {
-            Fonts.Get(10).Draw(canvas, "PODERES ACTIVOS", 560, HandAreaY - 80, Colors.TextSecondary);
-            for (var i = 0; i < state.ActivePowers.Count; i++)
-                CardWidget.Draw(canvas, Game, state.ActivePowers[i], 560 + i * (CardWidget.CardW + 6), HandAreaY - 78, default);
+            const int maxW = EntityWidget.PlayerW + 40;
+            var statuses = playerHitboxes.Statuses.Count;
+            var rows = statuses == 0 ? 0 : (statuses - 1) / Math.Max(1, maxW / EntityWidget.StatusStep) + 1;
+            var y = PlayerY + EntityWidget.PlayerH + 23 + rows * EntityWidget.StatusStep + (rows > 0 ? 6 : 0);
+            powerBar.Sync(state.ActivePowers, PlayerX, y, maxW);
+            powerBar.Draw(canvas, Art, HoveredPower, fxTime);
+        }
+
+        private int? HoveredPower => hoveredDetail.HasValue && hoveredDetail.Value.Owner == PowerOwner && hoveredDetail.Value.J < powerBar.Badges.Count ? hoveredDetail.Value.J : (int?)null;
+
+        /// <summary>The hovered power's card beside its tooltip (what you played to get it).</summary>
+        private void DrawPowerCard(Canvas canvas, RectF tip)
+        {
+            var i = HoveredPower; if (!i.HasValue) return;
+            var (w, h) = CardWidget.CardSize(1f);
+            var x = tip.Right + 8 + w <= Canvas.Width - 4 ? tip.Right + 8 : tip.X - 8 - w;
+            var y = Math.Max(TopBarH + 4, Math.Min(Canvas.Height - h - 4, tip.Y));
+            canvas.Blit(CardWidget.Face(Game, powerBar.Badges[i.Value].Card, default, w, h), (int)x, (int)y);
         }
 
         // ------------------------------------------------------------------ hand area
@@ -345,6 +362,12 @@ namespace LastWish.Presentation
                 return enemy.Alive ? Tooltip.Intent(Game, enemy, enemy.HitDamage(state.HeroStatuses), state) : null;
             }
             if (d.Intent) return null;
+            if (d.Owner == PowerOwner)
+            {
+                if (d.J >= powerBar.Badges.Count) return null;
+                var badge = powerBar.Badges[d.J];
+                return Tooltip.Power(Game, badge.Card, badge.Copies, state);
+            }
             if (d.Owner >= 0)
             {
                 if (d.Owner >= enemyHitboxes.Count) return null;

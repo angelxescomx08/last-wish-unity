@@ -27,6 +27,7 @@ namespace LastWish.Tests
 
         public static IEnumerator Boot()
         {
+            SupabaseTelemetry.Suppressed = true;      // tests never record or upload runs
             yield return UnitySceneManager.LoadSceneAsync("Bootstrap");
             var deadline = Time.realtimeSinceStartup + 30;
             while ((GameBootstrap.Instance == null || !GameBootstrap.Instance.IsReady) && !(GameBootstrap.Instance?.Failed ?? false) && Time.realtimeSinceStartup < deadline)

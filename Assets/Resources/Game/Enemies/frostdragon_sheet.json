@@ -1,0 +1,200 @@
+{
+ "cell_w": 240,
+ "cell_h": 128,
+ "columns": 16,
+ "anchor": [
+  164,
+  121
+ ],
+ "scale": 2,
+ "sheet": "frostdragon_sheet.png",
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 16,
+   "durations_ms": [
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105
+   ],
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "frames": 11,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    55,
+    60,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "breath": {
+   "row": 2,
+   "frames": 13,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    55,
+    95,
+    55,
+    100,
+    100,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "tail": {
+   "row": 3,
+   "frames": 12,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "fury": {
+   "row": 4,
+   "frames": 12,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    110,
+    60,
+    80,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "cast": {
+   "row": 5,
+   "frames": 11,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    55,
+    80,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "hurt": {
+   "row": 6,
+   "frames": 6,
+   "durations_ms": [
+    55,
+    60,
+    70,
+    80,
+    90,
+    100
+   ],
+   "loop": false
+  },
+  "death": {
+   "row": 7,
+   "frames": 15,
+   "durations_ms": [
+    70,
+    90,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    120
+   ],
+   "loop": false
+  }
+ },
+ "events": {
+  "attack": {
+   "strikes": [
+    5
+   ]
+  },
+  "breath": {
+   "strikes": [
+    4,
+    6,
+    8
+   ]
+  },
+  "tail": {
+   "strikes": [
+    6
+   ]
+  }
+ },
+ "moves": {
+  "piercing_claw": "attack",
+  "frost_breath": "breath",
+  "glacier_tail": "tail",
+  "glacial_fury": "fury",
+  "fold_wings": "cast",
+  "vengeance": "cast"
+ },
+ "boss": true,
+ "top_native": 28,
+ "idle_bbox_native": [
+  101,
+  28,
+  238,
+  123
+ ]
+}

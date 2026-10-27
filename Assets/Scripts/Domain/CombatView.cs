@@ -11,6 +11,8 @@ namespace LastWish.Domain
         public bool Success; public string Message = "";
         public bool Combo, Singular, Void, Spoil, Reaction, Fury, Endure;
         public int Casts = 1;
+        /// <summary>Times the Combo layer resolved on each cast (Sombra Gemela: 2, 4, 8…).</summary>
+        public int ComboTimes = 1;
         /// <summary>Cards each cast put in the hand.</summary>
         public readonly List<int> CastDrawn = new List<int>();
         /// <summary>HP each enemy lost during each cast.</summary>
@@ -18,12 +20,17 @@ namespace LastWish.Domain
         public readonly List<int[]> CastEnemyHp = new List<int[]>();
         public readonly List<int[]> CastEnemyBlock = new List<int[]>();
         public readonly List<int> CastPlayerBlock = new List<int>();
-        /// <summary>Hits the hero took after the card: Pinchos ("thorns") and Réplica ("riposte"), HP lost each.</summary>
+        /// <summary>Hits the hero took after the card, HP lost each: Pinchos ("thorns"), Réplica ("riposte"), Reflejo ("reflect")
+        /// and Sangrado ("bleed", no enemy id).</summary>
         public readonly List<(string enemyId, int amount, string kind)> HeroHits = new List<(string, int, string)>();
         /// <summary>Hits each enemy parried during the card (Desvío).</summary>
         public readonly Dictionary<string, int> Parried = new Dictionary<string, int>();
         /// <summary>Enemies that gained 1 Strength from Vigilancia with this card.</summary>
         public readonly List<string> VigilGains = new List<string>();
+        /// <summary>Heads each enemy lost to big hits during the card (La Hidra).</summary>
+        public readonly Dictionary<string, int> HeadsCut = new Dictionary<string, int>();
+        /// <summary>Strength each enemy gained from Cólera during the card.</summary>
+        public readonly Dictionary<string, int> RageGains = new Dictionary<string, int>();
     }
 
     /// <summary>One enemy's action in the last enemy turn (combat.EnemyAction).</summary>
@@ -42,6 +49,13 @@ namespace LastWish.Domain
         public readonly List<string> Swallowed = new List<string>();
         /// <summary>Id of the partner it brought back.</summary>
         public string Revived;
+        /// <summary>Floor 2: Strength from its Rito, HP from Cicatrización, debuffs it sent back to the hero (Espejo Maldito).</summary>
+        public int RitualStrength, Regenerated, DebuffsReturned;
+        /// <summary>Floor 2: the minion it sacrificed (Ofrenda Oscura) and the Strength it took.</summary>
+        public string Devoured; public int DevouredStrength;
+        /// <summary>Floor 3: damage its Perforante hits put through the hero's block, HP it took back (Rebobinar), the Cólera
+        /// Strength it spent in this action and the Relojero it wound up (Cuerda).</summary>
+        public int Pierced, Rewound, RageSpent; public string WoundUp;
     }
 
     /// <summary>Read-only values the combat screen and the hero sheet show, plus previews (no rules here).</summary>
@@ -60,6 +74,16 @@ namespace LastWish.Domain
         /// <summary>The hero's Destreza now (cards such as Reflejos raise it for the combat).</summary>
         public int DexterityNow => Saturate((long)Hero.Dexterity + bonusDexterity);
         public int CardsPlayedThisTurn => cardsPlayed;
+        /// <summary>Copies of Sombra Gemela in play (a golden one counts twice); each doubles the Combo again.</summary>
+        public int ComboDoublings => doubleCombo;
+        /// <summary>Sombra Gemela never doubles more than this many times (×1024).</summary>
+        public const int MaxComboDoublings = 10;
+        /// <summary>How many times the first Combo card of a turn resolves its Combo: 2^copies (1 without Sombra Gemela).</summary>
+        public int ComboMultiplier => doubleCombo <= 0 ? 1 : 1 << Math.Min(doubleCombo, MaxComboDoublings);
+        /// <summary>Sombra Gemela already doubled a Combo this turn.</summary>
+        public bool ComboDoublingUsed => doubleComboUsed;
+        /// <summary>The fight started with no repeated cards (Singular; Tormenta de Acero hits harder).</summary>
+        public bool SingularDeck => singularDeck;
         public int CardsPerTurn => handSize;
         public IReadOnlyList<CardDefinition> DrawPile => draw.AsReadOnly();
         public IReadOnlyList<CardDefinition> DiscardPile => discard.AsReadOnly();
@@ -139,6 +163,7 @@ namespace LastWish.Domain
             copy.lastPlay = null;
             copy.deathsHandled = new HashSet<string>(deathsHandled); copy.arrivals = new List<QueuedArrival>();
             copy.deathEvents = new List<EnemyDeathEvent>(deathEvents);
+            copy.thirstFeeds = new List<(string, int)>(thirstFeeds); copy.dispelled = new HashSet<string>(dispelled);
             return copy;
         }
     }

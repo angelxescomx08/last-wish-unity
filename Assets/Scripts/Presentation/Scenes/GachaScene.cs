@@ -104,7 +104,12 @@ namespace LastWish.Presentation
         // ------------------------------------------------------------------ input
         public override void HandleEvent(in InputEvent e)
         {
-            if (e.Type == EventType.MouseMove) hoveredKey = Hit(e.X, e.Y);
+            if (e.Type == EventType.MouseMove)
+            {
+                var hit = Hit(e.X, e.Y);
+                if (hit != null && hit != hoveredKey && (phase == "idle" || phase == "reveal")) Sound.PlayNav();
+                hoveredKey = hit;
+            }
             else if (e.IsLeftDown) Click(e.X, e.Y);
             else if (e.Type == EventType.KeyDown)
             {
@@ -142,13 +147,13 @@ namespace LastWish.Presentation
             if (phase != "idle") return false;
             var r = run.Pull(kind);
             if (!r.Success) { feedback = r.Message; feedbackT = 2f; Sound.PlayError(); return false; }
-            result = r; PullsMade++; Sound.PlayPurchase(); SetPhase("coin");
+            result = r; PullsMade++; Sound.PlayGachaCoinToss(); SetPhase("coin");
             return true;
         }
 
         public void Advance()
         {
-            if (phase == "coin" || phase == "crank" || phase == "drop") { SetPhase("present"); t = 0.25f; focus = Math.Max(focus, 0.6f); }
+            if (phase == "coin" || phase == "crank" || phase == "drop") { Sound.StopGachaChurn(); SetPhase("present"); t = 0.25f; focus = Math.Max(focus, 0.6f); }
             else if (phase == "present") Open();
             else if (phase == "open") SetPhase("reveal");
             else if (phase == "reveal") Keep();
@@ -157,17 +162,29 @@ namespace LastWish.Presentation
         public bool Keep()
         {
             if (phase != "reveal" || result == null) return false;
-            run.AcceptPull(result); SetPhase("collect"); Sound.PlayConfirm();
+            run.AcceptPull(result); TrackPull(true); SetPhase("collect"); Sound.PlayGachaKeep();
             return true;
+        }
+
+        /// <summary>Power telemetry: each pull is a one-relic choice, kept or declined.</summary>
+        private void TrackPull(bool kept)
+        {
+            var relic = result?.Relic?.Definition;
+            if (relic == null) return;
+            Game.Track(p =>
+            {
+                var choice = p.OfferRelics(run, "gacha", new[] { relic });
+                if (kept) { p.Pick(choice, relic.Id); p.RelicGained(run, relic, "gacha"); }
+            });
         }
 
         public bool Decline()
         {
             if (phase != "reveal" || result == null) return false;
-            RunState.DeclinePull(result); SetPhase("discard");
+            RunState.DeclinePull(result); TrackPull(false); SetPhase("discard");
             fx.Burst(StageX, StageY, 40, Dust, (60f, 240f), null, (0.4f, 0.9f), (3f, 6f), ParticleStyle.Square, 2.5f, -60f);
             fx.Burst(StageX, StageY, 2, new[] { new Rgba(90, 80, 90) }, (0f, 10f), null, (0.3f, 0.5f), (50f, 70f), ParticleStyle.Glow, 4f);
-            Sound.PlayCancel();
+            Sound.PlayGachaDust();
             return true;
         }
 
@@ -193,7 +210,7 @@ namespace LastWish.Presentation
                 case "present": UpdatePresent(); break;
                 case "open": if (t >= OpenT) SetPhase("reveal"); break;
                 case "collect":
-                    if (t >= CollectT) { fx.Burst(RelicCounterX, RelicCounterY, 16, TierPalette(Tier), (60f, 200f), null, (0.3f, 0.6f), (1.5f, 3f), ParticleStyle.Spark, 3f); SetPhase("idle"); }
+                    if (t >= CollectT) { fx.Burst(RelicCounterX, RelicCounterY, 16, TierPalette(Tier), (60f, 200f), null, (0.3f, 0.6f), (1.5f, 3f), ParticleStyle.Spark, 3f); Sound.PlayGachaStash(); SetPhase("idle"); }
                     break;
                 case "discard": if (t >= DiscardT) SetPhase("idle"); break;
             }
@@ -209,7 +226,7 @@ namespace LastWish.Presentation
                 fx.Burst(x, y, 26, Gold, (80f, 300f), null, (0.2f, 0.5f), (1.5f, 2.5f), ParticleStyle.Spark, 4f);
                 fx.Burst(x, y, 2, Gold, (0f, 10f), null, (0.25f, 0.35f), (34f, 44f), ParticleStyle.Glow, 4f);
                 rings.Add((x, y, 0f, 0.4f, new Rgba(255, 214, 90), 46f));
-                bulbFlash = 1f; pulse = 1f; Sound.PlayNav();
+                bulbFlash = 1f; pulse = 1f; Sound.PlayGachaCoinSlot();
             }
             if (t >= CoinT) SetPhase("crank");
         }
@@ -218,6 +235,7 @@ namespace LastWish.Presentation
         private void UpdateCrank()
         {
             const int turns = 12;
+            if (Once("churn")) Sound.PlayGachaChurn();
             for (var k = 0; k < turns; k++)
             {
                 var at = CrankT * ThunkAt * (1 - (float)Math.Pow(1 - k / (double)turns, 1.35));
@@ -225,20 +243,20 @@ namespace LastWish.Presentation
                 {
                     var (x, y) = MachinePoint("crank");
                     fx.Burst(x, y, 6 + k, Gold, (60f, 180f + 10 * k), null, (0.15f, 0.35f), (1f, 2.5f), ParticleStyle.Spark, 5f);
-                    pulse = 0.6f + 0.4f * k / turns; Sound.PlayNav();
+                    pulse = 0.6f + 0.4f * k / turns; Sound.PlayGachaCrank(k, turns);
                 }
             }
             var tier = TierIndex; var box = Box; var u = CrankU;
             var chance = (0.25 + 0.6 * u) * (tier >= 3 ? 1.0 : 0.45);
             if (0.15f < u && u < ThunkAt && rng.Random() < chance) SpawnBolt(box, tier >= 3 ? TierColor(Tier) : new Rgba(200, 220, 255), tier >= 3);
             if (tier >= 3 && Once("tease", CrankT * 0.55f))
-            { fx.Implode(box.CenterX, box.CenterY, 40, TierPalette(Tier), (120f, 200f), (0.35f, 0.55f)); flash = 0.25f; }
+            { fx.Implode(box.CenterX, box.CenterY, 40, TierPalette(Tier), (120f, 200f), (0.35f, 0.55f)); flash = 0.25f; Sound.PlayGachaTease(); }
             if (Once("thunk", CrankT * ThunkAt))
             {
                 jump = 1f; shake = 6 + 2 * tier; bulbFlash = 1f;
                 var (cx, cy) = ChuteMouth();
                 fx.Burst(cx, cy - 10, 30 + 10 * tier, TierPalette(Tier), (120f, 380f), ((float)(Math.PI * 1.05), (float)(Math.PI * 1.95)), (0.3f, 0.7f), (2f, 4f), ParticleStyle.Square, 2.5f, 300f);
-                rings.Add((cx, cy, 0f, 0.45f, TierColor(Tier), 120f)); Sound.PlayCard();
+                rings.Add((cx, cy, 0f, 0.45f, TierColor(Tier), 120f)); Sound.PlayGachaThunk();
             }
             if (t >= CrankT) SetPhase("drop");
         }
@@ -266,6 +284,7 @@ namespace LastWish.Presentation
             pts.Add(p1);
             bolts.Add((pts, color, 0f, life));
             fx.Burst(p1.x, p1.y, big ? 5 : 2, new[] { White, color }, (40f, 160f), null, (0.1f, 0.25f), (1f, 2f), ParticleStyle.Spark, 5f);
+            Sound.PlayGachaZap(big);
         }
 
         private (float x, float y, float grow) DropPos(float tt)
@@ -301,6 +320,7 @@ namespace LastWish.Presentation
                 fx.Burst(x0, y0, 24 + 8 * tier, pal, (160f, 420f), ((float)(Math.PI * 0.15), (float)(Math.PI * 0.85)), (0.2f, 0.45f), (1.5f, 2.5f), ParticleStyle.Spark, 3f);
                 rings.Add((x0, y0, 0f, 0.5f, TierColor(Tier), 90f));
                 flash = Math.Max(flash, 0.15f + 0.05f * tier);
+                Sound.PlayGachaPop();
             }
             const double g = 2600.0;
             var t1 = Math.Sqrt(2 * (FloorY - y0) / g); var v = g * t1 * 0.42;
@@ -310,8 +330,9 @@ namespace LastWish.Presentation
                 {
                     var (x, _, _) = DropPos((float)hits[k]);
                     fx.Burst(x, FloorY + 10, 14 - 4 * k, Dust, (40f, 180f), ((float)Math.PI, (float)MathX.Tau), (0.3f, 0.6f), (2f, 4f), ParticleStyle.Square, 3f, 200f);
-                    rings.Add((x, FloorY + 14, 0f, 0.3f, new Rgba(200, 190, 180), 50 - 15 * k)); Sound.PlayCard();
+                    rings.Add((x, FloorY + 14, 0f, 0.3f, new Rgba(200, 190, 180), 50 - 15 * k)); Sound.PlayGachaBounce(k);
                 }
+            if (Once("hop", FallT)) Sound.PlayGachaHop(tier >= 1);
             if (t > FallT && tier >= 1)
             {
                 var (x, y, _) = DropPos(t);
@@ -330,7 +351,7 @@ namespace LastWish.Presentation
         {
             for (var k = 0; k < Shakes; k++)
                 if (Once("shake" + k, 0.35f + k * (ShakeT + 0.12f)))
-                { fx.Implode(StageX, StageY, 14 + 6 * k, TierPalette(Tier), (70f, 130f), (0.28f, 0.4f)); Sound.PlayNav(); }
+                { fx.Implode(StageX, StageY, 14 + 6 * k, TierPalette(Tier), (70f, 130f), (0.28f, 0.4f)); Sound.PlayGachaWobble(k); }
             if (t >= PresentAuto) Open();
         }
 
@@ -348,8 +369,9 @@ namespace LastWish.Presentation
                     var px = rng.Uniform(-260, 260); var py = rng.Uniform(140, 300); var vx = rng.Uniform(-40, 40); var vy = rng.Uniform(40, 160); var life = rng.Uniform(1.2, 2.2); var size = rng.Uniform(2.5, 4.5);
                     fx.Emit(StageX + (float)px, StageY - (float)py, (float)vx, (float)vy, (float)life, Gold, (float)size, ParticleStyle.Square, 0.6f, 120f);
                 }
-            Sound.PlayOpenPack();
-            if (tier >= 3) Sound.PlayReward();
+            Sound.PlayGachaOpen();
+            Sound.PlayGachaTier(Tier);
+            if (result?.Relic != null && result.Relic.Chroma != ChromaKind.None) Sound.PlayGachaGolden();
         }
 
         private void Ambient(float dt)

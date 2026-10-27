@@ -57,11 +57,11 @@ public static class Program
             Console.WriteLine(hero + ": combat smoke passed");
         }
         Console.WriteLine("BigValue precision and three complete combats passed");
-        return Floor1Smoke() ? 0 : 1;
+        return ExpandedSmoke(1) && ExpandedSmoke(2) && ExpandedSmoke(3) ? 0 : 1;
     }
 
-    /// <summary>Every combat, elite and boss room of floor 1 with the expanded roster, 30 seeds × 3 heroes.</summary>
-    private static bool Floor1Smoke()
+    /// <summary>Every combat, elite and boss room of one expanded floor (1, 2 or 3) with the expanded roster, 30 seeds × 3 heroes.</summary>
+    private static bool ExpandedSmoke(int floor)
     {
         int fights = 0, victories = 0, defeats = 0, summons = 0, splits = 0, revivals = 0, stuns = 0, maxAlive = 0;
         var roomId = typeof(RunState).GetProperty("CurrentRoomId");
@@ -73,6 +73,7 @@ public static class Program
                 foreach (HeroKind hero in Enum.GetValues(typeof(HeroKind)))
                 {
                     var run = new RunState(hero, seed * 7919L, EnemyRoster.Expanded);
+                    while (run.Floor < floor) run.AdvanceFloor();
                     foreach (var node in run.Map.Nodes.Where(n => n.Kind == RoomKind.Combat || n.Kind == RoomKind.Elite || n.Kind == RoomKind.Boss))
                     {
                         roomId.SetValue(run, node.Id);
@@ -106,9 +107,9 @@ public static class Program
                     }
                 }
         }
-        catch (Exception failure) { Console.Error.WriteLine("Floor-1 smoke failed: " + failure); return false; }
+        catch (Exception failure) { Console.Error.WriteLine("Floor-" + floor + " smoke failed: " + failure); return false; }
         finally { Tuning.Reset(); }
-        Console.WriteLine("Floor-1 expanded smoke: " + fights + " fights (" + victories + " won, " + defeats + " lost), " + summons + " summons, " + splits + " splits, "
+        Console.WriteLine("Floor-" + floor + " expanded smoke: " + fights + " fights (" + victories + " won, " + defeats + " lost), " + summons + " summons, " + splits + " splits, "
             + revivals + " revivals, " + stuns + " stuns, max " + maxAlive + " alive, " + seen.Count + " enemy kinds seen");
         return true;
     }

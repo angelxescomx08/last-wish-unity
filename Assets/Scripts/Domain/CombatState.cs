@@ -78,6 +78,7 @@ namespace LastWish.Domain
             foreach (var card in deck) draw.Add((card ?? throw new ArgumentException("Null card")).Copy());   // like copy.copy: one object per card in this fight
             enemies = encounter.ToList();
             if (draw.Count == 0 || enemies.Count == 0 || enemies.Any(e => e == null || !e.Alive)) throw new ArgumentException("Empty deck or invalid encounter");
+            EnemyPatterns.Floor3Auras(enemies);   // Pendón and Inmortal from the first turn
             if (initialHp < -1 || initialHp > hero.MaxHp || extraDraw < 0 || extraDraw > 100) throw new ArgumentOutOfRangeException();
             singularDeck = draw.Select(c => c.Id).Distinct().Count() == draw.Count;
             random = new SeededRandom(seed); handSize = 5 + extraDraw + RelicPower("broken_totem") + RelicPower("energy_stone");
@@ -106,13 +107,13 @@ namespace LastWish.Domain
             var mask = ActiveConditions(card); resolvingCard = card; resolvingMask = mask; var paidCost = CardCost(card); reactions.Clear();
             Mana -= CardCost(card); nextDiscount = 0; hand.RemoveAt(index);
             (card.Kind == CardKind.Power ? powers : card.Id == "status_espora" ? exhausted : discard).Add(card);
-            var extraCombo = card.Effects != null && (mask & 1u << (int)EffectCondition.Combo) != 0 && card.Effects.Any(e => e.Condition == EffectCondition.Combo) && !doubleComboUsed ? doubleCombo : 0;
+            var extraCombo = card.Effects != null && (mask & 1u << (int)EffectCondition.Combo) != 0 && card.Effects.Any(e => e.Condition == EffectCondition.Combo) && !doubleComboUsed ? ComboMultiplier - 1 : 0;
             if (extraCombo > 0) doubleComboUsed = true;
             var casts = card.CastCount + (echoFifth > 0 && (cardsPlayed + 1) % 5 == 0 ? echoFifth : 0);
             var printedDamage = card.Damage.Value;
             if (card.Effects != null) { printedDamage = 0; foreach (var layer in card.Effects) if (Active(layer, mask)) printedDamage += layer.Damage; }
             var damageBonus = printedDamage > 0 ? nextDamage : 0; if (printedDamage > 0) nextDamage = 0;
-            var result = lastPlay = new PlayResult { Success = true, Casts = casts };
+            var result = lastPlay = new PlayResult { Success = true, Casts = casts, ComboTimes = 1 + extraCombo };
             result.Combo = KeywordResolved(EffectCondition.Combo); result.Singular = KeywordResolved(EffectCondition.Singular); result.Void = KeywordResolved(EffectCondition.Void);
             result.Spoil = KeywordResolved(EffectCondition.Spoil); result.Reaction = KeywordResolved(EffectCondition.Reaction); result.Fury = KeywordResolved(EffectCondition.Fury); result.Endure = KeywordResolved(EffectCondition.Endure);
             for (var cast = 0; cast < casts; cast++)
@@ -159,6 +160,7 @@ namespace LastWish.Domain
             SettlePickpocket();
             AddBlock(endTurnBlock); EndTurnRelics();
             nextDiscount = 0; nextDamage = 0; pickpocketGold = 0;
+            FrostbiteLost = HeroStatuses[StatusKind.Frostbite] > 0 && hand.Count > 0 ? FrostbiteHero(hand.Count) : 0;   // Congelación: cards still in hand
             foreach (var card in hand)
             {
                 if (card.Id == "status_espora" && !HasRelic("antidote")) HeroStatuses.Add(StatusKind.Poison, 3);
@@ -166,22 +168,27 @@ namespace LastWish.Domain
             }
             hand.Clear();
             HeroStatuses.Tick(StatusKind.Weak); HeroStatuses.Tick(StatusKind.Vulnerable); HeroStatuses.Tick(StatusKind.Frail);
-            foreach (var enemy in enemies) { enemy.KeepBlock(enemy.Statuses[StatusKind.Shell]); if (ClearMarked(enemy)) enemy.Statuses.Remove(StatusKind.Marked); }
-            hitLastEnemyTurn = false; deathEvents.Clear();
+            HeroStatuses.Tick(StatusKind.Bleed); HeroStatuses.Tick(StatusKind.Necrosis); HeroStatuses.Tick(StatusKind.Exhaustion); HeroStatuses.Tick(StatusKind.Frostbite);
+            foreach (var enemy in enemies) { enemy.KeepBlock(enemy.Statuses[StatusKind.Shell]); if (ClearMarked(enemy)) enemy.Statuses.Remove(StatusKind.Marked); enemy.Statuses.Remove(StatusKind.Ward); }
+            hitLastEnemyTurn = false; deathEvents.Clear(); thirstFeeds.Clear();
             if (legacy) ExecuteLegacy(); else for (var i = 0; i < enemies.Count; i++) ExecuteEnemy(enemies[i]);
             AppendQueuedSummons();
             if (!legacy)
                 foreach (var enemy in enemies) if (enemy.Alive) PlanEnemy(enemy);
-            EnemyPatterns.ReactToDeaths(enemies); HandleEnemyDeaths(); CheckRelicDeaths(); SpreadPoison();
+            EnemyPatterns.ReactToDeaths(enemies); HandleEnemyDeaths(false); CheckRelicDeaths(); SpreadPoison();
             if (!retainBlock && !(Turn == 1 && HasRelic("anchor"))) Block = HasRelic("worn_roundel") ? Block / 2 : 0; retainBlock = false; catalyst = 0;
-            cardsPlayed = 0; discardsThisTurn = 0; decoys = 0; counterDamage = 0; doubleComboUsed = false; turnStartAlive = enemies.Count(e => e.Alive); HpLostThisTurn = 0; EffectVersion++; ResetRelicTurn();
+            cardsPlayed = 0; discardsThisTurn = 0; decoys = 0; counterDamage = 0; doubleComboUsed = false; turnStartAlive = enemies.Count(e => e.Alive); HpLostThisTurn = 0; thirstFed = false; EffectVersion++; ResetRelicTurn();
             {
-                Turn++; manaMaximum = Saturate((long)manaMaximum + RelicPower("eternal_fount")); Mana = ManaMaximum; reactions.Clear(); var relicDraw = StartTurnRelics();
+                Turn++; manaMaximum = Saturate((long)manaMaximum + RelicPower("eternal_fount"));
+                ManaExhausted = HeroStatuses[StatusKind.Exhaustion] > 0 ? Math.Min(1, ManaMaximum) : 0; Mana = ManaMaximum - ManaExhausted;   // Agotamiento
+                reactions.Clear(); var relicDraw = StartTurnRelics();
                 var poison = Invincible ? 0 : Math.Min(Hp, HeroStatuses[StatusKind.Poison]); Hp -= poison; OnHpLost(poison, true); Revive(); HeroStatuses.Tick(StatusKind.Poison);
                 var drawCount = Math.Max(0, handSize - HeroStatuses[StatusKind.Entangled]); HeroStatuses.Remove(StatusKind.Entangled);
                 { TriggerPowers(); var extra = pendingDraws; pendingDraws = 0; DrawCards(drawCount + extra + relicDraw); AfterHandDrawn(); }
             }
             EnemyPatterns.ExpansionReact(enemies); HandleEnemyDeaths();   // deaths and broken Carga at the start of the hero's turn
+            FeedThirst(); EnemyPatterns.ExpansionReact(enemies);          // Ansia de Sangre: poison at the start of the turn counts
+            foreach (var enemy in enemies) enemy.HpAtTurnStart = enemy.Hp;   // Rebobinar heals back up to this
             EnsureTarget(); return true;
         }
         private void ExecuteLegacy()
@@ -202,17 +209,25 @@ namespace LastWish.Domain
             var lost = 0L;
             var action = new EnemyAction { Index = enemies.IndexOf(enemy), MoveId = intent.Id };
             enemyLog.Add(action);
+            var ritual = enemy.Statuses[StatusKind.Ritual];   // Rito it had before acting (not the turn it gains it)
             if (intent.Kind == IntentKind.Stun) action.Stunned = true;
             else ActOut(enemy, intent, x, action, ref lost);
             enemy.Statuses.Tick(StatusKind.Weak); enemy.Statuses.Tick(StatusKind.Vulnerable); enemy.Statuses.Tick(StatusKind.Frozen);
             if (enemy.Definition.Ai == "seta" && enemy.Statuses[StatusKind.Fuse] > 1) enemy.Statuses.Tick(StatusKind.Fuse);
             enemy.LoseHp(enemy.Statuses[StatusKind.Fire]);
+            if (!action.Stunned) AfterActFloor2(enemy, action, ritual);
+            AfterActFloor3(enemy, action);
         }
         private void ActOut(EnemyState enemy, EnemyIntent intent, IntentExtras x, EnemyAction action, ref long lost)
         {
             if (x.Any) BeforeHitsExpansion(enemy, x, action);
             if (intent.Kind == IntentKind.Attack)
-                for (var hit = 0; hit < Math.Max(1, intent.Hits) && !Defeat && enemy.Alive; hit++) { var l = EnemyHit(enemy, enemy.HitDamage(HeroStatuses)); lost += l; action.Hits.Add(l); }
+                for (var hit = 0; hit < Math.Max(1, intent.Hits) && !Defeat && enemy.Alive; hit++)
+                {
+                    var blockBefore = Block;
+                    var l = EnemyHit(enemy, enemy.HitDamage(HeroStatuses), x.Pierce); lost += l; action.Hits.Add(l);
+                    if (x.Pierce) action.Pierced = Saturate((long)action.Pierced + Math.Min(blockBefore, l));   // Perforante: what the block would have stopped
+                }
             if (intent.Kind == IntentKind.Block) enemy.GainBlock(intent.Value);
             if (intent.Id == "" && intent.Kind == IntentKind.Debuff) if (!BlocksDebuff(StatusKind.Weak)) { HeroStatuses.Add(StatusKind.Weak, 2); action.Debuffs.Add(new StatusAmount(StatusKind.Weak, 2)); }
             if (intent.Lifesteal) action.Healed += enemy.Heal((int)Math.Min(int.MaxValue, lost));
@@ -235,7 +250,7 @@ namespace LastWish.Domain
             if (intent.SelfDestruct) { enemy.LoseHp(enemy.Hp); action.Exploded = true; }
             if (x.SplitInto != null) Split(enemy, x, action);
         }
-        private int EnemyHit(EnemyState enemy, int damage)
+        private int EnemyHit(EnemyState enemy, int damage, bool pierce = false)
         {
             if (decoys > 0)
             {
@@ -243,13 +258,13 @@ namespace LastWish.Domain
                 if (others.Length > 0) { decoys--; others[random.Next(others.Length)].Damage(damage); return 0; }
             }
             damage = RelicIncomingDamage(damage, enemy);
-            var fullyBlocked = damage > 0 && Block >= damage;
-            var lost = HitHero(damage); if (fullyBlocked && counterDamage > 0) enemy.Damage(counterDamage);
+            var fullyBlocked = damage > 0 && !pierce && Block >= damage;
+            var lost = HitHero(damage, pierce); if (fullyBlocked && counterDamage > 0) enemy.Damage(counterDamage);
             return lost;
         }
-        private int HitHero(int damage)
+        private int HitHero(int damage, bool pierce = false)
         {
-            var absorbed = Math.Min(Block, damage); Block -= absorbed;
+            var absorbed = pierce ? 0 : Math.Min(Block, damage); Block -= absorbed;   // Perforante ignores the block (and keeps it)
             var lost = Invincible ? 0 : Math.Min(Hp, damage - absorbed); Hp -= lost; OnHpLost(lost, false); if (lost > 0) hitLastEnemyTurn = true; Revive(); return lost;
         }
         private void PlanEnemy(EnemyState enemy)

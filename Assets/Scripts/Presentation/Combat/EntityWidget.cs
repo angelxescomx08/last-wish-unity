@@ -155,6 +155,10 @@ namespace LastWish.Presentation
             if (x.Swallow > 0) extras.Add("cards");
             if (x.Cleanse && !extras.Contains("status_buff")) extras.Add("status_buff");
             if (x.ConsumesFocus) extras.Add("hourglass");
+            if (x.ReturnDebuffs && !extras.Contains("status_debuff")) extras.Add("status_debuff");
+            if (x.Devour && !extras.Contains("heal")) extras.Add("heal");
+            if (x.Pierce) extras.Add("damage");
+            if (x.Rewind) extras.Add("hourglass");
             return extras;
         }
 

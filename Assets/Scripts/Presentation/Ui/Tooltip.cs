@@ -56,7 +56,7 @@ namespace LastWish.Presentation
         { ["neutral"] = "Neutral", ["warrior"] = "La Guerrera", ["mage"] = "El Mago", ["rogue"] = "La Pícara" };
         private static readonly Dictionary<string, string> TypeName = new Dictionary<string, string> { ["ATTACK"] = "Ataque", ["SKILL"] = "Habilidad", ["POWER"] = "Poder", ["STATUS"] = "Estado" };
         private static readonly Dictionary<string, string> TypeIcon = new Dictionary<string, string> { ["ATTACK"] = "damage", ["SKILL"] = "block", ["POWER"] = "ritual", ["STATUS"] = "junk_card" };
-        private static readonly string[] HeroTimedDebuffs = { "Débil", "Vulnerable", "Frágil" };
+        private static readonly string[] HeroTimedDebuffs = { "Débil", "Vulnerable", "Frágil", "Sangrado", "Necrosis", "Agotamiento", "Congelación" };
 
         private static TooltipPanel TermPanel(Term term, string tag = "")
         {
@@ -122,6 +122,8 @@ namespace LastWish.Presentation
             if (card.Innate) lines.Add("Marcada: empieza cada combate en tu mano.");
             if (dmg == 0 && blk == 0 && draw == 0 && !anyText && info.Chips.Length == 0)
                 lines.Add(type == "POWER" ? "Poder permanente: efecto especial." : "Efecto especial.");
+            if (PowerText.Multiplies.Contains(card.Id)) lines.Add("Cada copia lo vuelve a duplicar: ×2, ×4, ×8… (una dorada cuenta como 2 copias).");
+            if (type == "POWER") lines.Add("  Poder: al jugarla queda activa todo el combate, junto a tu héroe.");
 
             foreach (var (key, cond) in KeywordOrder)
             {
@@ -177,7 +179,9 @@ namespace LastWish.Presentation
         {
             var parts = new List<string>();
             var strength = enemy.Statuses[StatusKind.Strength];
-            if (strength != 0) parts.Add("+" + strength + " Fuerza");
+            if (strength != 0) parts.Add("+" + strength + " Fuerza" + (enemy.RageStrength > 0 ? " (" + Math.Min(strength, enemy.RageStrength) + " de Cólera)" : ""));
+            var inspired = enemy.Statuses[StatusKind.Inspired];
+            if (inspired != 0) parts.Add("+" + inspired + " Inspiración");
             if (enemy.Statuses[StatusKind.Weak] > 0) parts.Add("Débil −25 %");
             var water = enemy.Statuses[StatusKind.Water];
             if (water != 0) parts.Add("−" + water + " Agua");
@@ -196,11 +200,13 @@ namespace LastWish.Presentation
                 lines.Add(hits > 1 ? "[[" + icon + "]]Te atacará " + hits + " veces de " + dmg + " de daño (" + total + " de daño en total)." : "[[" + icon + "]]Te atacará por " + dmg + " de daño.");
                 var note = DamageBreakdown(g, enemy, player?.HeroStatuses);
                 if (note.Length > 0) lines.Add(note);
+                if (it.Extras.Pierce) lines.Add("[[damage]]Perforante: atraviesa tu escudo.");
                 if (player != null)
                 {
-                    var stopped = Math.Min(player.Block, total); var lost = total - stopped;
+                    var stopped = it.Extras.Pierce ? 0 : Math.Min(player.Block, total); var lost = total - stopped;
                     if (stopped > 0) lines.Add("  Tu escudo para " + stopped + ": perderías " + lost + " de vida.");
-                    if (player.Hp > 0 && lost >= player.Hp) lines.Add("[[lethal]]¡Este ataque te matará si no te proteges!");
+                    else if (it.Extras.Pierce && player.Block > 0) lines.Add("  Tu escudo no lo para: perderías " + lost + " de vida.");
+                    if (player.Hp > 0 && lost >= player.Hp) lines.Add(it.Extras.Pierce ? "[[lethal]]¡Este ataque te matará: el escudo no sirve!" : "[[lethal]]¡Este ataque te matará si no te proteges!");
                 }
             }
             else if (it.Kind == IntentKind.Block) lines.Add("[[defend]]Ganará " + it.Value + " de escudo.");
@@ -261,8 +267,21 @@ namespace LastWish.Presentation
                 : "[[buff]]Se librará de sus perjuicios y elementos.");
             if (x.HealSelf > 0) lines.Add("[[heal]]Se curará " + x.HealSelf + " de vida.");
             if (x.Swallow > 0) lines.Add("[[cards]]Se tragará " + x.Swallow + " carta" + (x.Swallow > 1 ? "s" : "") + " de tu descarte (vuelven al matarlo).");
+            if (x.ReturnDebuffs) lines.Add("[[debuff]]Te pasará su Veneno, Débil y Vulnerable (y perderá su Marcado).");
+            if (x.Rewind)
+            {
+                var back = Math.Max(0, enemy.HpAtTurnStart - enemy.Hp);
+                lines.Add("[[hourglass]]Rebobinará: recuperará toda la vida que le quites este turno" + (back > 0 ? " (ahora " + back + ")." : "."));
+            }
+            if (x.Devour)
+            {
+                var victim = player != null ? EnemyPatterns.DevourVictim(enemy, player.Enemies) : null;
+                lines.Add("[[strength]]Sacrificará a su esbirro más fuerte" + (victim != null ? " (" + victim.Definition.Name + ")" : "") + ": se quedará su Fuerza más " + x.DevourStrength
+                    + " y se curará " + x.DevourHeal + ".");
+            }
             foreach (var s in x.SetSelf)
                 if (s.Kind == StatusKind.Focus) lines.Add("[[hourglass]]Preparará un golpe con Carga " + s.Amount + ".");
+                else if (s.Amount <= 0) lines.Add("[[buff]]Perderá su " + StatusNameOf(game.Data.Glossary, s.Kind) + ".");
                 else lines.Add("[[buff]]Pasará a tener " + s.Amount + " de " + StatusNameOf(game.Data.Glossary, s.Kind) + ".");
             if (x.ConsumesFocus)
             {
@@ -332,7 +351,7 @@ namespace LastWish.Presentation
             if (!enemy.PaysGold) return "  Esbirro invocado: no da oro.";
             if (string.IsNullOrEmpty(enemy.PairName)) return null;
             if (!EnemyCatalog.IsExpansion(enemy.Definition.Ai)) return "  Pareja: " + enemy.PairName + ". Si cae su pareja, buscará Venganza.";
-            var fight = EnemyCatalog.BossEncounters.FirstOrDefault(b => b.Name == enemy.PairName);
+            var fight = EnemyCatalog.AllBossEncounters.FirstOrDefault(b => b.Linked && b.Name == enemy.PairName);
             if (fight != null) return "  Pareja: " + fight.Name + ". " + fight.Synergy;
             return "  Grupo: " + enemy.PairName + ".";
         }
@@ -418,15 +437,26 @@ namespace LastWish.Presentation
             };
         }
 
+        /// <summary>HP the hero would lose to <paramref name="incoming"/> attack damage: Perforante attacks ignore the block.</summary>
+        public static int LossFrom(CombatState state, int incoming)
+        {
+            long pierce = 0;
+            foreach (var e in state.Enemies)
+                if (e.Alive && e.Intent != null && e.Intent.Kind == IntentKind.Attack && e.Intent.Extras.Pierce) pierce += (long)e.HitDamage(state.HeroStatuses) * Math.Max(1, e.Intent.Hits);
+            pierce = Math.Max(0, Math.Min(pierce, incoming));
+            return (int)Math.Min(int.MaxValue, pierce + Math.Max(0L, incoming - pierce - state.Block));
+        }
+
         public static TooltipContent PlayerQuick(GameContext game, CombatState state, int incoming)
         {
             var lines = new List<string> { "Vida " + state.Hp + "/" + state.Hero.MaxHp + (state.Block != 0 ? "  ·  Escudo " + state.Block : "") };
             if (incoming != 0)
             {
-                var lost = Math.Max(0, incoming - state.Block);
+                var lost = LossFrom(state, incoming);
                 lines.Add("[[" + AttackIcon(incoming) + "]]Daño entrante: " + incoming + " → pierdes " + lost);
                 if (state.Hp > 0 && lost >= state.Hp) lines.Add("[[lethal]]¡Letal! Consigue escudo o mata a quien ataca.");
             }
+            if (state.ActivePowers.Count > 0) lines.Add("[[ritual]]Poderes: " + PowerText.Summary(state.ActivePowers));
             lines.AddRange(QuickStatusLines(game, state.HeroStatuses)); lines.Add(InspectHint);
             return new TooltipContent(state.Hero.Name) { Lines = lines, Subtitle = "Tu héroe" };
         }
@@ -438,16 +468,37 @@ namespace LastWish.Presentation
             lines.Add(state.Block > 0 ? "[[block]]Bloqueo: " + state.Block + " (absorbe el próximo daño recibido)." : "Sin bloqueo activo.");
             if (incoming != 0)
             {
-                var lost = Math.Max(0, incoming - state.Block);
+                var lost = LossFrom(state, incoming);
                 lines.Add("[[" + AttackIcon(incoming) + "]]Daño entrante: " + incoming + " de daño; perderías " + lost + " de vida.");
                 if (state.Hp > 0 && lost >= state.Hp) lines.Add("[[lethal]]¡Letal! Consigue escudo o mata a quien ataca.");
             }
             if (luck > 0) lines.Add("Suerte: " + luck + " -- más cartas y reliquias doradas, y reliquias de mayor rareza.");
             var content = new TooltipContent(state.Hero.Name) { Lines = lines, Subtitle = "Tu héroe" };
+            foreach (var (card, copies) in PowerBar.Group(state.ActivePowers))
+                content.Panels.Add(PowerPanel(game, card, copies, state));
             foreach (var k in state.HeroStatuses.Active) content.Panels.Add(StatusPanel(game, StatusNameOf(g, k), state.HeroStatuses[k], true));
             AddGlossary(g, content);
             return content;
         }
+
+        // ------------------------------------------------------------------ powers
+        public static readonly Rgba PowerColor = new Rgba(178, 120, 245);
+
+        /// <summary>Hover on a power badge: what it does now with every copy, how copies stack, its state this turn.</summary>
+        public static TooltipContent Power(GameContext game, CardDefinition card, int copies, CombatState state)
+        {
+            var content = new TooltipContent(ChromaFx.Title(card.Name, card.Chroma))
+            {
+                Icon = "ritual", Subtitle = "Poder  ·  activo todo el combate", Tag = copies > 1 ? "×" + copies : "",
+                Accent = PowerColor, Lines = PowerText.Lines(game, card, copies, state),
+            };
+            AddGlossary(game.Data.Glossary, content);
+            return content;
+        }
+
+        public static TooltipPanel PowerPanel(GameContext game, CardDefinition card, int copies, CombatState state) =>
+            new TooltipPanel(ChromaFx.Title(card.Name, card.Chroma), PowerText.Lines(game, card, copies, state), "ritual", PowerColor,
+                copies > 1 ? "×" + copies : "PODER", "power:" + card.Id);
 
         // ------------------------------------------------------------------ relics, piles, mana
         public static TooltipContent Relic(GameContext game, RelicDefinition relic, ChromaKind chroma, bool active = true)

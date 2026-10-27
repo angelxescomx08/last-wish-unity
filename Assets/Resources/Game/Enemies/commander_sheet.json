@@ -1,0 +1,186 @@
+{
+ "cell_w": 208,
+ "cell_h": 120,
+ "columns": 15,
+ "anchor": [
+  142,
+  115
+ ],
+ "scale": 2,
+ "sheet": "commander_sheet.png",
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 12,
+   "durations_ms": [
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105,
+    105
+   ],
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "frames": 11,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    55,
+    60,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "lance": {
+   "row": 2,
+   "frames": 11,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    110,
+    60,
+    55,
+    85,
+    90,
+    95,
+    110
+   ],
+   "loop": false
+  },
+  "call": {
+   "row": 3,
+   "frames": 11,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    55,
+    80,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "bugle": {
+   "row": 4,
+   "frames": 11,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    55,
+    80,
+    85,
+    90,
+    95,
+    100,
+    110
+   ],
+   "loop": false
+  },
+  "cast": {
+   "row": 5,
+   "frames": 10,
+   "durations_ms": [
+    110,
+    120,
+    110,
+    120,
+    55,
+    80,
+    85,
+    90,
+    95,
+    110
+   ],
+   "loop": false
+  },
+  "hurt": {
+   "row": 6,
+   "frames": 6,
+   "durations_ms": [
+    55,
+    60,
+    70,
+    80,
+    90,
+    100
+   ],
+   "loop": false
+  },
+  "death": {
+   "row": 7,
+   "frames": 15,
+   "durations_ms": [
+    70,
+    90,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    120
+   ],
+   "loop": false
+  }
+ },
+ "events": {
+  "attack": {
+   "strikes": [
+    5
+   ]
+  },
+  "lance": {
+   "strikes": [
+    6
+   ]
+  }
+ },
+ "moves": {
+  "command_thrust": "attack",
+  "piercing_lance": "lance",
+  "call_guard": "call",
+  "last_charge": "call",
+  "bugle_call": "bugle",
+  "close_ranks": "cast",
+  "vengeance": "cast"
+ },
+ "boss": true,
+ "elite": true,
+ "top_native": 0,
+ "idle_bbox_native": [
+  93,
+  0,
+  177,
+  117
+ ]
+}

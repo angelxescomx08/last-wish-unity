@@ -14,6 +14,8 @@ the Python `src/presentation`, `src/application` and `src/domain` packages and t
 |---|---|---|
 | `domain/*`, `application/*` (rules) | `Assets/Scripts/Domain` | Combat, 165 cards, 7 keywords, elements/reactions, 156 relic tags, chromas, 19 enemies + pairs/trios, elites, bosses, map, run economy, luck, gacha, warlock, purge, deck choices, Pruebas (`Tuning`). |
 | — (new content, not in Python) | `Domain/EnemyRoster.cs`, `EnemyCatalog.Floor1.cs`, `EnemyPatterns.Floor1.cs`, `CombatState.Expansion.cs` | Floor-1 expansion: 17 enemies (7 normals, 3 minions, 3 elites, 4 bosses in 3 fights incl. the linked pair Los Hermanos Lápida), 6 groups, summons with an on-screen cap, 7 statuses, Invocar/Aturdido intents. Bestiary: `docs/enemies.md`. |
+| — (new content, not in Python) | `Domain/EnemyCatalog.Floor2.cs`, `EnemyPatterns.Floor2.cs`, `CombatState.Floor2.cs` | Floor-2 expansion: 15 enemies (6 normals, 3 minions, 3 elites, 3 bosses that replace the Señor de la Cripta on floor 2), 6 groups, 7 enemy statuses and 2 hero debuffs (Sangrado, Necrosis), bound minions, Ofrenda Oscura, Espejo Maldito. Bestiary: `docs/enemies.md`. |
+| — (new content, not in Python) | `Domain/EnemyCatalog.Floor3.cs`, `EnemyPatterns.Floor3.cs`, `CombatState.Floor3.cs` | Floor-3 expansion: 15 enemies (6 normals, 3 minions, 3 elites, 3 bosses that replace the Señor de la Cripta on floor 3), 6 groups, the original trio roll, 5 enemy statuses (Pendón/Inspiración aura, Cólera, Inmortal, Cuerda) and 2 hero debuffs (Agotamiento, Congelación), Perforante attacks, Rebobinar. Bestiary: `docs/enemies.md`. |
 | `application/combat_log.py`, `play_preview.py` | `Presentation/Combat/CombatLog.cs`, `ElementPreview.cs` | Pure; the preview plays the card on `CombatState.Clone()` with the same random stream. |
 | `main.py` `SceneManager` | `Presentation/SceneManager.cs` | Every transition, pause menu, hero sheet (C / button), gold counter with interest notes, deck-choice auto-open, Dado Cargado reroll. |
 | `scenes/*` (17 screens) | `Presentation/Scenes/*` | Menu, settings, Pruebas, character select, map, combat, rewards, treasure, shop, packs, event, boss reward, warlock, gacha, purge, deck choice, death. |
@@ -45,7 +47,7 @@ Domain (pure C#)  ←  Presentation (pure C#, draws through IRenderBackend)  ←
   input → `SceneManager.Update` → draw into a 1280×720 `RenderTexture` presented
   aspect-fit with black bars (bilinear like `smoothscale`, nearest at native size).
   Mouse positions are converted like `viewport.to_virtual`.
-* Art keeps the original PNGs: hero sheets (96/192 px), the 19 original enemy sheets (plus the 17 generated expansion sheets), kit,
+* Art keeps the original PNGs: hero sheets (96/192 px), the 19 original enemy sheets (plus the 17 floor-1, 15 floor-2 and 15 floor-3 generated expansion sheets), kit,
   icons, relics, card frames/art, packs, gacha, dungeon room. `Editor/PixelArtImporter`
   imports everything under `Resources/Game` with Point filtering, no mipmaps, NPOT
   None, uncompressed, max 8192 (card faces/packs/back: bilinear, as the original
@@ -68,7 +70,7 @@ Small domain additions for presentation (rules unchanged, tests green):
   what every parity test builds (`new RunState(hero, seed)`), so the Python behaviour is
   untouched; the menu run (`SceneManager.TCharSelect`) uses `Expanded`, which only
   changes the floor-1 enemy, elite and boss rolls (same random calls, so maps,
-  rewards, shops, packs and gacha are identical). Floors 2+ run the original code.
+  rewards, shops, packs and gacha are identical). Floor 2 has its own expansion (below); floors 3+ run the original code.
 * The generated files (`EnemyDefinitions/EnemyPatterns.Generated.cs`) are not edited:
   the expansion is hand-written partial classes merged by `EnemyCatalog.AllDefinitions`
   and routed in `EnemyPatterns.Next` / `ReactToDeaths` only for expansion ais.
@@ -86,6 +88,49 @@ Small domain additions for presentation (rules unchanged, tests green):
 * Status cards without art draw no placeholder icon instead of looking up a missing
   `Cards/Placeholder/status` texture.
 
+## Floor-2 enemy expansion (beyond the original)
+
+* Same pattern as floor 1, in three hand-written partial files: `EnemyCatalog.Floor2.cs` (definitions, profiles with
+  `MinFloor = MaxFloor = 2`, groups, boss fights, `Floor2Rules`), `EnemyPatterns.Floor2.cs` (intents; routed from
+  `ExpansionNext` by `EnemyCatalog.IsFloor2`) and `CombatState.Floor2.cs` (rules). `EnemyCatalog.Profiles` holds both floors;
+  `ExpansionDefinitions`/`Groups`/`BossEncounters` stay floor-1 only and `AllGroups`/`AllBossEncounters`/`AllDefinitions` add floor 2.
+* `Expanded` rolls floor 2 from the originals plus the floor-2 content (same random calls); the floor-2 boss is a seeded
+  choice among its 3 fights (`FloorBossKeys(2)`, salt `0xB0552`). Floors 3+ and the `Original` roster are unchanged.
+  Pruebas indices of the expansion (encounters 18-42, elites 6-11, bosses 4-9) work on floors 1 and 2.
+* `StatusKind` gained `Ward, Ritual, Grudge, Regen, Heads, Reflect, Thirst, Bleed, Necrosis` (appended). Amparo and the
+  Reflejo/Cabezas bookkeeping live in `EnemyState.Damage`; Rito and Cicatrización run at the end of an enemy's action;
+  Amparo is cleared at the start of the enemy phase; Sangrado/Necrosis tick with the hero's timed debuffs; Necrosis stops
+  `HealHero`; Rencor and bound Ilusiones are handled in `HandleEnemyDeaths` (which now also refreshes the floor-2 dynamic
+  intents after counting the dead); Ansia de Sangre feeds once per hero turn after cards and at the turn start.
+* An enemy with Desvío and no Réplica (Ilusión) parries without answering (no zero-damage "Réplica" hit).
+* Presentation: `Art.EnemySheetIds` and `EnemyAnimator.Styles` cover the 15 sheets, `GlossaryExpansion` registers the new
+  statuses (Sangrado and Necrosis are glossary terms), tooltips/banners/history describe the new intents and actions,
+  hero hits from Reflejo, Sangrado and Rencor are shown like Pinchos, death effects after the enemy turn are now shown too.
+* Art: `Tools/GenerateEnemyArtFloor2.py` imports the floor-1 generator (primitives, validation, JSON format) and writes the
+  15 sheets; `--check` verifies them byte for byte.
+
+## Floor-3 enemy expansion (beyond the original)
+
+* Same pattern again: `EnemyCatalog.Floor3.cs` (definitions, profiles with `MinFloor = MaxFloor = 3`, groups, boss fights,
+  `Floor3Rules`, `LastExpandedFloor = 3`), `EnemyPatterns.Floor3.cs` (intents, routed by `EnemyCatalog.IsFloor3`, and the
+  auras) and `CombatState.Floor3.cs` (rules). `Profiles`, `AllGroups`, `AllBossEncounters` and `AllDefinitions` add floor 3.
+* `Expanded` rolls floor 3 from the originals plus the floor-3 content with the original call sequence of floor 3, trio roll
+  included (pair chance 0.6, trio chance 0.25; the third enemy comes from the original regulars and the floor-3 normals that
+  are not members). The floor-3 boss is a seeded choice among its 3 fights (salt `0xB0553`). Floors 4+ and the `Original`
+  roster are unchanged. Pruebas indices of the expansion (encounters 18-54, elites 6-14, bosses 4-12) work on floors 1-3.
+* `CreateBoss` supports a boss with escorts that are not linked (El Rey Liche + Filacteria: ids `boss_f3`, `boss_f3_e1`).
+* `StatusKind` gained `Banner, Inspired, Rage, Undying, Spring, Exhaustion, Frostbite` (appended). `EnemyPatterns.Floor3Auras`
+  recomputes Inspiración (from the Pendón of the other living enemies; `HitDamage` adds it) and Inmortal (`LoseHp` keeps 1 HP)
+  at combat start, after every card, death, reaction and arrival and before each enemy acts; it is a no-op without those
+  statuses, so the original fights are untouched. Cólera's Strength is added in `EnemyState.Damage` and removed after the
+  enemy's next action; Perforante passes `pierce` to `HitHero`; Rebobinar heals up to `HpAtTurnStart`; Congelación costs HP
+  before the hand is discarded; Agotamiento lowers the mana of the turn start; Autómatas wind up their Relojero.
+* Presentation: sheets and styles of the 15 enemies, the 7 statuses in `GlossaryExpansion` (Agotamiento and Congelación are
+  glossary terms), tooltips (Perforante, Rebobinar with its current amount, Inspiración and Cólera in the damage breakdown,
+  "Perderá su Blindaje"), the incoming-loss preview and lethal glow count Perforante (`Tooltip.LossFrom`), banners for the new
+  action fields, floating texts and history for Cólera, Congelación, Agotamiento, Rebobinar and Cuerda.
+* Art: `Tools/GenerateEnemyArtFloor3.py` (same kit and validation) writes the 15 sheets; `--check` verifies them.
+
 ## Per-card illustrations (beyond the original)
 
 * The original gives every card without art the icon of its type (sword, kite shield, orb)
@@ -100,6 +145,98 @@ Small domain additions for presentation (rules unchanged, tests green):
   effects. `--check` verifies the files and that no two pictures are identical.
 * The type placeholders and the element backdrop stay as fallbacks for cards without art.
 
+## Gachapón sounds (beyond the original)
+
+The original machine borrowed sounds from other screens (the menu tick for the crank and
+the capsule rocking, the card swish for the KA-CHUNK and the bounces, the pack tear for
+the capsule, confirm/cancel for keeping and declining). Now every beat has its own cue,
+synthesized by `Tools/GenerateGachaAudio.py` (stdlib only, deterministic; `--check`
+verifies the files, `--preview DIR` mixes whole pulls at the scene's timing) into
+`Resources/Game/Audio/gacha_*.wav` with the same import settings as the other effects.
+Levels are set by loudness against the existing effects (nav −34 dB … win −21 dB).
+
+Second pass (user: "brillante tipo gacha", more addictive): FM bells, glockenspiel bars,
+a Freeverb-style hall, risers and a 50 ms hush before the KA-CHUNK, and celebrations that
+grow with the rarity (Común ding-ding → Legendaria timpani roll, brass short-short-long,
+choir, bell chord and a 2 s shower of coins and sparkles; −24 dB → −18 dB). Notes are
+"open" (D E G A B, no third) so they shine over the D minor theme; only the Legendaria
+resolves to D major. The crank bell climbs D E G A B D with the ticks, the capsule rocks
+climb D E G A D'.
+
+| Moment (`GachaScene`) | Cue (variants) | Notes |
+|---|---|---|
+| Pay (`StartPull`) | `gacha_coin_toss` (3) | flick + spinning coin ring; replaces `purchase` |
+| Coin in the slot | `gacha_coin_slot` (3) | clink, rattle down inside, landing, bulbs chime |
+| Crank starts | `gacha_churn` (2) | tumbling capsules + riser, exactly as long as the crank until the KA-CHUNK; `Advance` stops it with a 40 ms fade |
+| 12 crank ticks | `gacha_crank` (6, by step) | ratchet tooth, pitch climbs 7.5 semitones over the turn |
+| Electric arcs | `gacha_zap` (3) | garnish: normal voice limit, 110 ms apart, small arcs at 55 % gain |
+| Épica+ tease | `gacha_tease` (2) | reverse swell sucked into the glass |
+| KA-CHUNK | `gacha_thunk` (3) | latch + heavy drop |
+| Out of the chute | `gacha_pop` (3) | flap opens, capsule plops, flap swings back |
+| Two bounces | `gacha_bounce` (2, by bounce) | hollow plastic, something rattles inside; the second is higher and softer |
+| Hop to the stage | `gacha_hop` (2) | whoosh; with a sparkle run from Poco común |
+| Capsule rocks (once per tier) | `gacha_wobble` (5, by rock) | two knocks + a chime D5 E5 F5 G5 A5: the rarer, the higher it climbs |
+| Capsule opens | `gacha_open` (3) + `gacha_tier` (5, by rarity) | snap and sparkles, then one stinger per rarity (Legendaria ends on a D major bloom with confetti) |
+| Golden relic | `gacha_golden` (1) | shimmering ring after the reveal |
+| Quedármela / lands in the counter | `gacha_keep` (3) / `gacha_stash` (3) | rising swoosh, then click-into-place + ding |
+| Rechazar | `gacha_dust` (3) | soft crumble, not a failure buzz |
+| Hover a button you can press | `nav` | like the shop; silent during the show |
+
+`SoundPlayer` gained ordered variants (`StepVariant`), per-cue gain, `Stop` (new
+`IAudioBackend.Stop`; `UnityAudio` fades the voice out in `Tick`), a single effect list
+(`SoundPlayer.Effects`, loaded by `UnityAudio` up to the first missing variant), and up to
+`GachaVoices` = 6 voices for the show (everything else keeps the original limit of 3).
+Pending important cues keep their variant (`gacha_tier`, `gacha_stash` wait for a voice).
+
+## Card design changes (beyond the original)
+
+`Domain/CardDesign.cs` holds the Unity-only design changes; the exported
+`NumericCards.Generated.cs` and `Data/cards.json` stay as exported (the parity tests keep
+checking them), and `RunContent.Cards` / `GameData` apply the changes on top.
+
+* A power must keep acting between turns: **Poder Oculto** (draw 4) and **Concentración**
+  (draw 2) only acted once, so they are skills (`KindChanges`).
+* **Sombra Gemela** multiplies: each copy in play (a golden one counts twice) doubles the
+  Combo of the first Combo card of the turn again: 1 copy ×2, golden ×4, golden + normal ×8
+  (`CombatState.ComboMultiplier`, capped at 2^`MaxComboDoublings`). `PlayResult.ComboTimes`
+  feeds "¡COMBO ×4!" and the history. Face text: "Tu primer Combo de cada turno se duplica."
+
+## Active powers on screen (beyond the original)
+
+The "PODERES ACTIVOS" row of tiny cards is replaced by Slay the Spire-style badges under
+the hero's statuses (`Combat/PowerBar.cs`): one badge per card with its art, "×N" for copies
+(golden 2, diamond 3), a gold rim for chromas, a pop with "+N" when a power or a copy
+arrives, and a flash when it acts (turn-start powers when your turn begins, Piel de Acero at
+the end of the turn, Sombra Gemela when it multiplies). Hovering a badge shows
+`Tooltip.Power` beside it with the card at full size: what it does with the copies in play
+and live numbers (`Ui/PowerText.cs`, one line per power), how copies stack (add, multiply,
+or "no suman"), and its state this turn (Sombra Gemela ready/used, Ritmo Letal, Cadena
+Perfecta count). The hero quick look lists the powers, the inspect panel has one panel per
+power, and power cards say they stay next to the hero.
+
+## Power telemetry (beyond the original)
+
+Tracks the power of cards, relics and encounters from real runs and stores it in Supabase
+(`docs/telemetry.md`, in Spanish).
+
+* `Domain/PowerTracker` + `PowerRecords`: pure C#. Only adds integers during play. It records each fight
+  (room, encounter key, enemies, turns, HP lost, deck and relics at the start), each card played
+  (plays, mana paid, HP removed by the play, block gained), card/relic offers and picks, and relic origins.
+  Runs changed by Pruebas are flagged `tuned`. `ContentHash` fingerprints card/relic/enemy numbers.
+* `Presentation/Telemetry`: `PowerJson` (compact schema-1 JSON), `ITelemetrySink`, and
+  `GameContext.Track` (a telemetry error switches it off for the run, never breaks the game).
+  `SceneManager` starts/ends the tracker and checkpoints the run when back on the map; `CombatScene.Turns`
+  reports plays; `ShopScene` and `GachaScene` report offers and purchases.
+* `Runtime/SupabaseTelemetry`: config (`Resources/Telemetry/telemetry.json`, overridden by
+  `persistentDataPath/telemetry_config.json`), a disk queue written on a background task
+  (`TelemetryOutbox`: current/outbox/rejected), and uploads with `UnityWebRequest` to
+  `rest/v1/rpc/ingest_run` from a coroutine that only runs while files are waiting. PlayMode tests set
+  `SupabaseTelemetry.Suppressed`.
+* `supabase/`: local stack config, migration (raw `telemetry` schema, idempotent `public.ingest_run`,
+  `analytics` power views with Wilson intervals and per hero/floor/room baselines) and pgTAP tests.
+  Neither schema is exposed through the Data API. `Tools/Telemetry/LocalSupabase.ps1` starts it and
+  connects the game. `ProjectSettings` allows HTTP for the local stack; the code only uses plain HTTP for loopback.
+
 ## Verification
 
 * EditMode (domain): **132/132** in Unity batchmode and with the offline NUnit runner
@@ -109,8 +246,29 @@ Small domain additions for presentation (rules unchanged, tests green):
   pattern and phase, summons + cap + budget, minion gold, Pinchos, Desvío, Blindaje,
   Carroña, Buche, stolen Strength/block, Muda, Carga/Aturdido, Vigilancia, División,
   the paired bosses, the expanded roster and the sheets).
-* `Tools/DomainSmoke` also plays 975 floor-1 fights with the expanded roster
-  (summons, splits, cap never above 3).
+* `CardDesignTests` (8) and `PowerUiTests` (10, a real `CombatScene` driven headless with the
+  real assets: badges, hover tooltip, card preview, pop, every power's text in the pixel font).
+* `GachaSoundTests` (21 EditMode cases; the EditMode assembly and `Tools/DomainSmoke` now also
+  compile `LastWish.Presentation`): clips on disk (variants, mono 16-bit, silent ends, no DC,
+  unique .meta guids, the churn ends on the KA-CHUNK, rarer stingers longer and louder),
+  `SoundPlayer` rules (step variants, voice limits, arc spacing and gain, a waiting stinger keeps
+  its rarity, stop, mute/missing/no backend) and a real `GachaScene` with a null renderer and a
+  recording mixer, frame by frame: every beat of 42 pulls (tiers 1–5, golden) at its time,
+  keep/decline, skipping, clicking the capsule, hover ticks, no gold, 6000 random steps.
+* `Tools/DomainSmoke` also plays 975 floor-1 fights, 1002 floor-2 fights and 1305 floor-3 fights with the expanded roster
+  (summons, splits, trios, cap never above 3).
+* Floor-2 expansion: 41 EditMode cases (`Floor2PatternTests`, `Floor2MechanicTests`, `Floor2PresentationTests`: every
+  pattern, phase and Hydra stage, Pruebas lists, sheets and moves, name collisions, Amparo, Rito, Rencor, Sangrado, robo de
+  vida, Cicatrización, bound Ilusiones, Cabezas, Reflejo, Espejo Maldito, Ansia de Sangre, Necrosis, Cosecha de Almas,
+  Ofrenda Oscura, summons at the cap, previews, the floor-2 rolls, and a headless `CombatScene` fighting every floor-2
+  enemy, group and boss with hover/inspect). Run with the offline NUnit runner (223/223 with the rest of the suite);
+  `Floor2EnemyTests` (PlayMode, captures `f2-*.png`) still has to be run in Unity.
+* Floor-3 expansion: 37 EditMode cases (`Floor3PatternTests`, `Floor3MechanicTests`, `Floor3PresentationTests`: every
+  pattern and phase, the Lich's two phase moves, Pruebas lists, sheets and moves, name collisions, Pendón and its arrivals,
+  Cólera, Perforante, Agotamiento, Congelación, Rebobinar, Inmortal, Cuerda, the cap, previews, the floor-3 rolls with trios,
+  floors 1-2 untouched, and a headless `CombatScene` fighting every floor-3 enemy, group and boss). Offline runner: 260/260
+  with the rest of the suite; the EditMode tests also compile against netstandard2.1. `Floor3EnemyTests` (PlayMode, captures
+  `f3-*.png`) still has to be run in Unity.
 * All C# (Domain, Presentation, Runtime, Editor, tests) compiles against the Unity
   6000.3.6f1 assemblies with no errors.
 * Offline renderer: the presentation's draw commands rasterised and compared side

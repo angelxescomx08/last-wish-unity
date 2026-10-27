@@ -79,6 +79,7 @@ namespace LastWish.Presentation
                     if (c.Get(k) is string text) info.KeywordText[k] = text;
                 Cards[pair.Key] = info;
             }
+            ApplyCardDesign();
             foreach (var pair in Json.Obj(Json.Parse(source.ReadText("Data/relics"))))
             {
                 var r = Json.Obj(pair.Value);
@@ -94,6 +95,15 @@ namespace LastWish.Presentation
             foreach (var pair in Json.Obj(enemies.Get("pairs")))
             { var p = Json.Obj(pair.Value); Pairs[pair.Key] = (Json.Str(p.Get("name")), Json.Str(p.Get("synergy"))); }
             Glossary = new Glossary(Json.Obj(Json.Parse(source.ReadText("Data/glossary"))));
+        }
+
+        /// <summary>The Unity design changes (<see cref="CardDesign"/>) on the exported faces: new types and texts.</summary>
+        private void ApplyCardDesign()
+        {
+            foreach (var pair in CardDesign.KindChanges)
+                if (Cards.TryGetValue(pair.Key, out var info)) { info.Type = CardDesign.TypeName(pair.Value); if (pair.Value != CardKind.Power) info.PowerTurn = false; }
+            foreach (var pair in CardDesign.TextChanges)
+                if (Cards.TryGetValue(pair.Key, out var info)) info.Texts = new[] { pair.Value };
         }
 
         /// <summary>Face data of a deck card (status cards and starter cards included).</summary>

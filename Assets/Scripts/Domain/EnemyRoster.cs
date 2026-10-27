@@ -5,7 +5,7 @@ namespace LastWish.Domain
 {
     /// <summary>
     /// Which enemy content a run rolls. <see cref="Original"/> reproduces the Python game exactly (parity tests);
-    /// <see cref="Expanded"/> adds the new floor-1 enemies, groups and bosses (only floor-1 enemy rolls differ).
+    /// <see cref="Expanded"/> adds the new floor-1, floor-2 and floor-3 enemies, groups and bosses (only the enemy rolls of floors 1-3 differ).
     /// </summary>
     public enum EnemyRoster { Original, Expanded }
 
@@ -38,6 +38,10 @@ namespace LastWish.Domain
         public IReadOnlyList<string> Spawns { get; internal set; } = Array.Empty<string>();
         /// <summary>Every intent id it can plan.</summary>
         public IReadOnlyList<string> Moves { get; internal set; } = Array.Empty<string>();
+        /// <summary>A minion that vanishes when the enemy that summoned it dies (Ilusión).</summary>
+        public bool BoundToSummoner { get; internal set; }
+        /// <summary>Inmortal: it never drops below 1 HP while an enemy with this ai is alive (El Rey Liche and its Filacteria).</summary>
+        public string UndyingWhile { get; internal set; }
     }
 
     /// <summary>A pair or trio of the expansion (no vengeance link).</summary>
@@ -98,6 +102,16 @@ namespace LastWish.Domain
         public string ReviveAi { get; internal set; }
         /// <summary>The value is recalculated after every card (Manada, Embestida Acorazada).</summary>
         public bool Dynamic { get; internal set; }
+        /// <summary>Ofrenda Oscura: it kills its strongest minion, takes its Strength (+ <see cref="DevourStrength"/>) and heals.</summary>
+        public bool Devour { get; internal set; }
+        public int DevourHeal { get; internal set; }
+        public int DevourStrength { get; internal set; }
+        /// <summary>Espejo Maldito: its Veneno, Débil and Vulnerable go to the hero (Marcado is just removed).</summary>
+        public bool ReturnDebuffs { get; internal set; }
+        /// <summary>Perforante: the hits of this attack ignore the hero's block.</summary>
+        public bool Pierce { get; internal set; }
+        /// <summary>Rebobinar: it heals all the HP it lost since the hero's turn began.</summary>
+        public bool Rewind { get; internal set; }
         public bool Any => this != None;
     }
 
@@ -126,6 +140,11 @@ namespace LastWish.Domain
     public sealed class EnemyDeathEvent
     {
         public string EnemyId { get; internal set; }
+        /// <summary>Rencor: the damage it dealt to the hero when it died and the HP the hero lost (block absorbs it).</summary>
+        public int GrudgeDamage { get; internal set; }
+        public int GrudgeLost { get; internal set; }
+        /// <summary>An Ilusión that vanished because its summoner died.</summary>
+        public bool Dispelled { get; internal set; }
         public List<string> ReturnedCards { get; } = new List<string>();
         public List<(string feederId, int strength, int healed)> Carrion { get; } = new List<(string, int, int)>();
     }
