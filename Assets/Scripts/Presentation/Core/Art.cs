@@ -225,6 +225,9 @@ namespace LastWish.Presentation
             return tex;
         }
 
+        /// <summary>Text of a JSON asset (key without extension), for metadata outside <see cref="LoadCore"/> (Cards/Anim/anim).</summary>
+        public string ReadText(string key) => source.ReadText(key);
+
         /// <summary>Loads the small always-needed assets (fonts, kit, icons, relics, metadata).</summary>
         public void LoadCore()
         {

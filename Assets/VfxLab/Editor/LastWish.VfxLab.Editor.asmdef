@@ -1,0 +1,20 @@
+{
+    "name": "LastWish.VfxLab.Editor",
+    "rootNamespace": "LastWish.VfxLab.Editor",
+    "references": [
+        "LastWish.VfxLab",
+        "UnityEditor.TestRunner",
+        "UnityEngine.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

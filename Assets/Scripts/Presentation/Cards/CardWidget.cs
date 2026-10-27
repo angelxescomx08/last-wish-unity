@@ -175,8 +175,11 @@ namespace LastWish.Presentation
         {
             public string Id, Name; public int Rarity, ShownCost, PrintedCost, W, H; public BigInteger Damage; public long Block;
             public bool BoostD, BoostB, Affordable, Upgraded; public uint Mask; public ChromaKind Chroma;
+            /// <summary>The art window is left transparent: an animated illustration is drawn behind the face.</summary>
+            public bool Hollow;
             public bool Equals(FaceKey o) => Id == o.Id && Name == o.Name && Rarity == o.Rarity && ShownCost == o.ShownCost && PrintedCost == o.PrintedCost && W == o.W && H == o.H
-                && Damage == o.Damage && Block == o.Block && BoostD == o.BoostD && BoostB == o.BoostB && Affordable == o.Affordable && Upgraded == o.Upgraded && Mask == o.Mask && Chroma == o.Chroma;
+                && Damage == o.Damage && Block == o.Block && BoostD == o.BoostD && BoostB == o.BoostB && Affordable == o.Affordable && Upgraded == o.Upgraded && Mask == o.Mask && Chroma == o.Chroma
+                && Hollow == o.Hollow;
             public override bool Equals(object obj) => obj is FaceKey o && Equals(o);
             public override int GetHashCode()
             {
@@ -184,7 +187,7 @@ namespace LastWish.Presentation
                 {
                     var h = Id.GetHashCode() * 31 + Name.GetHashCode();
                     h = h * 31 + ShownCost; h = h * 31 + W; h = h * 31 + H * 7 + Rarity; h = h * 31 + Damage.GetHashCode(); h = h * 31 + Block.GetHashCode();
-                    h = h * 31 + (int)Mask; h = h * 31 + (int)Chroma; h = h * 31 + (Affordable ? 1 : 0) + (BoostD ? 2 : 0) + (BoostB ? 4 : 0) + (Upgraded ? 8 : 0);
+                    h = h * 31 + (int)Mask; h = h * 31 + (int)Chroma; h = h * 31 + (Affordable ? 1 : 0) + (BoostD ? 2 : 0) + (BoostB ? 4 : 0) + (Upgraded ? 8 : 0) + (Hollow ? 16 : 0);
                     return h;
                 }
             }
@@ -221,8 +224,13 @@ namespace LastWish.Presentation
             }
         }
 
-        /// <summary>render_card_surface: the static face at (w, h), composed once and cached.</summary>
-        public static Sprite Face(GameContext g, CardDefinition card, in CardShow show, int w = CardW, int h = CardH)
+        /// <summary>render_card_surface: the static face at (w, h), composed once and cached (an animated illustration shows its still frame).</summary>
+        public static Sprite Face(GameContext g, CardDefinition card, in CardShow show, int w = CardW, int h = CardH) => ComposeFace(g, card, show, w, h, false);
+
+        /// <summary>The face with a transparent art window, for <see cref="Draw"/> and <see cref="DrawAt"/> to put an animation behind.</summary>
+        private static Sprite HollowFace(GameContext g, CardDefinition card, in CardShow show, int w, int h) => ComposeFace(g, card, show, w, h, true);
+
+        private static Sprite ComposeFace(GameContext g, CardDefinition card, in CardShow show, int w, int h, bool hollow)
         {
             var canvas = g.Canvas;
             var mask = CardTotals.Normalize(card, show.Ready);
@@ -235,6 +243,7 @@ namespace LastWish.Presentation
             {
                 Id = card.Id, Name = card.Name, Rarity = card.Rarity, ShownCost = show.Cost ?? card.Cost, PrintedCost = card.Cost, W = w, H = h, Damage = damage, Block = block,
                 BoostD = show.BonusDamage > 0 || comboDmg, BoostB = show.BonusBlock > 0 || comboBlk, Affordable = !show.Unaffordable, Upgraded = card.Upgraded, Mask = mask, Chroma = card.Chroma,
+                Hollow = hollow,
             };
             if (faces.TryGetValue(key, out var hit))
             {
@@ -261,13 +270,16 @@ namespace LastWish.Presentation
             var type = TypeOf(g, card);
             if (!key.Affordable) canvas.PushTint(new Rgba(150, 150, 150));
 
-            // 1. illustration window over a type backdrop
+            // 1. illustration window over a type backdrop (hollow faces leave it transparent for an animation)
             var artRect = ZRect(ArtZone(art, card.Rarity), w, h).Inflate(4, 4);
-            DrawTypeBackdrop(canvas, type, artRect);
-            var ownArt = art.HasCardArt(card.Id);
-            var badges = info?.Badges ?? Array.Empty<string>();
-            if (badges.Length > 0 && !ownArt) DrawElementArt(canvas, art, badges, type, artRect);
-            else DrawIllustration(canvas, art, card.Id, type, artRect);
+            if (!key.Hollow)
+            {
+                DrawTypeBackdrop(canvas, type, artRect);
+                var ownArt = art.HasCardArt(card.Id) || CardArtAnimations.For(art, card.Id) != null;
+                var badges = info?.Badges ?? Array.Empty<string>();
+                if (badges.Length > 0 && !ownArt) DrawElementArt(canvas, art, badges, type, artRect);
+                else DrawIllustration(canvas, art, card.Id, type, artRect);
+            }
 
             // 2. dark discs behind the see-through circles
             foreach (var name in new[] { "mana", "attack", "block" })
@@ -372,9 +384,10 @@ namespace LastWish.Presentation
 
         private static void DrawIllustration(Canvas canvas, Art art, string cardId, string type, IRect r)
         {
-            if (art.HasCardArt(cardId))
+            var anim = CardArtAnimations.For(art, cardId);
+            if (anim != null || art.HasCardArt(cardId))
             {
-                var s = art.CardArt(cardId);
+                var s = anim != null ? anim.Frame(anim.Still) : art.CardArt(cardId);
                 var k = Math.Max(r.W / (double)s.W, r.H / (double)s.H);
                 int bw = Math.Max(r.W, MathX.Round(s.W * k)), bh = Math.Max(r.H, MathX.Round(s.H * k));
                 int ox = (bw - r.W) / 2, oy = (bh - r.H) / 2;
@@ -520,11 +533,13 @@ namespace LastWish.Presentation
         {
             var lift = selected || hovered ? -20 : 0;
             var rect = new IRect((int)x, (int)y + lift, CardW, CardH);
-            var body = Face(g, card, show);
+            var anim = CardArtAnimations.For(g.Art, card.Id);
+            var body = anim != null ? HollowFace(g, card, show, CardW, CardH) : Face(g, card, show);
             var t = g.Time;
             var ready = ReadyMask(card, show.Ready);
             if (ready != 0) CardFx.DrawReadyBack(canvas, g.Art, card.Rarity, rect.CenterX, rect.CenterY, CardW, CardH, ready, t, 0);
             if (card.Chroma != ChromaKind.None) ChromaFx.DrawCardAura(canvas, g.Art, card.Rarity, rect.CenterX, rect.CenterY, CardW, CardH, 0, ChromaFx.Style(card.Chroma).Glow, t);
+            if (anim != null) DrawAnimatedArt(canvas, g, card, anim, rect, show.Unaffordable);
             canvas.Blit(body, rect.X, rect.Y);
             if (card.Chroma != ChromaKind.None)
             {
@@ -535,6 +550,14 @@ namespace LastWish.Presentation
             if (selected || hovered)
                 canvas.Rect(new IRect(rect.X - 2, rect.Y - 2, rect.W + 4, rect.H + 4), selected ? Colors.CardSelected : RarityColor(card.Rarity), 2, 10);
             return rect;
+        }
+
+        /// <summary>The animated illustration in the art window of a card drawn at <paramref name="rect"/>, before its hollow face.</summary>
+        private static void DrawAnimatedArt(Canvas canvas, GameContext g, CardDefinition card, CardArtAnimation anim, IRect rect, bool dim)
+        {
+            var zone = ZRect(ArtZone(g.Art, card.Rarity), rect.W, rect.H).Move(rect.X, rect.Y);
+            var margin = Math.Max(4, MathX.Round(4.0 * rect.W / CardW));       // what Compose adds under the frame
+            anim.Draw(canvas, zone.Inflate(margin, margin), zone, g.Time, dim);
         }
 
         /// <summary>animate_card_face: sheen masked by the face and twinkles, over the blitted face.</summary>
@@ -555,7 +578,8 @@ namespace LastWish.Presentation
         {
             var (w, h) = CardSize(scale);
             var (fw, fh) = faceScale.HasValue ? CardSize(faceScale.Value) : (w, h);
-            var body = Face(g, card, show, fw, fh);
+            var anim = CardArtAnimations.For(g.Art, card.Id);
+            var body = anim != null ? HollowFace(g, card, show, fw, fh) : Face(g, card, show, fw, fh);
             var tilt = MathX.Round(angle);
             int cx = MathX.Round(centerX), cy = MathX.Round(centerY);
             var t = g.Time;
@@ -564,6 +588,7 @@ namespace LastWish.Presentation
             var rect = new IRect(cx - w / 2, cy - h / 2, w, h);
             if (card.Chroma != ChromaKind.None) ChromaFx.DrawCardAura(canvas, g.Art, card.Rarity, cx, cy, w, h, tilt, ChromaFx.Style(card.Chroma).Glow, t);
             if (tilt != 0) canvas.PushRotateScale(cx, cy, tilt, 1f);
+            if (anim != null) DrawAnimatedArt(canvas, g, card, anim, rect, show.Unaffordable);
             canvas.BlitRect(body, rect, Rgba.White);
             if (card.Chroma != ChromaKind.None) AnimateFace(canvas, body, rect, card.Chroma, t, Math.Max(0.5f, w / (float)CardW));
             if (tilt != 0) canvas.PopTransform();

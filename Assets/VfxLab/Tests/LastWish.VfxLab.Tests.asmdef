@@ -1,0 +1,10 @@
+{
+    "name": "LastWish.VfxLab.Tests",
+    "rootNamespace": "LastWish.VfxLab.Tests",
+    "references": [
+        "LastWish.VfxLab"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

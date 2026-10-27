@@ -1,0 +1,65 @@
+{
+  "fps": 12,
+  "columns": 6,
+  "pad": 2,
+  "cards": {
+    "punalada_base": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        90,
+        200,
+        255
+      ]
+    },
+    "esquiva_base": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        200,
+        170,
+        255
+      ],
+      "mote": [
+        120,
+        220,
+        255
+      ]
+    },
+    "finta_base": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        190,
+        140,
+        255
+      ]
+    }
+  },
+  "cell": [
+    180,
+    132
+  ],
+  "frame": [
+    176,
+    128
+  ],
+  "halo_cell": [
+    92,
+    68
+  ],
+  "halo_frame": [
+    88,
+    64
+  ]
+}

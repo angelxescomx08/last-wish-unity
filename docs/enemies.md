@@ -375,6 +375,7 @@ Parejas originales:
 
 ## Sprites
 
+- **Estilo:** los sprites nuevos (y los que el usuario pida rehacer) siguen `docs/art-style.md`, el estilo aprobado el 27-10-2026. Los generadores de esta sección quedan para regenerar las hojas actuales tal cual.
 - Las 17 hojas nuevas del piso 1 las genera `Tools/GenerateEnemyArt.py`, las 15 del piso 2 `Tools/GenerateEnemyArtFloor2.py`
   y las 15 del piso 3 `Tools/GenerateEnemyArtFloor3.py` (Python 3.10+ y Pillow 11+, siempre con el mismo resultado). Los de
   los pisos 2 y 3 importan las primitivas, la validación y el formato del del piso 1 sin cambiarlo.

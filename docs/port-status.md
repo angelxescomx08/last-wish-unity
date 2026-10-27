@@ -145,6 +145,24 @@ Small domain additions for presentation (rules unchanged, tests green):
   effects. `--check` verifies the files and that no two pictures are identical.
 * The type placeholders and the element backdrop stay as fallbacks for cards without art.
 
+## Animated card illustrations (beyond the original)
+
+* The rogue's basic cards (Puñalada, Esquiva, Finta) show the animated illustrations of the VFX Lab
+  in the normal card frame. `Tools/VfxLab/export_game_card_art.py` bakes them into
+  `Resources/Game/Cards/Anim`: a 6x4 grid of lit colour frames (x2, 176x128, 2 px edge gutter
+  against bilinear bleed), a native-size halo sheet (blurred emissive, the stand-in for bloom)
+  and `anim.json` (fps, grid, still frame, twinkle colours). `--check` verifies them.
+* `CardArtAnimations.For(art, id)` (Presentation/Cards/CardArtAnimation.cs) loads that metadata
+  once per `Art` (`Art.ReadText`). `CardWidget.Draw`/`DrawAt` compose a *hollow* face (a
+  `FaceKey.Hollow` variant whose art window is left transparent) and draw, before it and inside
+  the same tilt transform, the current frame, the additive halo and a few deterministic
+  twinkles and motes; the opaque frame hides the window margin, so nothing is clipped. Cached
+  faces used directly (deal flight, pack reveal, power bar, burn) show the still frame.
+* The clock is `GameContext.Time` plus a phase from the card id (FNV-1a), so copies animate in
+  step and cards rebuilt every frame (upgrade previews) never jump. Additive light ignores the
+  canvas alpha and tint, so it is scaled by `Canvas.Alpha` and dimmed for unplayable cards.
+* Cards without an entry keep `Cards/Art` (unchanged, `GenerateCardArt.py --check` still passes).
+
 ## Gachapón sounds (beyond the original)
 
 The original machine borrowed sounds from other screens (the menu tick for the crank and

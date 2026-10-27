@@ -113,6 +113,15 @@ powershell -ExecutionPolicy Bypass -File Tools/Telemetry/LocalSupabase.ps1 start
 
 Studio local: <http://127.0.0.1:54323>. Consultas, métricas y paso a producción: `docs/telemetry.md`.
 
+## Estilo visual
+
+Todo el arte nuevo sigue **`docs/art-style.md`** (decisión del 27-10-2026, sustituye a las pautas anteriores): pixel art
+pequeño y nítido con la luz en una capa aparte, noche fría con magia cian/violeta y acentos cálidos, estrellas de 4
+puntas, motas y bucles de anticipación → impacto → disipación. Incluye el prompt original, la paleta, la técnica de
+dibujo y cómo se hacen las partículas.
+
+![Estilo de referencia](docs/screenshots/estilo-referencia-ilustraciones.png)
+
 ## Ilustraciones de las cartas
 
 Cada carta tiene su propia ilustración en la ventana del marco (`Cards/Art/<id>.png`, 44×32 píxeles a ×4),
@@ -126,6 +135,34 @@ python Tools/GenerateCardArt.py --only a_tajo --preview TestResults/card-art   #
 ```
 
 Lee los tiles del repositorio Python (`--source-dir`, por defecto `../../python/last-wish`).
+
+### Ilustraciones animadas (cartas básicas de la Pícara)
+
+Puñalada, Esquiva y Finta tienen ilustración animada en el juego: la del VFX Lab (88×64, 24 fotogramas a
+12 fps) en la ventana de arte de la carta normal, con un halo de luz aditivo y destellos y motas en vivo. Se
+ven en la mano (también inclinadas y al sostenerlas), el mazo, recompensas y tienda; donde la carta es una
+imagen fija (vuelo al robar, apertura de sobres) se ve su fotograma fijo. El marco, el texto y los números no
+cambian.
+
+```powershell
+python Tools/VfxLab/export_game_card_art.py           # escribe Cards/Anim (hojas, halos y anim.json)
+python Tools/VfxLab/export_game_card_art.py --check   # comprueba que coinciden con el generador
+```
+
+Código: `Presentation/Cards/CardArtAnimation.cs`. Pruebas: `CardArtAnimationTests` (EditMode) y
+`RogueCardArtTests` (PlayMode, capturas `TestResults/rogue-*.png`). Una carta nueva con animación solo
+necesita su entrada en el exportador.
+
+## VFX Lab (prueba de efectos y cartas de la Pícara)
+
+Escena aislada en `Assets/VfxLab` para validar partículas brillantes en pixel art (inspiración Core Keeper/Noita)
+sin tocar el juego: un proyectil arcano cian por capas (núcleo, halo, chispas, estelas, impacto) y las tres cartas
+básicas de la Pícara con ilustraciones animadas nuevas y partículas. Funciona sobre el Built-in Render Pipeline del
+proyecto: capa de píxeles 640×360 HDR, bloom propio separado del núcleo nítido, luz 2D simulada y *pooling*.
+
+- **Last Wish > VFX Lab > Jugar VFX Lab** — 1-3 o clic juegan cartas, Espacio lanza, S prueba de estrés, B bloom, T cámara lenta.
+- **Last Wish > VFX Lab > Construir y capturar fotogramas** — capturas en `TestResults/vfxlab/`.
+- Arte: `python Tools/VfxLab/generate_vfxlab_art.py`. Detalle, parámetros y pendientes: `docs/vfx-lab.md`.
 
 ## Enemigos nuevos del piso 1
 

@@ -8,6 +8,9 @@ reference and as the source of the parity exporters in `Tools/`.
 Read `AGENTS.md`, `README.md` and `docs/port-status.md` before changes; `docs/enemies.md` for
 enemies. Code in English, on-screen text in Spanish.
 
+Art: every new picture, sprite, animation or particle effect follows `docs/art-style.md`, the visual style the user
+approved on 2026-10-27 (the rogue's animated card illustrations); it replaces the earlier art guidelines.
+
 Compiler notes: Unity compiles against .NET Standard 2.1, so .NET 6+ APIs (e.g. `FirstOrDefault(predicate, default)`)
 fail in Unity even if a net8/net9 build passes; check new code against netstandard2.1. Code that uses a Unity module
 (UnityWebRequest, Physics, ...) also needs that module in `Packages/manifest.json` (`com.unity.modules.*`).
