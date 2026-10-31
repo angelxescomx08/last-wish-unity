@@ -112,7 +112,7 @@ namespace LastWish.Domain
         }
         public bool HasRelic(string tag) => RelicEffect(tag) > 0;
         public int RelicMaxHpBonus => Clamp((long)RelicEffect("iron_heart", 15) + RelicEffect("vitality_amulet", 10) + RelicEffect("wild_fruit", 7) + RelicEffect("stone_heart", 30) + Tuning.Current.ExtraMaxHp);
-        public int MaxHp => Clamp((long)Hero.MaxHp + RelicMaxHpBonus + BonusMaxHp);
+        public int MaxHp => Math.Max(1, Clamp((long)Hero.MaxHp + RelicMaxHpBonus + BonusMaxHp - eventMaxHpPenalty));
         public int RelicLuck => Clamp((long)RelicEffect("seven_leaf_clover", 100) + RelicEffect("silver_horseshoe", 30) + RelicEffect("rabbit_foot", 15));
         /// <summary>run_manager.run_luck: character + Pruebas + relics + what the run won.</summary>
         public int Luck => Clamp((long)Tuning.HeroLuck(Hero.Luck) + RelicLuck + BonusLuck);

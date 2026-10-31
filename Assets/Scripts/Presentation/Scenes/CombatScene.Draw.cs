@@ -136,15 +136,15 @@ namespace LastWish.Presentation
                 {
                     rect = BossRect(anim, place);
                     anim.Draw(canvas, Art, (place.X, place.Y));
-                    if (aliveShown) rect = EntityWidget.DrawEnemy(canvas, Art, g, enemy, rect.X, rect.Y, false, false, null, false, (rect.W, rect.H), hit, attacking, t, boxes, shown);
+                    if (aliveShown) rect = EntityWidget.DrawEnemy(canvas, Art, g, enemy, rect.X, rect.Y, false, false, null, false, (rect.W, rect.H), hit, attacking, t, boxes, shown, EntityWidget.EnemyHudDrop);
                 }
                 else if (anim != null)
                 {
                     rect = new IRect(ex, ey, EntityWidget.EnemyW, EntityWidget.EnemyH);
                     anim.Draw(canvas, Art, (rect.CenterX, rect.Bottom + 6));
-                    if (aliveShown) rect = EntityWidget.DrawEnemy(canvas, Art, g, enemy, ex, ey, false, false, null, false, null, hit, attacking, t, boxes, shown);
+                    if (aliveShown) rect = EntityWidget.DrawEnemy(canvas, Art, g, enemy, ex, ey, false, false, null, false, null, hit, attacking, t, boxes, shown, EntityWidget.EnemyHudDrop);
                 }
-                else rect = EntityWidget.DrawEnemy(canvas, Art, g, enemy, ex, ey, false, false, null, true, null, hit, attacking, t, boxes, shown);
+                else rect = EntityWidget.DrawEnemy(canvas, Art, g, enemy, ex, ey, false, false, null, true, null, hit, attacking, t, boxes, shown, EntityWidget.EnemyHudDrop);
                 enemyRects.Add(rect);
                 if (reactHints.TryGetValue(i, out var hint) && boxes.Element.HasValue && enemy.Alive)
                     ElementPreview.DrawReactHint(canvas, Art, g, boxes.Element.Value, hint, fxTime);
@@ -157,13 +157,15 @@ namespace LastWish.Presentation
         private void DrawPlayer(Canvas canvas)
         {
             (float, float) center = (PlayerX + EntityWidget.PlayerW / 2f, PlayerY + EntityWidget.PlayerH / 2f);
-            heroFx?.DrawShadow(canvas, Art, center);
+            if (!hasHeroSprites) heroFx?.DrawShadow(canvas, Art, center);
             var loss = shownEnemies == null ? Tooltip.LossFrom(state, IncomingDamage()) : 0;
             if (hasHeroSprites)
             {
                 var frame = heroSheets.Frame(heroAction ?? "idle", heroAction != null ? heroActionTime : heroIdleTime, 192, out var scale);
                 int w = (int)(frame.W * scale), h = (int)(frame.H * scale);
                 var r = IRect.AtCenter(PlayerX + EntityWidget.PlayerW / 2, PlayerY + EntityWidget.PlayerH / 2, w, h);
+                // the contact shadow follows her feet frame by frame (lunge, step back, kneel)
+                heroSheets.DrawShadow(canvas, Art, heroAction ?? "idle", heroAction != null ? heroActionTime : heroIdleTime, new RectF(r.X, r.Y, w, h));
                 canvas.Blit(frame, r.X, r.Y, scale);
                 heroSheets.DrawHalo(canvas, heroAction ?? "idle", heroAction != null ? heroActionTime : heroIdleTime, new RectF(r.X, r.Y, w, h));
             }
@@ -483,7 +485,7 @@ namespace LastWish.Presentation
                 if (rows.Count == 0) continue;
                 var rect = enemyRects[i];
                 var accent = ep.Reactions.Count > 0 ? ElementPreview.ReactionColor(g, ep.Reactions[0].Kind) : ep.After.HasValue ? ElementPreview.Ink(g, ep.After.Value.element) : new Rgba(200, 190, 220);
-                ElementPreview.DrawBubble(canvas, Art, rect.CenterX, rect.Bottom + 46, rows, accent, fxTime, HandAreaY - 4);
+                ElementPreview.DrawBubble(canvas, Art, rect.CenterX, rect.Bottom + 46 + EntityWidget.EnemyHudDrop, rows, accent, fxTime, HandAreaY - 4);
             }
         }
     }

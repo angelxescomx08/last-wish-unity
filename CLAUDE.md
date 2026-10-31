@@ -19,3 +19,9 @@ Compiler notes: Unity compiles against .NET Standard 2.1, so .NET 6+ APIs (e.g. 
 fail in Unity even if a net8/net9 build passes; check new code against netstandard2.1. Code that uses a Unity module
 (UnityWebRequest, Physics, ...) also needs that module in `Packages/manifest.json` (`com.unity.modules.*`).
 Unity's real compiler output is in `Library/Bee/tundra.log.json`.
+
+## Event expansion — 2026-10-31
+
+Persistent user preference reconfirmed: Unity only, at C:/Users/USER/Desktop/web/unity/last-wish-unity. The Python project remains frozen reference material.
+
+150 events: docs/events-catalog.json is the editable source, Tools/GenerateEvents.py generates Domain/EventCatalog.Generated.cs and docs/events.md. Domain/EventDefinition.cs holds immutable data and room sessions; RunState.Events.cs owns deterministic selection, flags, history, payments and rewards. Presentation/Scenes/EventScene.cs provides text decisions, stages and outcomes. No event artwork exists yet. Read docs/events.md for rarity weights, 16 linked stories (four with alternate endings), floor ranges and sacrifice rules. MaxHp subtracts the permanent event sacrifice penalty separately from positive bonuses. Event rewards settle in the session; SceneManager must not award the old EventGold again.

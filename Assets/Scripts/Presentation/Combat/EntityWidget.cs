@@ -25,6 +25,9 @@ namespace LastWish.Presentation
         private const int Corner = 6, HpH = 13;
         public const int StatusBadgeSize = 28, StatusStep = 31;
         public const int EnemyW = 128, EnemyH = 150, PlayerW = 155, PlayerH = 195, ElementBadgeR = 17;
+        /// <summary>How far below the original place an enemy's HP bar and statuses go, so its feet stand on the floor with
+        /// its contact shadow showing, the same gap as the hero's, instead of on top of the bar.</summary>
+        public const int EnemyHudDrop = 10;
         private static readonly Rgba OutlineInk = new Rgba(12, 8, 14);
 
         // ------------------------------------------------------------------ shared helpers
@@ -253,7 +256,7 @@ namespace LastWish.Presentation
 
         public static IRect DrawEnemy(Canvas canvas, Art art, Glossary g, EnemyState enemy, int x, int y, bool targeted = false, bool highlighted = false,
             Sprite? sprite = null, bool framed = true, (int w, int h)? size = null, int? intentDamage = null, bool lethal = false, float t = 0f, EntityHitboxes hitboxes = null,
-            (int hp, int block)? shown = null)
+            (int hp, int block)? shown = null, int hudDrop = 0)
         {
             var (w, h) = size ?? (EnemyW, EnemyH);
             var rect = new IRect(x, y, w, h);
@@ -289,7 +292,7 @@ namespace LastWish.Presentation
                     canvas.Line(cx, cy, cx, cy + dy * sz, border, 2);
                 }
             }
-            var hp = new IRect(x, rect.Bottom + 4, w, HpH);
+            var hp = new IRect(x, rect.Bottom + 4 + hudDrop, w, HpH);
             HpBar(canvas, art, hp, hpNow, enemy.MaxHp, blockNow);
             BlockBadge(canvas, art, hp.X, hp.CenterY, blockNow);
 
@@ -301,7 +304,7 @@ namespace LastWish.Presentation
                 var badge = DrawElementBadge(canvas, art, g, name, stacks, hp.Right + 4, hp.CenterY, t);
                 if (hitboxes != null) { hitboxes.Statuses.Add(new StatusBadge(name, stacks, badge)); hitboxes.Element = badge; }
             }
-            StatusEffects(canvas, art, g, enemy.Statuses, element, x, rect.Bottom + 21, Math.Max(w, 124), hitboxes?.Statuses);
+            StatusEffects(canvas, art, g, enemy.Statuses, element, x, rect.Bottom + 21 + hudDrop, Math.Max(w, 124), hitboxes?.Statuses);
             if (hitboxes != null) hitboxes.Intent = intentRect;
             return rect;
         }

@@ -8,7 +8,8 @@ Writes Assets/Resources/Game/Heroes/, per hero <id>:
   <id>_96.png        native 96 px cells, already lit (paint + emissive x 0.6, hot cores to white)
   <id>_192.png       the same x2 (nearest): the combat size
   <id>_halo_96.png   soft light of the emissive layer (blurred), drawn additively over the sprite (the game has no bloom)
-  <id>.json          HeroSheets metadata: rows, 12 fps frames (83/84 ms), strike and cast events, halo
+  <id>.json          HeroSheets metadata: rows, 12 fps frames (83/84 ms), strike and cast events, halo, and the ground:
+                     where the feet touch the floor in every frame (the game draws the contact shadow there)
 One row per animation (idle, attack, guard, hurt, cast, death), one column per frame.
 
 Validation (exit 1 when broken): every action except death ends on idle frame 0 pixel for pixel, nothing touches the
@@ -143,6 +144,23 @@ def sheets(R, frames):
     return Image.fromarray(s96, 'RGBA'), Image.fromarray(s192, 'RGBA'), Image.fromarray(h96, 'RGBA')
 
 
+def ground(R):
+    """Where the feet touch the floor in every frame (native px): the line under the soles and, per frame, the centre and
+    width of the figure's last four rows. Measured on the silhouette, so dust, rings and sparks never count."""
+    frames = {}
+    for name, n, _ in R.ANIMATIONS:
+        rows = []
+        for f in range(n):
+            m = np.asarray(R.mass(name, f), bool)
+            ys = np.where(m.any(axis=1))[0]
+            low = min(R.GROUND, int(ys.max())) if ys.size else R.GROUND
+            cols = np.where(m[max(0, low - 3):low + 1].any(axis=0))[0]
+            x0, x1 = (int(cols.min()), int(cols.max()) + 1) if cols.size else (R.CELL // 2 - 8, R.CELL // 2 + 8)
+            rows.append([round((x0 + x1) / 2, 1), x1 - x0])
+        frames[name] = rows
+    return {'y': R.GROUND + 1, 'frames': frames}
+
+
 def metadata(hero, R):
     sx, sy = R.attack_strike_point()
     cx, cy = R.cast_point()
@@ -159,9 +177,14 @@ def metadata(hero, R):
         },
         'animations': {name: {'row': r, 'durations_ms': R.durations_ms(n), 'loop': loop}
                        for r, (name, n, loop) in enumerate(R.ANIMATIONS)},
+        'ground': ground(R),
         'style': 'docs/art-style.md',
         'generator': getattr(R, 'GENERATOR', f'Tools/VfxLab/{R.__name__}.py'),
     }
+
+
+def same_pixels(path, data):
+    return np.array_equal(np.asarray(Image.open(path).convert('RGBA')), np.asarray(Image.open(io.BytesIO(data)).convert('RGBA')))
 
 
 def png(image):
@@ -219,8 +242,7 @@ def main():
                 if not os.path.exists(path):
                     bad.append(name + ' (missing)')
                 elif name.endswith('.png'):
-                    if not np.array_equal(np.asarray(Image.open(path).convert('RGBA')),
-                                          np.asarray(Image.open(io.BytesIO(data)).convert('RGBA'))):
+                    if not same_pixels(path, data):
                         bad.append(name)
                 elif open(path, 'rb').read().replace(b'\r\n', b'\n') != data:
                     bad.append(name)
@@ -231,7 +253,10 @@ def main():
     os.makedirs(out, exist_ok=True)
     for hero, files, frames in built:
         for name, data in files.items():
-            with open(os.path.join(out, name), 'wb') as f:
+            path = os.path.join(out, name)
+            if name.endswith('.png') and os.path.exists(path) and same_pixels(path, data):
+                continue        # same pixels: keep the bytes on disk (PNG encoders differ between machines)
+            with open(path, 'wb') as f:
                 f.write(data)
         if args.preview:
             preview(hero, frames, args.preview)

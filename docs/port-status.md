@@ -168,6 +168,37 @@ Small domain additions for presentation (rules unchanged, tests green):
   replaces the old 72-column sheet. CombatScene's UI/enemy idle clock no longer reads the warrior's idle length: it is
   the original's fixed 1.6 s (`IdleCycle`). HeroFx keeps her warm palette with the authored guard/kneel cues.
 
+## Contact shadows (beyond the original)
+
+* Heroes and enemies stand on a pixel-art contact shadow (`Presentation/Fx/GroundShadow.cs`, 2026-10-31): a flat
+  dithered ellipse in three tones of a cold near-black, in art pixels (x2 in combat), centred on the line the soles stand
+  on. The original's shadows (`HeroFx.Shadow`, the enemy animator's concentric ellipses) peaked at alpha ~40 and the
+  menu's was a fixed ellipse 18 px above the feet; the dungeon floors are almost black where the figures stand, so they
+  looked like floating.
+* Hero sheets carry `ground` metadata (`export_hero_art.ground`: per frame, the centre and width of the figure's last
+  four rows of silhouette, native px, plus the ground line y = 94). `HeroSheets.GroundAt` / `DrawShadow` put the shadow
+  under the feet of the current frame, mirrored with the sprite, `ShadowMargin` (26 px) wider than the feet, over a faint
+  cold floor light (`GroundShadow.FloorLight`, additive). Used by the combat hero and `Looks.Hero(shadow: true)` (main
+  menu). The exporter now keeps PNGs whose pixels did not change, so re-exporting only touches the JSON.
+* `EnemyAnimator` draws its coloured floor glow first and the shadow on top (`ShadowW` x 0.8 wide). Enemy HP bars and
+  statuses go `EntityWidget.EnemyHudDrop` (10 px) lower (`DrawEnemy(hudDrop:)`; the element preview bubble follows), so
+  the feet no longer stand on the bar and the shadow shows, the same gap as the hero's. Tests: `GroundShadowTests`.
+
+## Floor map (beyond the original)
+
+* The map is no longer the original's flat coloured boxes on a grid (user, 2026-10-31: it did not fit the art).
+  `Presentation/Map/MapArt.cs` builds the plan of the crypt seen from above (`MapPlan`: per art pixel rock / floor /
+  corridor / stairs / hall / rug, the room that owns it, the north-wall faces) and paints it in the art style
+  (`MapArt.FloorPlan`). `MapScene` draws it x2 inside a kit panel, cached per layout (`MapPlan.Signature` keys the
+  `Art.Procedural` textures, so a floor is painted once), then per room its fog (`MapArt.Fog`, rooms out of reach) or
+  its rune circle (`MapArt.RuneRing`, rooms you can enter), additive lights (cyan pulse, crimson boss hall, lit torches
+  in the rooms you went through), the room icons and a "you are here" gem (`Map/MapIcons.cs`, atlas and halo from
+  `Tools/VfxLab/map_icons.py`), a legend of the floor's room kinds and a tooltip per room (name, what it holds, whether
+  you can enter). Cells are 40-72 px, multiples of 8; the plan fits 680x614 under the header for every grid up to 12x8.
+* Hover and clicks use the chambers' rects; only reachable rooms take a click (`SelectedNode`, unchanged).
+  `MapScene.Labels` now reads "Élite", "Jefe", "Gachapón" (nothing else used it); `FillAvail` is gone. Tests:
+  `MapArtTests` (EditMode).
+
 ## Animated card illustrations (beyond the original)
 
 * The rogue's basic cards (Puñalada, Esquiva, Finta) show the animated illustrations of the VFX Lab
@@ -336,3 +367,11 @@ Tracks the power of cards, relics and encounters from real runs and stores it in
 
 Screenshots in `docs/screenshots/` come from the offline renderer of the C# drawing
 code (the same commands Unity executes), not from the Unity editor.
+
+## Event expansion (2026-10-31)
+
+Unity-only feature: the four passive gold event texts are replaced by 50 selectable events. Pure C# definitions/sessions and RunState.Events own floor/rarity selection, six three-chapter chains, multi-stage encounters, nonlethal sacrifices, atomic costs, deterministic risks and per-run history. EventScene integrates decisions and results with the existing map; the scene manager no longer gives a second gold reward. The JSON design source generates C# data and the complete tracking list (docs/events.md), with all art marked pending. EditMode EventTests and PlayMode EventFlowTests cover domain rules and map/event interaction. Unity-only development was reconfirmed by the user on 2026-10-31.
+
+## Second event batch: 100 additional events (2026-10-31)
+
+The catalog now contains 150 events. The original 50 definitions are preserved unchanged. The second batch adds 60 independent encounters and 10 four-event stories: six linear and four with mutually exclusive endings. Eight new encounters contain multiple stages (12 total). New floor bands include 7–9 and 10+, with late stories ending on floors 8–9 or deeper. All choices run through the existing pure C# event engine; no new art or runtime mechanics were added. GenerateEvents derives totals and story paths from the data. EventExpansionTests checks every stage path, floor selection, link reachability, acyclic stories, exit choices and exclusive endings. All 150 visual designs remain pending.

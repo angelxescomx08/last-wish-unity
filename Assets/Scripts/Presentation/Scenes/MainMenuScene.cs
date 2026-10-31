@@ -27,7 +27,7 @@ namespace LastWish.Presentation
         }
 
         /// <summary>SpriteLoader.get_player_sprite drawn with midbottom at (x, bottom); returns false without a sheet.</summary>
-        public static bool Hero(Canvas canvas, Art art, string playerName, int size, float elapsed, float x, float bottom, string animation = "idle", bool flip = false, Rgba? tint = null)
+        public static bool Hero(Canvas canvas, Art art, string playerName, int size, float elapsed, float x, float bottom, string animation = "idle", bool flip = false, Rgba? tint = null, bool shadow = false)
         {
             var id = Art.HeroIdFor(playerName);
             if (id == null) return false;
@@ -35,6 +35,7 @@ namespace LastWish.Presentation
             var frame = sheets.Frame(animation, elapsed, size, out var scale);
             var w = frame.W * scale; var h = frame.H * scale;
             var rect = new RectF((float)Math.Floor(x) - (int)w / 2, bottom - h, w, h);
+            if (shadow) sheets.DrawShadow(canvas, art, animation, elapsed, rect, flip);   // under its own feet, frame by frame
             canvas.BlitFlipped(frame, rect, flip, false, tint ?? Rgba.White);
             sheets.DrawHalo(canvas, animation, elapsed, rect, flip, tint);
             return true;
@@ -102,8 +103,7 @@ namespace LastWish.Presentation
             for (var k = 0; k < Heroes.Length; k++)
             {
                 var (name, x, feet, size) = Heroes[k];
-                canvas.Ellipse(RectF.CenteredInt(x, feet - 4, 110, 20), new Rgba(0, 0, 0, 120));
-                Looks.Hero(canvas, Art, name, size, t + k * 0.37f, x, feet + 20, flip: x > cx);
+                Looks.Hero(canvas, Art, name, size, t + k * 0.37f, x, feet + 20, flip: x > cx, shadow: true);
             }
 
             var pulse = 0.5 + 0.5 * Math.Sin(t * 1.4);

@@ -50,6 +50,12 @@ namespace LastWish.Presentation
         private readonly Dictionary<int, (Tex tex, int columns, int split)> sheets = new Dictionary<int, (Tex, int, int)>();
         private readonly Tex haloTex;
         private readonly int haloCell, haloColumns;
+        /// <summary>Metadata coordinates are in the hero's native 96 px canvas.</summary>
+        public const int NativeCell = 96;
+        /// <summary>How much wider than the feet a hero's shadow is (native px).</summary>
+        public const int ShadowMargin = 26;
+        private readonly float groundY = 94f;
+        private readonly Dictionary<string, (float x, float w)[]> ground = new Dictionary<string, (float x, float w)[]>();
 
         public HeroSheets(string id, string json, Func<string, Tex> load)
         {
@@ -82,6 +88,47 @@ namespace LastWish.Presentation
                 haloColumns = Math.Max(1, Json.Int(halo.Get("columns"), 1));
                 HaloGain = (float)Json.Num(halo.Get("gain"), 0.5);
             }
+            // optional floor contact per frame (export_hero_art.ground): the line under the soles, the feet's centre and width
+            var floor = Json.Obj(meta.Get("ground"));
+            if (floor != null)
+            {
+                groundY = (float)Json.Num(floor.Get("y"), 94);
+                foreach (var pair in Json.Obj(floor.Get("frames")) ?? new Dictionary<string, object>())
+                {
+                    var list = Json.Arr(pair.Value);
+                    if (list == null) continue;
+                    var cells = new (float x, float w)[list.Count];
+                    for (var i = 0; i < list.Count; i++)
+                    {
+                        var xw = Json.Nums(list[i]);
+                        cells[i] = xw != null && xw.Length == 2 ? ((float)xw[0], (float)xw[1]) : (NativeCell / 2f, 20f);
+                    }
+                    ground[pair.Key] = cells;
+                }
+            }
+        }
+
+        public bool HasGround => ground.Count > 0;
+
+        /// <summary>Where the feet touch the floor in <paramref name="animation"/> at <paramref name="elapsed"/> (native px:
+        /// centre x, ground line y, width of the feet); null when the sheet has no ground metadata.</summary>
+        public (float x, float y, float w)? GroundAt(string animation, float elapsed)
+        {
+            var name = Animations.ContainsKey(animation) ? animation : "idle";
+            if (!ground.TryGetValue(name, out var cells) || cells.Length == 0 || !Animations.ContainsKey(name)) return null;
+            var f = Math.Max(0, Math.Min(Animations[name].FrameAt(elapsed), cells.Length - 1));
+            return (cells[f].x, groundY, cells[f].w);
+        }
+
+        /// <summary>The contact shadow (over a faint floor light) under the feet of the frame drawn in <paramref name="dst"/>
+        /// (any size), mirrored with it, a little wider than the feet. Drawn before the sprite. Sheets without ground metadata
+        /// get one under the middle of the cell.</summary>
+        public void DrawShadow(Canvas canvas, Art art, string animation, float elapsed, RectF dst, bool flip = false, float alpha = 1f)
+        {
+            var k = dst.W / NativeCell;
+            var (gx, gy, gw) = GroundAt(animation, elapsed) ?? (NativeCell / 2f, 94f, 20f);
+            var x = dst.X + (flip ? NativeCell - gx : gx) * k;
+            GroundShadow.Draw(canvas, art, x, dst.Y + gy * k, (gw + ShadowMargin) * k, Math.Max(1, (int)Math.Round(k)), alpha, GroundShadow.FloorLight);
         }
 
         /// <summary>The halo cell of <paramref name="animation"/> at <paramref name="elapsed"/> (default when the hero has none).</summary>

@@ -46,7 +46,8 @@ namespace LastWish.Presentation
 
             var hpSources = PerRelic(relics, r => Tag(r, "iron_heart", 15) + Tag(r, "vitality_amulet", 10) + Tag(r, "wild_fruit", 7) + Tag(r, "stone_heart", 30));
             hpSources.AddRange(Pruebas(t.ExtraMaxHp));
-            var maxHp = hero.MaxHp + hpSources.Sum(s => s.Amount); var current = run.Hp;
+            if (run.PermanentMaxHpAdjustment != 0) hpSources.Add(new StatSource("Partida", run.PermanentMaxHpAdjustment));
+            var maxHp = run.MaxHp; var current = run.Hp;
             if (state != null)
             {
                 if (state.Hero.MaxHp != maxHp) { hpSources.Add(new StatSource("Este combate", state.Hero.MaxHp - maxHp)); maxHp = state.Hero.MaxHp; }
@@ -72,7 +73,8 @@ namespace LastWish.Presentation
 
             var luckSources = Pruebas(Tuning.HeroLuck(hero.Luck) - hero.Luck);
             luckSources.AddRange(PerRelic(relics, r => Tag(r, "seven_leaf_clover", 100) + Tag(r, "silver_horseshoe", 30) + Tag(r, "rabbit_foot", 15)));
-            var luckTotal = Tuning.HeroLuck(hero.Luck) + run.RelicLuck;
+            if (run.BonusLuck != 0) luckSources.Add(new StatSource("Partida", run.BonusLuck));
+            var luckTotal = run.Luck;
             var goldCard = LuckReport.GoldenChance("card", luckTotal); var goldRelic = LuckReport.GoldenChance("relic", luckTotal);
             var odds = LuckReport.RarityOdds(luckTotal); var epic = odds[4] + odds[5];
             sheet.Stats.Add(new HeroStat { Key = "luck", Name = "Suerte", Icon = "clover", Value = luckTotal, Base = hero.Luck, Sources = luckSources, Reference = 20,

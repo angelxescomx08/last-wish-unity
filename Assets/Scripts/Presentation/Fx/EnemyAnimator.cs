@@ -474,26 +474,6 @@ namespace LastWish.Presentation
         public Sprite CurrentFrame() => Action != null ? Sheet.Frame(Action, actionTime) : Sheet.Frame("idle", idleTime);
 
         /// <summary>_shadow(w, 26): concentric SRCALPHA ellipses (each overwrites).</summary>
-        private static Sprite ShadowSprite(Art art, int w, int h)
-        {
-            return new Sprite(art.Procedural("enemy_shadow_" + w + "x" + h, w, h, () =>
-            {
-                var px = new Rgba[w * h];
-                for (var i = 6; i > 0; i--)
-                {
-                    var kk = i / 6.0; var a = (int)(26 * (1.2 - kk) + 10);
-                    double ew = w * kk, eh = h * kk, cx = w / 2.0, cy = h / 2.0;
-                    for (var y = 0; y < h; y++)
-                        for (var x = 0; x < w; x++)
-                        {
-                            double dx = (x + 0.5 - cx) / (ew / 2), dy = (y + 0.5 - cy) / (eh / 2);
-                            if (dx * dx + dy * dy <= 1) px[y * w + x] = new Rgba(0, 0, 0, a);
-                        }
-                }
-                return px;
-            }));
-        }
-
         public void Draw(Canvas canvas, Art art, (float x, float y) anchorPoint)
         {
             anchor = anchorPoint;
@@ -505,7 +485,6 @@ namespace LastWish.Presentation
             if (fade > 0)
             {
                 var sw = st.ShadowW;
-                canvas.Blit(ShadowSprite(art, sw, 26), ax - sw / 2, ay - 13, 1f, Rgba.White.WithAlpha((int)(255 * fade)));
                 var pulse = 0.5 + 0.5 * Math.Sin(fxTime * 2.4);
                 var boost = Action != null && Action != "hurt" && Action != "death" ? 2 : 0;
                 var level = Math.Max(1, Math.Min(6, (int)((2 + 2 * pulse + boost) * fade + 0.5)));
@@ -513,6 +492,9 @@ namespace LastWish.Presentation
                 var kk = level / 6.0;
                 var col = new Rgba((int)(st.Glow.R * kk), (int)(st.Glow.G * kk), (int)(st.Glow.B * kk));
                 canvas.BlitRect(Glows.Soft(art), new RectF(ax - gw / 2, ay - 22, gw, 44), col, Blend.Add);
+                // the contact shadow goes on top of its glow: a lit floor with a dark spot where it stands, not a creature
+                // hovering on light (it used to be drawn first, and nearly transparent)
+                GroundShadow.Draw(canvas, art, ax, ay, sw * 0.8f, Sheet.Scale, fade);
             }
             if (st.Blades) DrawBlades(canvas, false);
             if (!DeathDone)

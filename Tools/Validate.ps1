@@ -11,5 +11,8 @@ foreach ($project in @('UnityCompile/UnityCompile.csproj', 'DomainSmoke/DomainSm
     dotnet build $projectPath --no-restore -p:UnityEditorRoot=$UnityEditorRoot --verbosity quiet
     if ($LASTEXITCODE -ne 0) { throw "Compilation failed: $project" }
 }
+# Compile the second test assembly separately; duplicate fixture names are legal across assemblies.
+dotnet build (Join-Path $PSScriptRoot 'UnityCompile/UnityCompile.csproj') --no-restore -p:UnityEditorRoot=$UnityEditorRoot -p:TestPlatform=PlayMode --verbosity quiet
+if ($LASTEXITCODE -ne 0) { throw 'PlayMode compilation failed' }
 dotnet run --project (Join-Path $PSScriptRoot 'DomainSmoke/DomainSmoke.csproj') --no-build -p:UnityEditorRoot=$UnityEditorRoot
 if ($LASTEXITCODE -ne 0) { throw 'Domain checks failed' }

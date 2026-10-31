@@ -230,7 +230,7 @@ namespace LastWish.Presentation
                     relicChoice = game.Track(p => p.OfferRelics(run, "treasure", treasure.Select(r => r.Definition)));
                     Push(new TreasureScene(game, run, treasure)); break;
                 case RoomKind.Shop: Push(new ShopScene(game, run)); break;
-                case RoomKind.Event: Push(new EventScene(game, run, run.EventGold(node.Id), node.Id)); break;
+                case RoomKind.Event: Push(new EventScene(game, run, node.Id)); break;
                 case RoomKind.Warlock: Push(new WarlockScene(game, run)); break;
                 case RoomKind.Gacha: Push(new GachaScene(game, run)); break;
                 case RoomKind.Purge: Push(new PurgeScene(game, run)); break;
@@ -342,7 +342,7 @@ namespace LastWish.Presentation
         {
             if (!scene.Cleared) return;
             scene.Cleared = false;
-            Run.GainGold(scene.Gold);
+            // The event session has already settled its chosen outcome.
             Pop();
         }
 

@@ -166,49 +166,4 @@ namespace LastWish.Presentation
         }
     }
 
-    /// <summary>scenes/event_scene.py: narrative text and a gold pickup.</summary>
-    public sealed class EventScene : Scene
-    {
-        private static readonly (string title, string body)[] Events =
-        {
-            ("Monedas Dispersas", "Encuentras monedas dispersadas por el suelo.\n¡Alguien debió pasar aquí con prisa!"),
-            ("Cofre Olvidado", "Hay un pequeño cofre medio enterrado entre las piedras.\nNo tiene cerradura. ¡Qué suerte!"),
-            ("Mercader Caído", "Un mercader caído ha perdido su bolsa de monedas.\nParece que ya no la necesita."),
-            ("Trampa Fallida", "Una trampa dispara unas monedas al aire.\nAlgún ingeniero tuvo un día malo."),
-        };
-        private readonly string title; private readonly string[] bodyLines;
-        private IRect? button;
-        public int Gold { get; }
-        public bool Cleared { get; set; }
-
-        public EventScene(GameContext game, RunState run, int gold, string roomId) : base(game)
-        {
-            Gold = gold;
-            // The original indexes by the process-salted hash(); a stable CRC keeps the same four texts.
-            var e = Events[PyRandom.Crc32(roomId ?? "") % Events.Length];
-            title = e.title; bodyLines = e.body.Split('\n');
-        }
-
-        public override void HandleEvent(in InputEvent e)
-        {
-            if (Cleared) return;
-            if (e.IsLeftDown && button.HasValue && button.Value.Contains(e.X, e.Y)) { Sound.PlayReward(); Cleared = true; }
-        }
-
-        public override void Draw(Canvas canvas)
-        {
-            canvas.Fill(new RectF(0, 0, Canvas.Width, Canvas.Height), new Rgba(10, 10, 20));
-            const int cx = 640;
-            Fonts.Get(24).DrawCentered(canvas, "Evento Misterioso", cx, 80, new Rgba(140, 80, 200));
-            Fonts.Get(18).DrawCentered(canvas, title, cx, 140, Colors.TextAccent);
-            var cy = 190;
-            foreach (var line in bodyLines) { Fonts.Get(14).DrawCentered(canvas, line, cx, cy, Colors.TextPrimary); cy += 26; }
-            Fonts.Get(18).DrawCentered(canvas, "Recompensa: +" + Gold + " de oro", cx, 300, new Rgba(220, 190, 50));
-            var f = Fonts.Get(15); var w = f.Width("Recoger"); var h = f.Height;
-            var bx = cx - w / 2; var by = 380 - h / 2;
-            var rect = new IRect(bx - 20, by - 8, w + 40, h + 16); button = rect;
-            canvas.Rect(rect, new Rgba(50, 120, 50), 0, 6); canvas.Rect(rect, new Rgba(60, 160, 60), 2, 6);
-            f.Draw(canvas, "Recoger", bx, by, Colors.TextPrimary);
-        }
-    }
 }

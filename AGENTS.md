@@ -11,3 +11,8 @@ Git (user rule 2026-10-27): work, commit and push directly on main; never create
 Run EditMode and PlayMode tests before publishing changes; inspect logs and XML results, not just the process-launch exit code.
 Tools/Validate.ps1 provides extra compile/domain checks and does not replace Unity tests.
 Update README.md and docs/port-status.md when migration scope or architecture changes.
+
+## Persistent project memory — 2026-10-31: Unity-only
+
+The user reconfirmed that Last Wish is developed and played exclusively in this Unity project. The Python repository is frozen reference material; never implement game features there.
+Events: read docs/events.md and edit docs/events-catalog.json, then run python Tools/GenerateEvents.py (and --check). Track rarity, floors, prerequisites, links, implementation and visual-design status. All 150 current events intentionally have no visual material; do not generate event art without a new request.

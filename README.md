@@ -295,3 +295,9 @@ dibujo que ejecuta Unity:
 ![Tienda](docs/screenshots/shop.png)
 
 ![Gachapón](docs/screenshots/gacha.png)
+
+## Eventos con decisiones
+
+Hay 150 eventos con decisiones, rarezas, restricciones por piso, vendedores extraños, sacrificios de vida y vida máxima, riesgos y 16 historias enlazadas; cuatro tienen finales alternativos. Algunos tienen varias decisiones en la misma sala. Se manejan con clic o ↑/↓, 1–3 y Enter. La lista completa, recompensas, enlaces y seguimiento de imágenes está en [docs/events.md](docs/events.md). Los 150 tienen diseño visual e imagen pendientes: esta entrega no añade arte.
+
+`python Tools/GenerateEvents.py --check` verifica que lista y programación coinciden con el catálogo editable.

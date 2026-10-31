@@ -377,6 +377,30 @@ usuario lo pida.
 cubre (el sombrero del Mago, la capucha de la Pícara, el yelmo con visera de la Guerrera). Una cara descubierta y oscura
 «se ve rara»: a todo personaje con cara en sombra dale algo que la tape. Y no todos llevan capa: la Guerrera no.
 
+**Sombras de contacto (usuario, 31-10-2026: «parece que flotan»):** todo personaje y enemigo pisa una sombra en
+pixel art (`Presentation/Fx/GroundShadow.cs`): elipse plana en tinta casi negra fría `(10, 6, 18)`, tres tonos (alfa
+110/172/228) con tramado Bayer 4×4 hacia el borde, en píxeles del arte (×2 en combate), centrada en la línea donde
+apoyan las suelas. Los suelos de las mazmorras son casi negros donde están las figuras, así que a los héroes se les pone
+antes una luz de suelo tenue y fría `(32, 40, 62)` (suelo iluminado con una mancha oscura); los enemigos ya tienen su
+resplandor de color, y la sombra va encima de él. Para los héroes, el exportador mide los pies en cada fotograma
+(`ground` en el JSON) y la sombra los sigue (estocada, retroceso, rodillas). Nunca una elipse fija «al centro de la
+celda»: no coincide con el sprite.
+
+**El mapa del piso (usuario, 31-10-2026: «desencaja del arte actual»):** el mapa ya no son cajas planas de colores, es
+la **planta de la cripta vista desde arriba** (`Presentation/Map/MapArt.cs`), pintada por código en píxeles del arte
+(×2) con la paleta nocturna: roca con ruido y contorno de tinta; cada sala, una cámara tallada en su celda con muro norte
+de ladrillo (canto iluminado arriba, pie en sombra) y suelo de losas con juntas y oclusión al oeste y al norte (la luz
+viene de arriba a la izquierda); pasillos solo entre salas conectadas; escaleras que suben desde el borde inferior hasta
+la entrada; el jefe espera en un salón con dos pilares y alfombra carmesí. Encima: las salas a las que aún no puedes
+llegar se hunden en sombra (la planta oscurecida un 58 % hacia la tinta, se sigue leyendo), las que puedes elegir
+tienen un **círculo de runas cian** en el suelo y una luz que late, las que ya pasaste tienen sus dos antorchas
+encendidas y el salón del jefe una luz carmesí. Cada sala lleva su **icono** (`Tools/VfxLab/map_icons.py` →
+`Resources/Game/Map/map_icons*.png`, 16×16 nativos, el del jefe 20×20): espadas cruzadas, cráneo con cuernos, cráneo
+con corona, cofre, bolsa con moneda, lápida con «?» violeta, caldero, máquina de cápsulas, altar con llama y una gema
+que marca dónde estás; mismo contorno, rampas y tramado, y sus partes emisivas brillan en las salas elegibles (hoja de
+halo, `Blend.Add`). A la derecha, la leyenda «Salas» con los tipos del piso; al pasar el ratón, qué hay en la sala.
+Las celdas miden múltiplos de 8 px para que la trama Bayer no se corte, y la cámara nunca es más estrecha que su icono.
+
 ## 4. Partículas
 
 ### 4.1 En el juego (lienzo propio, sin HDR)
@@ -449,6 +473,7 @@ python Tools/VfxLab/export_hero_art.py --preview TestResults/hero-preview       
 python Tools/VfxLab/export_hero_art.py --hero mage                               # solo uno (el Mago necesita Node)
 # Tools/VfxLab/mage_hero.html: ábrelo en el navegador para ver el Mago animado; es la fuente de su hoja
 python Tools/VfxLab/export_hero_art.py --check                                 # hoja = generador; una sola masa
+python Tools/VfxLab/map_icons.py --check                                       # iconos del mapa = generador
 ```
 
 1. Dibujar/ajustar en el módulo de arte, mirar el GIF fotograma a fotograma.
