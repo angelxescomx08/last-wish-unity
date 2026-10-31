@@ -189,6 +189,24 @@ python Tools/VfxLab/export_hero_art.py --check
 
 Pruebas: `MageHeroArtTests` (EditMode y PlayMode, capturas `TestResults/mage-hero-*.png`).
 
+### La Guerrera en combate (dibujada con código en HTML)
+
+`Tools/VfxLab/warrior_hero.html` (31-10-2026) es la página para verla y la fuente de su hoja (`Heroes/warrior_96|192`,
+halo `warrior_halo_96`, `warrior.json`), con el mismo método que el Mago. Cada fotograma dibuja la figura entera como
+**una sola silueta**: yelmo cerrado con visera en T (los ojos cian brillan dentro: la cara queda cubierta como la del
+Mago y la Pícara), penacho carmesí, trenza platino, hombreras y peto de acero con ribetes dorados, tabardo carmesí,
+escarcelas, grebas, escudo heater carmesí en el brazo lejano y espada larga con runas; sin capa. Ataque = Espadazo
+(corte ascendente con media luna cian), guardia = Bloqueo / Guardia Férrea (alza el escudo y crece de él un escudo de
+placas de luz), habilidad = Furia (aura carmesí); muerte de rodillas sobre la espada clavada. Sustituye a la hoja
+anterior (72 columnas, sin halo).
+
+```powershell
+python Tools/VfxLab/export_hero_art.py --hero warrior --preview TestResults/warrior-hero-preview   # necesita Node
+python Tools/VfxLab/export_hero_art.py --check
+```
+
+Pruebas: `WarriorHeroArtTests` (EditMode y PlayMode, capturas `TestResults/warrior-hero-*.png`).
+
 ## VFX Lab (prueba de efectos y cartas de la Pícara)
 
 Escena aislada en `Assets/VfxLab` para validar partículas brillantes en pixel art (inspiración Core Keeper/Noita)

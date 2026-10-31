@@ -482,7 +482,7 @@ namespace LastWish.Presentation
         {
             if (heroAction == null)
             {
-                idleTime = (float)MathX.PyMod(idleTime + dt, idleCycle > 0 ? idleCycle : 1.6);
+                idleTime = (float)MathX.PyMod(idleTime + dt, IdleCycle);
                 heroIdleTime = (float)MathX.PyMod(heroIdleTime + dt, heroIdleCycle > 0 ? heroIdleCycle : 1.6);
                 return;
             }

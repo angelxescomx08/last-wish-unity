@@ -23,6 +23,7 @@ Referencias aprobadas (mirarlas antes de dibujar):
 | Cartas básicas del Mago (hechizos sin personaje, rampa de fuego) | `Tools/VfxLab/mage_art.py` |
 | Hojas del juego | `Assets/Resources/Game/Cards/Anim/` |
 | **Personajes y enemigos: método y diseño obligatorios (§3.1)** — ábrelo en el navegador | `Tools/VfxLab/mage_hero.html` → `Assets/Resources/Game/Heroes/mage*` |
+| La Guerrera en combate: mismo método (yelmo con visera en T, escudo, sin capa) | `Tools/VfxLab/warrior_hero.html` → `Assets/Resources/Game/Heroes/warrior*` |
 | La Pícara en combate: hecha por piezas, pendiente de rehacer con el método del Mago | `Tools/VfxLab/rogue_hero_art.py` |
 
 ---
@@ -368,8 +369,13 @@ dibujos a mano ni piezas montadas.
 4. Exportar con un adaptador como `mage_hero_html.py` (Node) desde `export_hero_art.py`, y pruebas como
    `MageHeroArtTests`.
 
-**Estado (30-10-2026):** El Mago, hecho con este método y en el juego. Pendientes de rehacer con él: la Pícara (su hoja
-actual es por piezas), la Guerrera y los enemigos, cuando el usuario lo pida.
+**Estado (31-10-2026):** El Mago y la Guerrera, hechos con este método y en el juego (`mage_hero.html`,
+`warrior_hero.html`). Pendientes de rehacer con él: la Pícara (su hoja actual es por piezas) y los enemigos, cuando el
+usuario lo pida.
+
+**Cara cubierta (regla del usuario, 31-10-2026):** la cara en sombra con ojos que brillan solo tiene sentido si algo la
+cubre (el sombrero del Mago, la capucha de la Pícara, el yelmo con visera de la Guerrera). Una cara descubierta y oscura
+«se ve rara»: a todo personaje con cara en sombra dale algo que la tape. Y no todos llevan capa: la Guerrera no.
 
 ## 4. Partículas
 

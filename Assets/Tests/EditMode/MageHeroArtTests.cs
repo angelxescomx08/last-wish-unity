@@ -16,6 +16,10 @@ namespace LastWish.Tests
             ("idle", 24, true), ("attack", 10, false), ("guard", 9, false), ("hurt", 7, false), ("cast", 12, false), ("death", 17, false),
         };
 
+        /// <summary>A hero sheet whose metadata has no "halo" entry (every hero in the game has one now).</summary>
+        internal const string NoHaloJson = "{\"cell\":96,\"sheets\":{\"96\":\"Heroes/mage_96\"},\"pack\":{\"96\":{\"columns\":24,\"split\":1}}," +
+            "\"events\":{},\"animations\":{\"idle\":{\"row\":0,\"durations_ms\":[83,84],\"loop\":true}}}";
+
         private sealed class Recorder : IRenderBackend
         {
             public readonly List<(string tex, Blend blend, Rgba color)> Quads = new List<(string, Blend, Rgba)>();
@@ -111,8 +115,9 @@ namespace LastWish.Tests
             canvas.PushAlpha(0f); sheets.DrawHalo(canvas, "idle", 0f, new RectF(0, 0, 192, 192)); canvas.PopAlpha();
             sheets.DrawHalo(canvas, "idle", 0f, new RectF(0, 0, 192, 192), tint: new Rgba(0, 0, 0));
             Assert.That(render.Quads, Is.Empty, "no light on an invisible or blacked-out hero");
-            art.Hero("warrior").DrawHalo(canvas, "idle", 0f, new RectF(0, 0, 192, 192));
-            Assert.That(render.Quads, Is.Empty, "heroes without a halo sheet draw nothing");
+            var bare = new HeroSheets("bare", NoHaloJson, key => render.LoadTexture(key));
+            bare.DrawHalo(canvas, "idle", 0f, new RectF(0, 0, 192, 192));
+            Assert.That((bare.HasHalo, render.Quads.Count), Is.EqualTo((false, 0)), "heroes without a halo sheet draw nothing");
             foreach (var t in new[] { float.NaN, -5f, 1e9f })
                 Assert.DoesNotThrow(() => sheets.Halo("death", t));
         }

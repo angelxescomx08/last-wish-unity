@@ -53,7 +53,7 @@ namespace LastWish.Presentation
         private readonly string heroId;
         private readonly HeroSheets heroSheets;
         private readonly bool hasHeroSprites;
-        private readonly float idleCycle;
+        private const float IdleCycle = 1.6f;   // the original's shared idle clock (IDLE_CYCLE_SECONDS): UI pulses and enemies
         private readonly float heroIdleCycle;   // the hero's own idle loop (the rogue's is 2 s, like her card art)
         private float heroIdleTime;
         private float heroActionTime;
@@ -141,7 +141,6 @@ namespace LastWish.Presentation
             heroId = Art.HeroIdFor(heroName) ?? "warrior";
             hasHeroSprites = Art.HeroIdFor(heroName) != null;
             heroSheets = game.Art.Hero(heroId);
-            idleCycle = game.Art.Hero("warrior").Seconds("idle");
             heroIdleCycle = heroSheets.Seconds("idle");
             IsBoss = isBoss;
             for (var i = 0; i < state.Enemies.Count; i++) { view.Add(i); if (state.Enemies[i].Definition.Elite) IsElite = true; }

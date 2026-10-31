@@ -1,0 +1,917 @@
+<title>Sprite de la Guerrera</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one stage (the sprite at 4x on the dungeon night), the animation picker beside it, the frame strip below. */
+  :root {
+    --bg: #0f0d1a; --panel: #17142a; --line: #2b2648; --fg: #e8e4f8; --muted: #9d97bd;
+    --accent: #58dcff; --crimson: #d2434a; --gold: #d9b26a; --stage: #1c1932; --stage-floor: #120f22;
+    --font-display: "Pixelify Sans", "Silkscreen", ui-monospace, monospace;
+    --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { background: var(--bg); color: var(--fg); }
+  body { font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .page { max-width: 980px; margin: 0 auto; padding-block: 28px 40px; display: grid; gap: 22px; }
+  header { display: grid; gap: 6px; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 6vw, 44px); line-height: 1; margin: 0;
+    letter-spacing: 0.02em; text-wrap: balance; }
+  h1 span { color: var(--crimson); }
+  .lede { color: var(--muted); max-width: 64ch; margin: 0; }
+  .work { display: grid; grid-template-columns: minmax(0, 384px) minmax(0, 1fr); gap: 22px; align-items: start; }
+  @media (max-width: 720px) { .work { grid-template-columns: minmax(0, 1fr); } }
+  .stage { position: relative; width: 100%; max-width: 384px; aspect-ratio: 1; border: 1px solid var(--line);
+    background: var(--stage); }
+  .stage canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+  .side { display: grid; gap: 16px; min-width: 0; }
+  .label { font-family: var(--font-display); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .picker { display: flex; flex-wrap: wrap; gap: 8px; }
+  .picker button, .controls button { font: 600 14px/1 var(--font-body); color: var(--fg); background: var(--panel);
+    border: 1px solid var(--line); padding: 10px 12px; cursor: pointer; }
+  .picker button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+  .picker button:hover, .controls button:hover { border-color: var(--muted); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .controls label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 14px; }
+  .readout { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .readout b { color: var(--fg); font-weight: 500; }
+  .note { border-left: 2px solid var(--gold); padding: 2px 0 2px 12px; color: var(--muted); font-size: 14px; margin: 0; }
+  .note strong { color: var(--fg); font-weight: 600; }
+  .strip-wrap { display: grid; gap: 8px; }
+  .strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+  .strip figure { margin: 0; display: grid; gap: 4px; flex: 0 0 auto; }
+  .strip canvas { width: 192px; height: 192px; image-rendering: pixelated; background: var(--stage); border: 1px solid var(--line); cursor: pointer; display: block; }
+  .strip figure[data-on="true"] canvas { border-color: var(--accent); }
+  .strip figcaption { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+  .strip figcaption .ev { color: var(--gold); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+  <header>
+    <h1>La <span>Guerrera</span></h1>
+    <p class="lede">Sprite de combate de Last Wish dibujado con código, con el mismo método que el Mago. Yelmo cerrado con visera en T, penacho carmesí, trenza, armadura, tabardo, escudo y espada larga. En cada fotograma la figura entera es una sola silueta con un único contorno: no hay piezas encima ni partes que giren. 12 fotogramas por segundo, celdas de 96 px.</p>
+  </header>
+  <div class="work">
+    <div class="stage"><canvas id="stage" width="384" height="384" aria-label="La Guerrera animada"></canvas></div>
+    <div class="side">
+      <div class="label">Animación</div>
+      <div class="picker" id="picker" role="group" aria-label="Animación"></div>
+      <div class="controls">
+        <button id="play" type="button">Pausa</button>
+        <button id="prev" type="button" aria-label="Fotograma anterior">◀</button>
+        <button id="next" type="button" aria-label="Fotograma siguiente">▶</button>
+        <label><input id="halo" type="checkbox" checked> Halo de luz</label>
+      </div>
+      <div class="readout" id="readout"></div>
+      <p class="note" id="note"></p>
+    </div>
+  </div>
+  <div class="strip-wrap">
+    <div class="label">Fotogramas a tamaño de combate</div>
+    <div class="strip" id="strip"></div>
+  </div>
+</div>
+
+<script id="warrior-art">
+/* La Guerrera drawn by code (docs/art-style.md section 3.1: the mandatory method for characters and enemies, the same as
+   Tools/VfxLab/mage_hero.html). Every frame computes the WHOLE figure as one silhouette: the closed helmet with its
+   T-shaped visor (eyes glowing inside: her face is covered like the mage's and the rogue's), the crimson plume, the
+   platinum braid, pauldrons, breastplate, belt, crimson tabard, steel faulds, mail skirt, greaves and sabatons, the
+   shield arm and its heater shield, the sword arm, the gauntlet and the long sword are zones of the same label map, with
+   one outline around everything. Nothing is drawn as a separate piece on top and nothing is rotated between frames:
+   each frame has its own complete pose (the tables below), like frame-by-frame pixel art. No cape (user, 31-10-2026).
+   Two layers per frame: paint (readable alone) and emissive light (only the magic: eyes, brow and shield gems, the
+   blade's runes, her Furia). 96x96 cells, soles on row 93. */
+(function (root) {
+  'use strict';
+  const CELL = 96, N = CELL * CELL, GROUND = 93, ROOT_X = 38, FPS = 12, LOOP = 24;
+  const H_HIP = 30, D_TOP = 66, HC = 56.6, HR = 8.6, BELT = 31, BELT_TOP = 33.2, CHEST_TOP = 41.5, NECK = 48.6;
+  const GRIP = 4.6, GUARD_AT = 2.2, BLADE = 30, TIP = GUARD_AT + 0.9 + BLADE;
+  const ANIMATIONS = [['idle', 24, true], ['attack', 10, false], ['guard', 9, false], ['hurt', 7, false],
+    ['cast', 12, false], ['death', 17, false]];
+  const STRIKE_FRAME = 4, CAST_FRAME = 6;
+
+  // ---------------------------------------------------------------------------------------------- palette
+  const hex = h => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
+  const K = {};
+  for (const [k, v] of Object.entries({
+    ink: '#07050c', body0: '#0c0814', body1: '#171025', body2: '#241838', rimc: '#58dcff', rimv: '#3a2163',
+    cyan0: '#0d3550', cyan1: '#137ea3', cyan2: '#2fc4e6', cyan3: '#8ff1ff', cyan4: '#e6feff',
+    violet0: '#2d1346', violet1: '#55248a', violet2: '#8a47cf', violet3: '#c79bff', violet4: '#f0e0ff',
+    red0: '#3d0f14', red1: '#7a1a22', red2: '#c8322e', red3: '#ff7a4a', red4: '#ffe0b0',
+    vio2: '#281242', dust0: '#2b2540', dust1: '#4a4066', steel3: '#cdd5ec', white: '#ffffff',
+    void1: '#05030a', bounce: '#1a1030', spec: '#e2eaff', steelHi: '#a7b6dc'
+  })) K[k] = hex(v);
+  const ramp = a => a.map(hex);
+  const RAMP = {
+    steel: ramp(['#0b0e1c', '#141a2e', '#1f2843', '#2f3b5f', '#475683', '#6f82b0']),
+    crimson: ramp(['#25070f', '#44101c', '#6c1828', '#9c2434', '#c83a40']),
+    plume: ramp(['#300810', '#5e1222', '#9a1e30', '#d23440', '#ff7464']),
+    braid: ramp(['#3a3240', '#6e6070', '#a8949c', '#dccbc4', '#f4ece4']),
+    leather: ramp(['#140c16', '#24151f', '#3a2633', '#5c3f4c']),
+    blade: ramp(['#27304c', '#4c5a84', '#8193c0', '#c3d0f0', '#f2f6ff']),
+    grip: ramp(['#2a0c14', '#4a1622', '#6e2632'])
+  };
+  const GOLD = ramp(['#5e4626', '#8a6a3a', '#d9b26a', '#f4dc9c']);
+  const LIGHT = { cyan: [0.25, 0.85, 1.0], white: [1, 1, 1], violet: [0.6, 0.3, 1.0], warm: [1.0, 0.6, 0.25], red: [1.0, 0.24, 0.16] };
+  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+  // ---------------------------------------------------------------------------------------------- tiny raster kit
+  const BAY = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  const B = new Float32Array(N);
+  for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) B[y * CELL + x] = (BAY[y % 4][x % 4] + 0.5) / 16;
+  const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+  const smooth = (e0, e1, d) => clamp01((d - e0) / (e1 - e0));
+  const frac = v => v - Math.floor(v);
+
+  class Cv { constructor() { this.px = new Float32Array(N * 4); } }
+  const val = (a, i) => typeof a === 'number' ? a : typeof a === 'function' ? a(i) : a[i];
+  function put(c, m, col, a = 1) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      if (B[i] < val(a, i)) { const o = i * 4; c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1; }
+    }
+  }
+  function add(g, m, light, a = 1) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      const al = val(a, i), o = i * 4;
+      g.px[o] += light[0] * al; g.px[o + 1] += light[1] * al; g.px[o + 2] += light[2] * al; g.px[o + 3] = 1;
+    }
+  }
+  const idx = (x, y) => { x = Math.floor(x); y = Math.floor(y); return x < 0 || y < 0 || x >= CELL || y >= CELL ? -1 : y * CELL + x; };
+  function putPx(c, x, y, col, a = 1) {
+    const i = idx(x, y); if (i < 0 || B[i] >= a) return;
+    const o = i * 4; c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+  }
+  function addPx(g, x, y, light, a = 1) {
+    const i = idx(x, y); if (i < 0) return;
+    const o = i * 4; g.px[o] += light[0] * a; g.px[o + 1] += light[1] * a; g.px[o + 2] += light[2] * a; g.px[o + 3] = 1;
+  }
+  const mask = fn => { const m = new Uint8Array(N); for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) { const i = y * CELL + x; if (fn(x + 0.5, y + 0.5, i, x, y)) m[i] = 1; } return m; };
+  const at = (m, x, y) => x >= 0 && y >= 0 && x < CELL && y < CELL ? m[y * CELL + x] : 0;
+  function dilate(m, diag = false) {
+    const o = new Uint8Array(N);
+    for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
+      const i = y * CELL + x;
+      o[i] = m[i] || at(m, x - 1, y) || at(m, x + 1, y) || at(m, x, y - 1) || at(m, x, y + 1) ||
+        (diag && (at(m, x - 1, y - 1) || at(m, x + 1, y - 1) || at(m, x - 1, y + 1) || at(m, x + 1, y + 1))) ? 1 : 0;
+    }
+    return o;
+  }
+  const outline = m => { const d = dilate(m); for (let i = 0; i < N; i++) d[i] = d[i] && !m[i] ? 1 : 0; return d; };
+  const nb = (m, dx, dy) => { const o = new Uint8Array(N); for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) o[y * CELL + x] = at(m, x + dx, y + dy); return o; };
+  const and = (...ms) => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) { let v = 1; for (const m of ms) if (!m[i]) { v = 0; break; } o[i] = v; } return o; };
+  const or = (...ms) => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) { for (const m of ms) if (m[i]) { o[i] = 1; break; } } return o; };
+  const not = m => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) o[i] = m[i] ? 0 : 1; return o; };
+  function line(x0, y0, x1, y1) {
+    x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+    const pts = []; const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx + dy;
+    for (;;) { pts.push([x0, y0]); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x0 += sx; } if (e2 <= dx) { err += dx; y0 += sy; } }
+    return pts;
+  }
+  function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const uni = (r, a, b) => a + (b - a) * r();
+
+  function toneIdx(i, light, n, amp) { return Math.max(0, Math.min(n - 1, Math.floor(light * (n - 1) + 0.5 + (B[i] - 0.5) * amp))); }
+  function paintZone(c, m, rp, light, amp = 0.55) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      const col = rp[toneIdx(i, val(light, i), rp.length, amp)], o = i * 4;
+      c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------- labels
+  const L_ = {}; ['EMPTY', 'BRAID', 'BRAID_TIE', 'PLUME', 'BOOT_B', 'GREAVE_B', 'BOOT_F', 'GREAVE_F', 'SKIRT', 'FAULD',
+    'TABARD', 'BELT', 'TORSO', 'PAULDRON', 'HELM', 'SLIT', 'BROW', 'SOCKET', 'FARARM', 'SHIELD', 'ARM', 'COUTER', 'CUFF',
+    'HAND', 'GRIP', 'CGUARD', 'POMMEL', 'BLADE', 'BLADE_LIT', 'RUNE'].forEach((k, i) => { L_[k] = i; });
+  const BODY = new Set([L_.BRAID, L_.BRAID_TIE, L_.PLUME, L_.BOOT_B, L_.GREAVE_B, L_.BOOT_F, L_.GREAVE_F, L_.SKIRT, L_.FAULD,
+    L_.TABARD, L_.BELT, L_.TORSO, L_.PAULDRON, L_.HELM, L_.BROW, L_.SOCKET, L_.FARARM, L_.SHIELD]);
+  const BEHIND = new Set([0, L_.PLUME, L_.BRAID, L_.BRAID_TIE, L_.BOOT_B, L_.GREAVE_B, L_.SKIRT, L_.FARARM]);
+  const HEAD = new Set([L_.HELM, L_.SLIT, L_.BROW, L_.SOCKET, L_.PLUME]);
+
+  // ---------------------------------------------------------------------------------------------- the pose
+  const IDLE = { x: 0, y: 0, sink: 1.5, stretch: 1, lean: 1.5, nod: 0, ff: 8, bf: -6, flift: 0, blift: 0, phase: 0, wind: 1,
+    sweep: 0, hairwind: 1, hx: 14, hh: 36, bow: 1.2, sdeg: 50, armBack: 0, behind: 0,
+    shx: 6.8, shh: 27.5, shw: 5.6, shBack: 0, eyes: 1, blink: 0, rune: 1, rage: 0, flash: 0, kneel: 0, fade: 0, drop: 0 };
+
+  /** A heater shield seen three-quarters: flat top, straight sides, a rounded point. [across -1..1, down 0..1] or null. */
+  function heater(px, py, cx, cy, w, h) {
+    const v = (py - (cy - h * 0.42)) / h;
+    if (v < 0 || v > 1) return null;
+    const hw = v < 0.42 ? w : w * Math.sqrt(Math.max(0, 1 - ((v - 0.42) / 0.58) ** 2));
+    const a = (px - cx) / Math.max(hw, 0.01);
+    return Math.abs(a) <= 1 ? [(px - cx) / w, v] : null;
+  }
+
+  /** The whole figure of a pose as ONE label map. */
+  function figure(p) {
+    const lab = new Int8Array(N), D = new Float32Array(N), U = new Float32Array(N), SX = new Float32Array(N), SY = new Float32Array(N);
+    const gx = ROOT_X + p.x, base = GROUND + p.y, sink = p.sink + p.kneel * 12, hip = H_HIP - sink;
+    const ph = p.phase, wind = p.wind, sw = p.sweep;
+    const cxAt = dd => gx + p.lean * Math.pow(clamp01((dd - H_HIP) / (D_TOP - H_HIP)), 1.15) + p.nod * clamp01((dd - 47) / (D_TOP - 47));
+    const yAt = dd => {
+      if (p.drop && dd > 46) {
+        let lo = 46, hi = dd;
+        for (let k = 0; k < 30; k++) { const mid = (lo + hi) / 2; if (mid + p.drop * clamp01((mid - 46) / (p.drop * 2)) < dd) lo = mid; else hi = mid; }
+        dd = (lo + hi) / 2;
+      }
+      return base - (dd >= H_HIP ? hip + (dd - H_HIP) * p.stretch : dd * hip / H_HIP);
+    };
+    const slitX = cxAt(52) + 5.0;                 // the T of the visor: vertical bar centre
+    const hemD = 11.5 * (1 - p.kneel), tabHem = hemD - 1.6 * (1 - p.kneel), hemPx = hemD * hip / H_HIP;
+    // the legs: from the hip to the planted foot, only seen below the skirt (like the mage's boots under the robe)
+    const legs = [[p.bf, p.blift, L_.GREAVE_B, L_.BOOT_B, -2.3], [p.ff, p.flift, L_.GREAVE_F, L_.BOOT_F, 2.1]]
+      .map(([foot, lift, lg, lb, off]) => ({ fx: ROOT_X + foot, lift, lg, lb, jx: gx + off }));
+    const legX = (lg, hl) => lg.fx + (lg.jx - lg.fx) * clamp01((hl - lg.lift) / Math.max(1, hip - lg.lift));
+    for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
+      const i = y * CELL + x, px = x + 0.5, py = y + 0.5, hl = base - py;
+      let d = hl >= hip ? H_HIP + (hl - hip) / p.stretch : hl * H_HIP / Math.max(hip, 1);
+      if (p.drop && d > 46) d = d + p.drop * smooth(46, 46 + p.drop * 2, d);
+      const lean = p.lean * Math.pow(smooth(H_HIP, D_TOP, d), 1.15), nod = p.nod * smooth(47, D_TOP, d);
+      const cxl = gx + lean + nod, u = px - cxl;
+      D[i] = d; U[i] = u;
+      if (hl <= 0) continue;
+      let L = 0;
+      // the crimson plume: a crest of horsehair over the crown that streams back and falls behind the helmet
+      const pq = clamp01((64.5 - d) / 15);
+      const psway = p.hairwind * 1.2 * Math.sin(ph + pq * 3.0) * pq + sw * 5 * pq;
+      if (((u + 4.6 + 0.8 * sw) / 6.4) ** 2 + ((d - 65.0 - 0.06 * (u + 4.6)) / 2.3) ** 2 <= 1) L = L_.PLUME;
+      if (d >= 49.5 && d <= 64.5 && Math.abs(u - (-10.2 - 3.0 * Math.pow(pq, 0.8) - psway)) <= (2.7 + 0.9 * Math.sin(Math.PI * pq)) * (1 - Math.pow(pq, 2.6))) L = L_.PLUME;
+      // greaves and sabatons below the skirt; the front leg covers the back one
+      if (p.kneel < 0.75) for (const lg of legs) {
+        const dl = hl - lg.lift;
+        if (dl <= 0 || hl > hemPx + 2.5) continue;
+        const cx = legX(lg, hl), v = px - cx;
+        let ok, lb;
+        if (dl < 3.4) { ok = v >= -2.5 && v <= (dl < 1.6 ? 4.6 : 3.8 - (dl - 1.6) * 0.6); lb = lg.lb; }
+        else { const hw = 2.1 + 0.7 * Math.sin(Math.PI * clamp01((dl - 3.4) / 8)); ok = Math.abs(v) <= hw; lb = lg.lg; }
+        if (ok && (L === 0 || L === L_.BOOT_B || L === L_.GREAVE_B)) L = lb;
+      }
+      // body: one profile per row
+      let z = 0, fe = -99, be = -99;
+      const half = Math.sqrt(Math.max(0, HR * HR - (d - HC) * (d - HC)));
+      if (d >= tabHem && d < BELT) {
+        const ks = Math.pow(smooth(BELT, hemD, d), 1.1);
+        const kf = legX(legs[1], hemPx) - cxl + 2.9, kb = cxl - legX(legs[0], hemPx) + 2.9;
+        fe = 6.3 + (Math.max(kf, 9.2) - 6.3) * ks + p.kneel * 5 * ks * ks;
+        be = 7.0 + (Math.max(kb, 10.4) - 7.0) * ks + wind * 0.6 * Math.sin(ph * 2 + d * 0.3) * ks + p.kneel * 4 * ks * ks;
+        const tb = -0.9 - 1.1 * ks, tabT = tabHem + 0.9 * (1 + Math.sin(u * 0.7 + ph)) * 0.5;
+        if (u > tb && d >= tabT) z = L_.TABARD;
+        else if (d >= hemD + 0.5 * (1 + Math.sin(u * 0.9 - ph)) * 0.6) z = d >= 23.4 ? L_.FAULD : L_.SKIRT;
+      } else if (d >= BELT && d < BELT_TOP) { z = L_.BELT; fe = 6.3; be = 6.9; }
+      else if (d >= BELT_TOP && d < CHEST_TOP) { const e = smooth(BELT_TOP, CHEST_TOP, d); z = L_.TORSO; fe = 6.2 + 1.4 * Math.sin(e * Math.PI * 0.65); be = 6.8 + 1.5 * e; }
+      else if (d >= CHEST_TOP && d < NECK) {
+        const e = (d - CHEST_TOP) / (NECK - CHEST_TOP), r = Math.sqrt(Math.max(0, 1 - ((e - 0.3) / 0.74) ** 2));
+        z = L_.PAULDRON; fe = 6.8 + 3.9 * r; be = 7.4 + 3.4 * r;
+      } else if (d >= NECK && d < HC + HR) { z = L_.HELM; fe = 1.2 + half; be = half - 0.4; }
+      // the helmet's tail flares over the nape, its cheek guard closes at the jaw
+      if (d >= 46.4 && d < 54) {
+        const tail = 7.4 - 0.12 * (d - 46.4), cheek = 6.3 + 0.25 * (d - 46.4);
+        if (d >= NECK || u < -6 || u > 4) {
+          if (u < 0 && u >= -tail && (z === L_.HELM || u < -be || z === L_.PAULDRON && d > 47.2)) { z = L_.HELM; be = Math.max(be, tail); }
+          if (u >= 0 && d >= 47.6 && u <= Math.max(fe, cheek)) { z = L_.HELM; fe = Math.max(fe, cheek); }
+        }
+      }
+      if (z && u <= fe && u >= -be) L = z;
+      // the visor's T: an eye slit across the front and a slot down the middle, dark inside
+      if (L === L_.HELM && d > 53.4 && d < 55.9 && px > slitX - 3.6) L = L_.SLIT;
+      if (L === L_.HELM && d > 49.3 && d <= 53.4 && Math.abs(px - slitX) < 1.05) L = L_.SLIT;
+      // the brow band in gold and the plume's socket on the crown
+      if (L === L_.HELM && Math.abs(d - (57.0 - 0.04 * u)) < 0.55 && u > -3.2) L = L_.BROW;
+      if (Math.hypot(u - 0.4, (d - 64.9) * 1.3) <= 1.5 && (L === L_.HELM || L === L_.PLUME || L === 0)) L = L_.SOCKET;
+      // a platinum braid from under the helmet, down her back
+      if (d >= 32 && d <= 50) {
+        const q = (50 - d) / 18, sway = p.hairwind * 1.1 * Math.sin(ph + q * 2.6) * q + sw * 5 * Math.pow(q, 1.2);
+        const c0 = -7.4 - 4.2 * Math.pow(q, 0.6) - sway, w = d < 34.2 ? 1.0 + (34.2 - d) * 0.45 : 1.5 - 0.2 * q;
+        if (Math.abs(u - c0) <= w && (L === 0 || L === L_.PAULDRON || L === L_.TORSO || L === L_.BELT || L === L_.FAULD || L === L_.SKIRT))
+          L = d > 34.2 && d < 35.6 ? L_.BRAID_TIE : L_.BRAID;
+      }
+      lab[i] = L;
+    }
+    // ---- the shield arm (the far one): it reaches from behind her shoulder to the grip, seen only past the body
+    const Sh = [gx + p.shx, base - p.shh], shH = 19;
+    const S2 = [cxAt(44.0) - 1.0, yAt(44.0)], H2 = [Sh[0] - 1.0, Sh[1] - 1.0];
+    {
+      let ax = H2[0] - S2[0], ay = H2[1] - S2[1]; const al = Math.max(1e-6, Math.hypot(ax, ay)); ax /= al; ay /= al;
+      for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
+        const i = y * CELL + x, vx = x + 0.5 - S2[0], vy = y + 0.5 - S2[1], t = (vx * ax + vy * ay) / al;
+        if (t < 0 || t > 1.05 || Math.abs(vx * -ay + vy * ax) > 2.1 || !BEHIND.has(lab[i]) || lab[i] === L_.FARARM) continue;
+        lab[i] = L_.FARARM;
+      }
+    }
+    // ---- the heater shield on that arm: over the body (or behind it when she swings it back), under the sword arm
+    for (let y = 0; y < GROUND; y++) for (let x = 0; x < CELL; x++) {
+      const i = y * CELL + x, h = heater(x + 0.5, y + 0.5, Sh[0], Sh[1], p.shw, shH);
+      if (!h || p.shBack && !BEHIND.has(lab[i])) continue;
+      lab[i] = L_.SHIELD; SX[i] = h[0]; SY[i] = h[1];
+    }
+    // ---- the sword arm, part of the same figure: the armoured arm hangs from the pauldron to the gauntlet, the
+    //      couter bulges at the elbow and the vambrace flares into a gold-edged cuff
+    const S = [cxAt(44.2) + 2.2, yAt(44.2)], Hd = [gx + p.hx, base - p.hh];
+    let ax = Hd[0] - S[0], ay = Hd[1] - S[1]; const alen = Math.max(1e-6, Math.hypot(ax, ay)); ax /= alen; ay /= alen;
+    let nx = -ay, ny = ax; if (ny < 0) { nx = -nx; ny = -ny; }
+    const T = new Float32Array(N);
+    for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
+      const i = y * CELL + x, vx = x + 0.5 - S[0], vy = y + 0.5 - S[1];
+      const t = (vx * ax + vy * ay) / alen;
+      if (t < -0.12 || t > 1.0) continue;
+      const tt = clamp01(t), s = vx * nx + vy * ny - p.bow * Math.sin(Math.PI * tt);
+      const elbow = Math.exp(-(((tt - 0.48) / 0.09) ** 2)), cuffK = smooth(0.66, 0.9, tt);
+      const top = -(2.3 + 0.35 * elbow + 0.5 * cuffK), bottom = 2.2 + 0.4 * elbow + 0.55 * cuffK;
+      if (s < top || s > bottom) continue;
+      if (p.armBack && HEAD.has(lab[i])) continue;
+      lab[i] = tt > 0.8 ? L_.CUFF : elbow > 0.5 ? L_.COUTER : L_.ARM; T[i] = tt;
+    }
+    // ---- the long sword (in front of the body unless it is swung behind her), its crossguard, grip and pommel
+    const a = p.sdeg * Math.PI / 180, ux = Math.cos(a), uy = Math.sin(a), vx_ = -uy, vy_ = ux;
+    for (let y = 0; y < GROUND; y++) for (let x = 0; x < CELL; x++) {
+      const i = y * CELL + x, dx = x + 0.5 - Hd[0], dy = y + 0.5 - Hd[1];
+      const su = dx * ux + dy * uy, sv = dx * vx_ + dy * vy_, asv = Math.abs(sv);
+      if (su < -GRIP - 2.8 || su > TIP + 1) continue;
+      let L = 0;
+      if (su >= -GRIP && su <= GUARD_AT - 0.8 && asv <= 0.95) L = L_.GRIP;
+      if (Math.hypot(su + GRIP + 0.9, sv) <= 1.6) L = L_.POMMEL;
+      const cg = GUARD_AT + (asv > 2.4 ? (asv - 2.4) * 0.55 : 0);
+      if (Math.abs(su - cg) <= 0.85 && asv <= 3.9) L = L_.CGUARD;
+      if (su > GUARD_AT + 0.85 && su <= TIP) {
+        const rem = TIP - su, hw = Math.min(1.3, 0.2 + rem * 0.26);
+        if (asv <= hw) L = sv >= -0.5 && sv < 0.5 && su > GUARD_AT + 3 && rem > 6 && Math.floor(su) % 3 !== 0 ? L_.RUNE : sv < 0 ? L_.BLADE_LIT : L_.BLADE;
+      }
+      if (!L) continue;
+      if (p.behind && !BEHIND.has(lab[i])) continue;
+      lab[i] = L;
+    }
+    for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) if ((x + 0.5 - Hd[0]) ** 2 + (y + 0.5 - Hd[1]) ** 2 <= 2.3 * 2.3) lab[y * CELL + x] = L_.HAND;
+    // one figure: specks a thin tip or the hem leave behind are dropped (4-connected to the torso)
+    const reach = new Uint8Array(N), stack = [];
+    for (let i = 0; i < N; i++) if (lab[i] === L_.TORSO || lab[i] === L_.PAULDRON) { reach[i] = 1; stack.push(i); }
+    while (stack.length) {
+      const i = stack.pop(), x = i % CELL, y = (i / CELL) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const j = idx(x + dx, y + dy); if (j >= 0 && !reach[j] && lab[j]) { reach[j] = 1; stack.push(j); }
+      }
+    }
+    for (let i = 0; i < N; i++) if (!reach[i]) lab[i] = 0;
+    return {
+      p, lab, D, U, T, SX, SY, gx, base, hand: Hd, shoulder: S, shield: Sh, shieldH: shH, dir: [ux, uy], alen,
+      tip: [Hd[0] + ux * TIP, Hd[1] + uy * TIP], along: s => [Hd[0] + ux * s, Hd[1] + uy * s],
+      eyes: [[slitX - 2.4, yAt(54.6)], [slitX + 1.6, yAt(54.6)]], chest: [cxAt(38) + 4, yAt(38)], cxAt, yAt
+    };
+  }
+
+  // ---------------------------------------------------------------------------------------------- painting
+  function paint(c, g, F, t) {
+    const { p, lab, D, U, T, SX, SY } = F;
+    const is = (...ls) => { const s = new Set(ls); const m = new Uint8Array(N); for (let i = 0; i < N; i++) if (s.has(lab[i])) m[i] = 1; return m; };
+    const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = lab[i] ? 1 : 0;
+    const fade = p.fade, rage = p.rage || 0;
+    put(c, outline(m), K.ink);
+    const light = new Float32Array(N);
+    for (let i = 0; i < N; i++) light[i] = 0.70 - 0.032 * U[i] - 0.008 * (D_TOP - D[i]) + 0.10 * Math.cos(U[i] * 1.05 + D[i] * 0.16 + 0.4 * Math.sin(p.phase));
+    const up = mm => nb(mm, 0, -1), down = mm => nb(mm, 0, 1), left = mm => nb(mm, -1, 0), right = mm => nb(mm, 1, 0);
+
+    // the plume: crimson horsehair in strands, brighter on top
+    const plume = is(L_.PLUME);
+    paintZone(c, plume, RAMP.plume, i => { const s = Math.sin(U[i] * 0.9 + D[i] * 1.7 + 0.6 * Math.sin(p.phase + D[i] * 0.4)); return 0.5 + (s > 0.6 ? 0.2 : 0) - (s < -0.6 ? 0.16 : 0) - 0.02 * (64 - D[i]) - 0.015 * U[i]; }, 0.35);
+    put(c, and(plume, not(up(m))), RAMP.plume[4]);
+    put(c, and(plume, not(down(m))), RAMP.plume[0]);
+    // the helmet: steel dome lit from the upper left, a bright curved highlight, gold brow band, the dark T and its gem
+    const helm = is(L_.HELM), slit = is(L_.SLIT), brow = is(L_.BROW);
+    paintZone(c, helm, RAMP.steel, i => light[i] + 0.16 + 0.12 * smooth(53, 62, D[i]));
+    put(c, and(helm, mask((x, y, i) => Math.abs(Math.hypot(U[i] + 1.5, D[i] - 57.0) - 6.0) < 0.55 && D[i] > 57.5 && U[i] < 2.5)), K.steelHi);
+    put(c, and(helm, mask((x, y, i) => Math.abs(Math.hypot(U[i] + 1.5, D[i] - 57.0) - 6.0) < 0.55 && D[i] > 60.5 && U[i] < 0)), K.spec);
+    put(c, and(helm, not(down(helm)), not(down(slit))), RAMP.steel[1]);
+    put(c, and(helm, up(slit)), RAMP.steel[5]);                                   // the brow ridge over the slit
+    put(c, and(helm, dilate(slit), mask((x, y, i) => D[i] < 53.4)), RAMP.steel[1]);  // the slot's dark lips
+    put(c, slit, K.void1);
+    put(c, and(slit, mask((x, y, i) => D[i] < 51)), K.bounce, 0.5);
+    put(c, brow, GOLD[2]); put(c, and(brow, not(up(brow))), GOLD[3]); put(c, and(brow, not(down(brow))), GOLD[1]);
+    let gi = -1; for (let i = 0; i < N; i++) if (brow[i] && (gi < 0 || i % CELL > gi % CELL)) gi = i;
+    if (gi >= 0) { const gm = new Uint8Array(N); gm[gi] = 1; if (gi - 1 >= 0 && brow[gi - 1]) gm[gi - 1] = 1; put(c, gm, K.cyan3); add(g, gm, LIGHT.cyan, 0.8 * (1 - fade)); }
+    const sock = is(L_.SOCKET);
+    put(c, sock, GOLD[1]); put(c, and(sock, not(up(sock))), GOLD[3]);
+    // the platinum braid: plaited strands, a leather tie and the tuft below it
+    const braid = is(L_.BRAID), btie = is(L_.BRAID_TIE);
+    paintZone(c, braid, RAMP.braid, i => { const k = frac(D[i] / 2.6 + (U[i] + 10.4) * 0.3 * (frac(D[i] / 5.2) < 0.5 ? 1 : -1)); return 0.62 + (k < 0.55 ? 0.22 : -0.24) - 0.006 * (48 - D[i]); }, 0.2);
+    put(c, and(braid, mask((x, y, i) => frac(D[i] / 2.6) < 0.2)), RAMP.braid[0]);
+    put(c, and(dilate(braid), not(braid), not(is(L_.BRAID_TIE)), m), K.ink);
+    put(c, btie, RAMP.leather[2]); put(c, and(btie, not(up(btie))), GOLD[2]);
+    // pauldrons: steel lames, a bright top, gold trim
+    const pa = is(L_.PAULDRON);
+    paintZone(c, pa, RAMP.steel, i => light[i] + 0.12);
+    put(c, and(pa, mask((x, y, i) => Math.abs(D[i] - 43.6) < 0.5 || Math.abs(D[i] - 45.8) < 0.5)), RAMP.steel[1]);
+    put(c, and(pa, not(up(pa)), not(up(is(L_.HELM, L_.BRAID)))), RAMP.steel[5]);
+    put(c, and(pa, not(up(pa)), mask((x, y, i) => U[i] > 0 && U[i] < 5)), K.steelHi);
+    const arm = is(L_.ARM, L_.COUTER, L_.CUFF, L_.HAND);
+    const paHem = and(pa, not(down(pa)), not(down(arm)));
+    put(c, paHem, GOLD[1]); put(c, and(paHem, mask((x, y, i) => U[i] > 0)), GOLD[2]);
+    // breastplate with its highlight, belt and buckle
+    const torso = is(L_.TORSO);
+    paintZone(c, torso, RAMP.steel, i => light[i] + 0.04);
+    put(c, and(torso, mask((x, y, i) => U[i] > 0.8 && U[i] < 2.0 && D[i] > 34.5 && D[i] < 40.5)), RAMP.steel[4]);
+    put(c, and(torso, mask((x, y, i) => U[i] > 0.8 && U[i] < 2.0 && Math.abs(D[i] - 38.6) < 0.6)), K.spec);
+    put(c, and(torso, not(down(torso))), GOLD[1]);
+    const belt = is(L_.BELT);
+    paintZone(c, belt, RAMP.leather, i => 0.55 - 0.03 * U[i], 0.4);
+    const buckle = and(belt, mask((x, y, i) => U[i] > 2.6 && U[i] < 5.0));
+    put(c, buckle, GOLD[1]); put(c, and(buckle, not(up(buckle))), GOLD[3]);
+    // the crimson tabard with its folds and gold trim
+    const tab = is(L_.TABARD);
+    paintZone(c, tab, RAMP.crimson, i => 0.56 - 0.03 * U[i] + 0.14 * Math.sin(U[i] * 1.3 + 0.5 * Math.sin(p.phase + D[i] * 0.2)) - 0.01 * (BELT - D[i]), 0.45);
+    put(c, and(tab, not(down(tab))), GOLD[1]); put(c, and(tab, not(down(tab)), mask((x, y, i) => U[i] > -1)), GOLD[2]);
+    put(c, and(tab, not(left(tab)), mask((x, y, i) => D[i] < BELT - 1)), GOLD[1]);
+    // steel faulds at the back of the hip, the mail skirt below
+    const fa = is(L_.FAULD), sk = is(L_.SKIRT);
+    paintZone(c, fa, RAMP.steel, i => light[i] + 0.06);
+    put(c, and(fa, mask((x, y, i) => Math.abs(D[i] - 27.4) < 0.45)), RAMP.steel[1]);
+    put(c, and(fa, not(down(fa))), GOLD[1]);
+    paintZone(c, sk, RAMP.steel, i => light[i] - 0.12 + (((i % CELL) + ((i / CELL) | 0)) % 2 ? 0.08 : -0.06), 0.3);
+    put(c, and(sk, not(down(sk))), RAMP.steel[0]);
+    // greaves (lit front edge) and sabatons
+    for (const [lg, lb, dk] of [[L_.GREAVE_B, L_.BOOT_B, 0.22], [L_.GREAVE_F, L_.BOOT_F, 0]]) {
+      const gm = is(lg), bm = is(lb);
+      paintZone(c, gm, RAMP.steel, i => light[i] + 0.2 - dk);
+      put(c, and(gm, not(left(gm)), not(up(is(L_.TABARD, L_.SKIRT)))), dk ? RAMP.steel[2] : RAMP.steel[4]);
+      paintZone(c, bm, RAMP.steel, i => light[i] + 0.05 - dk);
+      put(c, and(bm, not(up(bm)), not(up(gm))), dk ? RAMP.steel[3] : K.steelHi);
+      put(c, and(bm, not(down(bm))), RAMP.steel[0]);
+    }
+    put(c, and(is(L_.BOOT_B, L_.GREAVE_B), dilate(is(L_.BOOT_F, L_.GREAVE_F))), K.ink);
+    // the far arm, in shadow
+    const far = is(L_.FARARM);
+    paintZone(c, far, RAMP.steel, i => 0.32 - 0.02 * U[i]);
+    // the heater shield: a gold-and-steel rim, the crimson field lit from the upper left, a gold sword and a cyan gem
+    const sh = is(L_.SHIELD);
+    const shIn = and(sh, not(dilate(not(sh))));
+    const shRim = and(sh, not(shIn));
+    const shIn2 = and(shIn, not(dilate(not(shIn))));
+    paintZone(c, shIn2, RAMP.crimson, i => 0.72 - 0.30 * SX[i] - 0.34 * SY[i] + 0.10 * Math.cos(SX[i] * 2.2), 0.45);
+    put(c, and(shIn, not(shIn2)), GOLD[1]);
+    put(c, and(shIn, not(shIn2), mask((x, y, i) => SX[i] < 0.2 && SY[i] < 0.55)), GOLD[2]);
+    paintZone(c, shRim, RAMP.steel, i => 0.78 - 0.32 * SX[i] - 0.3 * SY[i], 0.3);
+    put(c, and(shRim, not(up(sh)), mask((x, y, i) => SX[i] < 0.3)), K.steelHi);
+    const emb = and(shIn2, mask((x, y, i) => (Math.abs(SX[i] + 0.06) < 0.16 && SY[i] > 0.16 && SY[i] < 0.78) || (Math.abs(SY[i] - 0.3) < 0.04 && Math.abs(SX[i] + 0.06) < 0.5)));
+    put(c, emb, GOLD[2]); put(c, and(emb, mask((x, y, i) => SX[i] < -0.06)), GOLD[3]);
+    const shGem = new Uint8Array(N);
+    { const gx0 = F.shield[0] - 0.06 * p.shw, gy0 = F.shield[1] - F.shieldH * 0.42 + 0.3 * F.shieldH; for (const dx of [-0.5, 0.5]) { const gi2 = idx(gx0 + dx, gy0); if (gi2 >= 0 && sh[gi2]) shGem[gi2] = 1; } }
+    put(c, shGem, K.cyan3); add(g, shGem, LIGHT.cyan, 0.9 * (1 - fade));
+    // the armoured arm: steel lit on its upper edge, gold couter rivet, gold-edged cuff, its shadow on the body
+    const ar = is(L_.ARM), co = is(L_.COUTER), cu = is(L_.CUFF), hand = is(L_.HAND);
+    paintZone(c, or(ar, co), RAMP.steel, i => 0.78 - 0.24 * T[i] - 0.03 * ((i / CELL | 0) - F.hand[1]));
+    put(c, and(or(ar, co), not(up(arm))), RAMP.steel[4]);
+    put(c, and(co, not(up(arm))), K.steelHi);
+    paintZone(c, cu, RAMP.steel, i => 0.62 - 0.03 * ((i / CELL | 0) - F.hand[1]));
+    put(c, and(cu, or(not(up(arm)), not(left(arm)))), GOLD[2]);
+    const bodyM = is(L_.SKIRT, L_.FAULD, L_.TABARD, L_.BELT, L_.TORSO, L_.PAULDRON, L_.BRAID, L_.SHIELD, L_.FARARM);
+    put(c, and(bodyM, up(arm)), K.ink);
+    put(c, and(or(bodyM, is(L_.HELM)), dilate(arm), not(arm), mask((x, y, i) => lab[i] === L_.SHIELD)), K.ink);
+    // the sword: blade lit on its upper side with a bright edge, the fuller's runes, gold crossguard and pommel
+    const bl = is(L_.BLADE), bll = is(L_.BLADE_LIT), rune = is(L_.RUNE), cg = is(L_.CGUARD), grip = is(L_.GRIP), pom = is(L_.POMMEL);
+    put(c, bl, RAMP.blade[1]); put(c, and(bl, not(down(or(bl, rune)))), RAMP.blade[0]);
+    put(c, bll, RAMP.blade[3]); put(c, and(bll, mask((x, y, i) => B[i] < 0.3)), RAMP.blade[4]);
+    put(c, and(bll, or(not(up(m)), not(left(m)))), K.white);
+    const rk = (p.rune || 0) * (1 - fade);
+    const wave = i => 0.5 + 0.5 * Math.sin(((i % CELL + (i / CELL | 0)) / 7.0 - 2 * t) * 2 * Math.PI);
+    const runeCol = rage > 0.05 ? [K.red1, K.red2, K.red3] : [K.cyan1, K.cyan2, K.cyan3];
+    const runeLight = rage > 0.05 ? LIGHT.red : LIGHT.cyan;
+    put(c, rune, mix(RAMP.blade[1], runeCol[0], Math.min(1, rk * 0.7)));
+    put(c, and(rune, mask((x, y, i) => wave(i) > 1.05 - 0.3 * Math.min(rk, 1.5))), runeCol[1]);
+    put(c, and(rune, mask((x, y, i) => wave(i) > 0.9 && rk > 1.3)), runeCol[2]);
+    add(g, rune, runeLight, i => (0.08 + 0.32 * wave(i)) * Math.min(2.4, rk));
+    put(c, cg, GOLD[1]); put(c, and(cg, or(not(up(cg)), not(left(cg)))), GOLD[2]); put(c, and(cg, not(up(cg)), not(left(cg))), GOLD[3]);
+    paintZone(c, grip, RAMP.grip, i => 0.4 + (B[i] < 0.5 ? 0.35 : 0), 0.2);
+    put(c, pom, GOLD[1]); put(c, and(pom, not(up(pom))), GOLD[3]);
+    const blade = or(bl, bll, rune);
+    put(c, and(or(bodyM, ar, co, cu, is(L_.HELM)), dilate(or(blade, grip))), K.ink);
+    // the gauntlet closes on the grip
+    paintZone(c, hand, RAMP.steel, i => 0.72 - 0.16 * ((i / CELL | 0) + 0.5 - F.hand[1]));
+    put(c, and(hand, not(up(hand))), K.steelHi);
+    // rim light on the figure's outer edges: cyan front and top, violet bounce behind (not on the sword)
+    const fig = or(...[...BODY].map(l => is(l)), arm);
+    const topEdge = and(not(up(m)), left(m));
+    const rimC = and(fig, or(not(right(m)), topEdge), not(slit), not(hand));
+    const rimV = and(fig, not(left(m)), not(rimC));
+    put(c, rimV, rage > 0.3 ? K.red1 : K.rimv, 0.8);
+    const low = mask((x, y, i) => D[i] < 26 && lab[i] !== L_.SHIELD);
+    const rimHot = mix(K.rimc, K.red3, Math.min(1, rage));
+    put(c, and(rimC, not(low)), mix(rimHot, K.body2, fade));
+    put(c, and(rimC, low), mix(mix(K.cyan1, K.red2, Math.min(1, rage)), K.body2, fade));
+    add(g, and(rimC, not(low)), rage > 0.3 ? LIGHT.red : LIGHT.cyan, 0.5 * (1 - fade));
+    add(g, and(rimC, low), LIGHT.cyan, 0.12 * (1 - fade));
+    // Furia: a crimson aura flickers one pixel out of the outline
+    if (rage > 0.05) {
+      const aura = and(dilate(dilate(m)), not(dilate(m)), mask((x, y) => y < GROUND));
+      const fl = i => clamp01(rage * (0.8 + 0.35 * Math.sin((i % CELL) * 0.9 + t * 25 + (i / CELL | 0) * 0.5)));
+      put(c, aura, K.red2, fl); add(g, aura, LIGHT.red, i => 0.7 * fl(i));
+    }
+    // eyes glowing in the slit
+    const ek = p.eyes * (1 - fade);
+    if (ek > 0.02) {
+      F.eyes.forEach(([ex, ey], k) => {
+        const h = p.blink > 0.5 ? 1 : 2;
+        for (let j = 0; j < h; j++) for (const dx of k === 1 ? [0, 1] : [0]) {
+          const i = idx(ex + dx, ey + j - (h === 2 ? 0.5 : 0));
+          if (i >= 0 && lab[i] === L_.SLIT) { const one = new Uint8Array(N); one[i] = 1; put(c, one, mix(K.cyan1, K.cyan4, Math.min(1, ek * (dx ? 0.6 : 1)))); add(g, one, LIGHT.cyan, (dx ? 0.7 : 1.4) * ek); }
+        }
+      });
+    }
+    if (p.flash > 0) {
+      const fv = hex('#fff0e6');
+      for (let i = 0; i < N; i++) if (m[i]) { const w = p.flash * 0.85, o = i * 4; c.px[o] = c.px[o] * (1 - w) + fv[0] * w; c.px[o + 1] = c.px[o + 1] * (1 - w) + fv[1] * w; c.px[o + 2] = c.px[o + 2] * (1 - w) + fv[2] * w; }
+      if (p.flash > 0.7) for (let i = 0; i < N; i++) if (m[i] && B[i] < (p.flash - 0.7) * 3) { const o = i * 4; c.px[o] = c.px[o + 1] = c.px[o + 2] = 1; }
+    }
+    return m;
+  }
+
+  // ---------------------------------------------------------------------------------------------- effects (the cards' vocabulary)
+  const CYAN_FX = { core: K.white, col: K.cyan3, edge: K.cyan2, light: LIGHT.cyan };
+  const RED_FX = { core: K.red4, col: K.red3, edge: K.red2, light: LIGHT.red };
+  function star4(c, g, x, y, arm, o = {}) {
+    const core = o.core || K.white, col = o.col || K.cyan3, edge = o.edge || K.cyan2, light = o.light || LIGHT.cyan, gain = o.gain ?? 1, diag = o.diag ?? true;
+    x = Math.floor(x); y = Math.floor(y);
+    for (let i = 1; i <= arm; i++) {
+      const k = i / (arm + 0.5), colr = k < 0.55 ? col : edge;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { putPx(c, x + dx * i + 0.5, y + dy * i + 0.5, colr); addPx(g, x + dx * i + 0.5, y + dy * i + 0.5, light, gain * (1 - k) * 0.9); }
+    }
+    if (diag && arm >= 3) for (const [dx, dy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) for (let i = 1; i <= Math.max(1, Math.floor(arm / 3)); i++) { putPx(c, x + dx * i + 0.5, y + dy * i + 0.5, edge); addPx(g, x + dx * i + 0.5, y + dy * i + 0.5, light, gain * 0.35); }
+    putPx(c, x + 0.5, y + 0.5, core); addPx(g, x + 0.5, y + 0.5, LIGHT.white, gain * 1.2);
+  }
+  function motes(c, g, t, seed, count, area, colA, colB, lightA, lightB, gain = 0.6) {
+    const r = rng(seed); const [x0, y0, x1, y1] = area;
+    for (let i = 0; i < count; i++) {
+      const px = uni(r, x0, x1), phase = r(), cycles = r() < 0.7 ? 1 : 2, wob = uni(r, 1.0, 2.5);
+      const u = frac(t * cycles + phase), y = y1 - u * (y1 - y0), x = px + Math.sin((u * 2 + phase) * Math.PI * 2) * wob, a = Math.sin(u * Math.PI);
+      if (a < 0.2) continue;
+      const col = i % 3 ? colA : colB, lt = i % 3 ? lightA : lightB;
+      putPx(c, x, y, col, Math.min(1, a * 1.4)); addPx(g, x, y, lt, gain * a);
+      if (a > 0.85 && i % 4 === 0) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { putPx(c, x + dx, y + dy, col, 0.6); addPx(g, x + dx, y + dy, lt, gain * 0.3); }
+    }
+  }
+  const ambient = (c, g, t, gain = 0.6) => motes(c, g, t, 23, 7, [16, 24, 80, 90], K.cyan3, K.red3, LIGHT.cyan, LIGHT.red, gain);
+  function sparks(c, g, ox, oy, age, seed, count, speed, ang, spread, o = {}) {
+    if (age <= 0) return;
+    const grav = o.grav ?? 0.14, life = o.life ?? 7, ve = o.redEvery ?? 0;
+    const r = rng(seed);
+    for (let i = 0; i < count; i++) {
+      const a0 = ang + uni(r, -spread, spread), spd = uni(r, speed * 0.45, speed), lf = life * uni(r, 0.7, 1.0);
+      if (age > lf) continue;
+      const x = ox + Math.cos(a0) * spd * age, y = oy + Math.sin(a0) * spd * age + grav * age * age, k = 1 - age / (lf + 1);
+      if (y >= GROUND) continue;
+      const red = ve && i % ve === 0;
+      putPx(c, x, y, red ? K.red3 : age < 2.5 ? K.cyan4 : K.cyan2); addPx(g, x, y, red ? LIGHT.red : LIGHT.cyan, k);
+      if (age < 4) for (const [qx, qy] of line(x, y, x - Math.cos(a0) * spd * 0.9, y - Math.sin(a0) * spd * 0.9 - grav * age * 1.5).slice(1)) { putPx(c, qx + 0.5, qy + 0.5, red ? K.red1 : K.cyan1, k); addPx(g, qx + 0.5, qy + 0.5, red ? LIGHT.red : LIGHT.cyan, 0.3 * k); }
+    }
+  }
+  function speedLines(c, g, x, y, ux, uy, k, seed, count = 6, spread = 8, len = [7, 12], start = 4) {
+    if (k <= 0) return;
+    const r = rng(seed), vx = -uy, vy = ux;
+    for (let i = 0; i < count; i++) {
+      const off = uni(r, -spread, spread), st = start + uni(r, 0, 6), ln = uni(r, len[0], len[1]) * (0.6 + 0.4 * k);
+      const sx = x - ux * st + vx * off, sy = y - uy * st + vy * off;
+      for (const [qx, qy] of line(sx, sy, sx - ux * ln, sy - uy * ln)) { putPx(c, qx + 0.5, qy + 0.5, i % 2 === 0 ? K.cyan3 : K.steel3, Math.min(1, k * 1.6)); addPx(g, qx + 0.5, qy + 0.5, LIGHT.cyan, 0.5 * k); }
+    }
+  }
+  function ring(c, g, cx, cy, r, k, ry, gain = 0.8, o = CYAN_FX) {
+    if (k <= 0.02) return;
+    ry = ry ?? r;
+    const m = mask((x, y) => y < GROUND && Math.abs(Math.hypot((x - cx) / Math.max(r, 0.5), (y - cy) / Math.max(ry, 0.5)) - 1) * Math.max(r, ry) < 0.6);
+    put(c, m, o.col, k); add(g, m, o.light, gain * k);
+  }
+  function dust(c, x, y, age, life = 6, side = [-1, 1]) {
+    if (!(age >= 0 && age <= life)) return;
+    const k = 1 - age / (life + 1);
+    for (const sd of side) {
+      const px = x + sd * (3 + age * 1.5);
+      const m = mask((X, Y) => Math.hypot(X - px, Y - (y - age * 0.4)) <= 1.0 + age * 0.45);
+      put(c, m, K.dust1, 0.75 * k);
+      put(c, and(m, mask((X, Y) => Math.hypot(X - (px - sd * 0.6), Y - (y - 0.5 - age * 0.4)) <= 0.8 + age * 0.3)), K.dust0, k);
+    }
+  }
+  function ghost(c, g, m, a, cover) {
+    const er = not(dilate(not(m))), edge = and(m, not(er));
+    for (let i = 0; i < N; i++) if (cover && cover[i]) edge[i] = 0;
+    put(c, edge, K.cyan2, a * 0.85); add(g, edge, LIGHT.cyan, 0.5 * a);
+  }
+  /** Espadazo: the crescent the blade cuts (thin at its tail, thick and white at the leading edge), behind the figure. */
+  function slash(c, g, cx, cy, rOut, rIn, aFrom, aTo, k, cover, seed) {
+    if (k <= 0.02) return;
+    const span = aTo - aFrom, r = rng(seed);
+    const S = new Float32Array(N), Q = new Float32Array(N);
+    const arc = mask((x, y, i) => {
+      if (y >= GROUND || cover && cover[i]) return false;
+      const dx = x - cx, dy = y - cy, rr = Math.hypot(dx, dy);
+      let da = Math.atan2(dy, dx) - aFrom;
+      while (da < span / 2 - Math.PI) da += 2 * Math.PI;
+      while (da > span / 2 + Math.PI) da -= 2 * Math.PI;
+      const s = da / span; if (s < 0 || s > 1) return false;
+      const inner = rOut - (rOut - rIn) * Math.pow(s, 0.85) - 0.6, outer = rOut + 0.6 * s;
+      if (rr < inner || rr > outer) return false;
+      S[i] = s; Q[i] = (outer - rr) / Math.max(0.8, outer - inner);
+      return true;
+    });
+    const a = i => k * clamp01(0.15 + 1.1 * S[i]);
+    put(c, and(arc, mask((x, y, i) => Q[i] > 0.55)), K.cyan1, i => a(i) * 0.7);
+    put(c, and(arc, mask((x, y, i) => Q[i] <= 0.55 && Q[i] > 0.28)), K.cyan2, a);
+    put(c, and(arc, mask((x, y, i) => Q[i] <= 0.28)), K.cyan3, a);
+    put(c, and(arc, mask((x, y, i) => Q[i] <= 0.14 && S[i] > 0.55)), K.cyan4, a);
+    put(c, and(arc, mask((x, y, i) => Q[i] <= 0.2 && S[i] > 0.86)), K.white, a);
+    add(g, arc, LIGHT.cyan, i => a(i) * (1.15 - Q[i]) * 0.9);
+    // a few motes torn off the trailing edge
+    for (let i = 0; i < 9; i++) {
+      const s = uni(r, 0.1, 0.9), ang = aFrom + span * s, rr = rOut - uni(r, 0, (rOut - rIn) * 0.7) + uni(r, 1, 4);
+      const x = cx + Math.cos(ang) * rr, y = cy + Math.sin(ang) * rr;
+      if (y < GROUND) { putPx(c, x, y, i % 3 ? K.cyan3 : K.red3, k); addPx(g, x, y, i % 3 ? LIGHT.cyan : LIGHT.red, 0.6 * k); }
+    }
+  }
+  /** Bloqueo / Guardia Férrea: a heater-shaped ward of light grows from her shield, steel plates that light up where
+      the blow lands (behind the figure). */
+  function aegis(c, g, F, k, flashK, t, rip, cover) {
+    if (k <= 0.02) return;
+    const [sx, sy] = F.shield, w = F.p.shw * 2.0, h = F.shieldH * 1.75, cx = sx + 4.5, cy = sy + 1.5;
+    const In = new Uint8Array(N), SXw = new Float32Array(N), SYw = new Float32Array(N);
+    for (let i = 0; i < N; i++) { const hh = heater(i % CELL + 0.5, (i / CELL | 0) + 0.5, cx, cy, w, h); if (hh && (i / CELL | 0) < GROUND) { In[i] = 1; SXw[i] = hh[0]; SYw[i] = hh[1]; } }
+    const free = mask((x, y, i) => !(cover && cover[i]));
+    const shell = and(In, not(dilate(not(In))), free);
+    const edge = and(In, not(shell), not(dilate(dilate(not(In)))), free);
+    put(c, shell, K.cyan2, k); put(c, and(shell, mask((x, y, i) => SXw[i] > 0.3 || SYw[i] > 0.7)), K.cyan3, k); add(g, shell, LIGHT.cyan, 0.65 * k);
+    const inner = and(In, not(shell), free);
+    put(c, inner, K.cyan0, 0.3 * k);
+    const lit = new Float32Array(N).fill(flashK);
+    if (rip) for (let i = 0; i < N; i++) { const x = i % CELL + 0.5, y = (i / CELL | 0) + 0.5; lit[i] = Math.max(lit[i], clamp01(1 - Math.abs(Math.hypot(x - rip[0], y - rip[1]) - rip[2]) / 4) * k); }
+    const seam = and(inner, mask((x, y, i) => (Math.floor(SYw[i] * h) % 4 === 0) || Math.abs(SXw[i] + 0.1) < 0.06));
+    put(c, seam, K.cyan1, 0.55 * k);
+    put(c, and(seam, mask((x, y, i) => lit[i] > 0.3)), K.cyan2, lit);
+    put(c, and(seam, mask((x, y, i) => lit[i] > 0.7)), K.cyan3);
+    put(c, and(edge, mask((x, y, i) => (Math.floor(SYw[i] * h) % 4 === 2))), K.steel3, k);
+    add(g, seam, LIGHT.cyan, i => 0.2 * k + 0.9 * lit[i]);
+    const head = 0.5 + 0.45 * Math.sin(2 * Math.PI * t);
+    const gl = and(shell, mask((x, y, i) => Math.abs(SYw[i] - head) < 0.07));
+    put(c, gl, K.cyan4, k); add(g, gl, LIGHT.cyan, 0.9 * k);
+    return [cx + w * 0.98, cy - h * 0.1];
+  }
+  /** Furia: crimson tongues of light rising around her feet and body. */
+  function flames(c, g, t, seed, count, area, k) {
+    if (k <= 0.02) return;
+    const r = rng(seed); const [x0, y0, x1, y1] = area;
+    for (let i = 0; i < count; i++) {
+      const fx = uni(r, x0, x1), ph = r(), spd = uni(r, 0.8, 1.4), len = Math.round(uni(r, 2, 5));
+      const u = frac(t * spd + ph), y = y1 - u * (y1 - y0), x = fx + Math.sin((u * 3 + ph) * Math.PI * 2) * 1.2, a = Math.sin(u * Math.PI) * k;
+      if (a < 0.15) continue;
+      for (let j = 0; j < len; j++) {
+        const q = j / Math.max(1, len - 1), col = q < 0.34 ? K.red4 : q < 0.67 ? K.red3 : K.red2;
+        putPx(c, x, y + j, col, Math.min(1, a * 1.5)); addPx(g, x, y + j, q < 0.5 ? LIGHT.warm : LIGHT.red, 0.7 * a * (1 - q * 0.5));
+      }
+    }
+  }
+  function bladeGlint(c, g, F, f, seed, gain = 0.8) {
+    const r = rng(seed);
+    for (let i = 0; i < 3; i++) {
+      const born = Math.floor(r() * LOOP), age = ((f - born) % LOOP + LOOP) % LOOP, s = uni(r, GUARD_AT + 6, TIP - 5);
+      if (age > 3) continue;
+      const [x, y] = F.along(s), arm = [1, 2, 1, 0][age];
+      if (arm) star4(c, g, x - F.dir[1] * 1.2, y + F.dir[0] * 1.2 - 0.5, arm, { gain, diag: false }); else { putPx(c, x, y, K.cyan3); addPx(g, x, y, LIGHT.cyan, 0.5); }
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------- the frames
+  const POSES = {"attack":[{"x":-0.5,"sink":2.5,"lean":0.5,"hx":9,"hh":31,"sdeg":80,"bow":1.4,"eyes":1.1,"rune":1.2,"shx":8,"shh":30,"shw":5.6},{"x":-1.5,"sink":3.5,"lean":-1.5,"bf":-8,"hx":2,"hh":30,"sdeg":130,"behind":1,"bow":1.0,"wind":1.2,"hairwind":1.3,"eyes":1.3,"rune":1.5,"shx":10,"shh":33,"shw":5.9},{"x":-2.5,"sink":4.5,"lean":-3.0,"ff":9,"bf":-9,"hx":-5,"hh":31,"sdeg":142,"behind":1,"bow":0.6,"wind":1.4,"hairwind":1.6,"eyes":1.5,"rune":1.9,"shx":11,"shh":35,"shw":6.1},{"x":1.5,"sink":3,"lean":4,"ff":12,"bf":-8,"hx":14,"hh":35,"sdeg":8,"bow":0.4,"sweep":0.6,"hairwind":0.8,"eyes":1.6,"rune":2.2,"shx":6,"shh":29,"shw":4.8},{"x":3.5,"sink":4,"stretch":1.02,"lean":6.5,"nod":1,"ff":15,"bf":-7,"hx":17,"hh":44,"sdeg":-28,"bow":0.3,"sweep":1,"hairwind":0.4,"eyes":1.7,"rune":2.4,"shx":5.5,"shh":30,"shw":4.4},{"x":3.5,"sink":4,"stretch":1.02,"lean":6,"nod":1,"ff":15,"bf":-7,"hx":16,"hh":47,"sdeg":-46,"bow":0.4,"sweep":0.75,"hairwind":0.4,"eyes":1.4,"rune":1.9,"shx":5.5,"shh":30,"shw":4.4},{"x":2.75,"sink":3.5,"lean":4.75,"nod":0.5,"ff":13,"bf":-7,"hx":15,"hh":42,"sdeg":-15,"bow":0.7,"sweep":0.5,"eyes":1.2,"rune":1.5,"shx":6,"shh":29,"shw":5.0},{"x":2,"sink":3,"lean":3.5,"ff":11,"hx":14,"hh":37,"sdeg":22,"bow":0.9,"sweep":0.3,"eyes":1.1,"rune":1.25,"shx":6.5,"shh":28,"shw":5.4},{"x":1,"sink":2,"lean":2.25,"ff":9,"hx":12.5,"hh":34,"sdeg":45,"bow":1.0,"sweep":0.1,"rune":1.1,"shx":6.8,"shh":27.5,"shw":5.6}],"guard":[{"sink":3,"lean":1,"hx":11,"hh":33,"sdeg":75,"bow":1.2,"rune":1.2,"shx":9,"shh":31,"shw":5.8},{"y":-1,"sink":2,"lean":2,"ff":9,"bf":-8,"hx":4,"hh":31,"sdeg":140,"behind":1,"bow":1.4,"wind":1.3,"hairwind":1.4,"eyes":1.3,"rune":1.4,"shx":12.5,"shh":38,"shw":6.3},{"sink":5,"stretch":0.95,"lean":3,"ff":10,"bf":-9,"hx":3.5,"hh":29,"sdeg":145,"behind":1,"bow":1.4,"wind":1.4,"eyes":1.5,"rune":1.6,"shx":13,"shh":37,"shw":6.5},{"sink":4.67,"stretch":0.96,"lean":2.5,"ff":10,"bf":-9,"hx":3.5,"hh":29,"sdeg":145,"behind":1,"bow":1.4,"wind":1.3,"eyes":1.43,"rune":1.5,"shx":12,"shh":37,"shw":6.5},{"sink":4.33,"stretch":0.96,"lean":2.5,"ff":10,"bf":-9,"hx":3.5,"hh":29.5,"sdeg":144,"behind":1,"bow":1.4,"wind":1.2,"eyes":1.37,"rune":1.4,"shx":12.3,"shh":37,"shw":6.5},{"sink":4,"stretch":0.97,"lean":2.5,"ff":10,"bf":-9,"hx":4,"hh":30,"sdeg":140,"behind":1,"bow":1.3,"wind":1.1,"eyes":1.3,"rune":1.3,"shx":12.3,"shh":36.5,"shw":6.4},{"sink":3,"lean":2,"ff":9,"bf":-7,"hx":10,"hh":33,"sdeg":75,"bow":1.2,"rune":1.2,"shx":9.5,"shh":31,"shw":5.9},{"sink":2.25,"lean":1.7,"hx":13,"hh":35,"sdeg":55,"bow":1.2,"rune":1.1,"shx":7.3,"shh":28.5,"shw":5.7}],"hurt":[{"x":-4,"sink":4,"stretch":0.95,"lean":-5,"nod":-2,"ff":8,"bf":-9,"wind":1.3,"hairwind":2,"hx":7,"hh":30,"sdeg":75,"bow":1.6,"eyes":1.4,"blink":1,"rune":0.4,"flash":0.85,"shx":4.5,"shh":25,"shw":5.0},{"x":-5,"sink":4,"stretch":0.95,"lean":-6,"nod":-2,"ff":8,"bf":-9,"wind":1.3,"hairwind":2,"hx":6,"hh":29,"sdeg":80,"bow":1.6,"eyes":1.4,"blink":1,"rune":0.6,"flash":0.4,"shx":4,"shh":24,"shw":4.8},{"x":-4.5,"sink":4,"stretch":0.95,"lean":-4.5,"nod":-2,"ff":8,"bf":-9,"wind":1.3,"hairwind":2,"hx":7,"hh":30,"sdeg":76,"bow":1.5,"eyes":1.4,"blink":1,"rune":0.5,"flash":0.12,"shx":4.5,"shh":24.5,"shw":5.0},{"x":-3.25,"sink":3.5,"stretch":0.97,"lean":-2.25,"nod":-1,"ff":7.5,"bf":-7.5,"wind":1.15,"hairwind":1.5,"hx":9,"hh":31,"sdeg":66,"bow":1.3,"eyes":1.2,"blink":0.5,"rune":0.7,"flash":0.06,"shx":5.5,"shh":26,"shw":5.3},{"x":-2,"sink":3,"lean":0,"hx":10.5,"hh":32,"sdeg":58,"rune":0.9,"shx":6.2,"shh":27,"shw":5.5},{"x":-1,"sink":2.25,"lean":1,"hx":11.5,"hh":33,"sdeg":54,"rune":0.95,"shx":6.6,"shh":27.5,"shw":5.6}],"cast":[{"sink":3,"hx":11,"hh":31,"sdeg":62,"bow":1.3,"rune":1.2,"shx":7,"shh":27,"shw":5.5},{"sink":3.5,"lean":1,"hx":12,"hh":38,"sdeg":-10,"bow":1.3,"eyes":1.2,"rune":1.5,"rage":0.25,"shx":6,"shh":27,"shw":5.2},{"sink":1,"stretch":1.03,"lean":1,"wind":1.4,"hairwind":1.4,"hx":13,"hh":46,"sdeg":-58,"bow":1.1,"eyes":1.4,"rune":1.9,"rage":0.55,"shx":5,"shh":27,"shw":4.8},{"y":-0.3,"sink":1,"stretch":1.04,"lean":1,"wind":1.45,"hairwind":1.45,"hx":13,"hh":46.3,"sdeg":-60,"bow":1.1,"eyes":1.45,"rune":2.0,"rage":0.7,"shx":5,"shh":27.3,"shw":4.8},{"y":-0.7,"sink":1,"stretch":1.04,"lean":1,"wind":1.55,"hairwind":1.5,"hx":13,"hh":46.7,"sdeg":-61,"bow":1.1,"eyes":1.55,"rune":2.2,"rage":0.85,"shx":5,"shh":27.7,"shw":4.8},{"y":-1,"sink":1,"stretch":1.05,"lean":1,"wind":1.6,"hairwind":1.6,"hx":13,"hh":47,"sdeg":-62,"bow":1.1,"eyes":1.6,"rune":2.3,"rage":1.0,"shx":5,"shh":28,"shw":4.8},{"y":-1,"sink":1,"stretch":1.06,"lean":1,"wind":1.6,"hairwind":1.8,"hx":13,"hh":47.5,"sdeg":-63,"bow":1.1,"eyes":1.8,"rune":2.8,"rage":1.2,"shx":5,"shh":28,"shw":4.8},{"y":-0.1,"sink":2.75,"stretch":0.99,"lean":1.8,"wind":1.1,"hairwind":1.1,"hx":13,"hh":44,"sdeg":-50,"bow":1.2,"eyes":1.3,"rune":1.7,"rage":0.7,"shx":5.5,"shh":27,"shw":5.0},{"sink":3,"stretch":0.98,"hx":12.5,"hh":40,"sdeg":-20,"bow":1.2,"eyes":1.2,"rune":1.5,"rage":0.4,"shx":6,"shh":27,"shw":5.2},{"sink":2.6,"stretch":0.99,"hx":12.3,"hh":36,"sdeg":20,"eyes":1.15,"rune":1.3,"rage":0.2,"shx":6.5,"shh":27.2,"shw":5.4},{"sink":1.9,"hx":12.1,"hh":34,"sdeg":44,"eyes":1.05,"rune":1.1,"rage":0.05,"shx":6.8,"shh":27.4,"shw":5.6}],"death":[{"x":-4,"sink":4,"stretch":0.95,"lean":-6,"nod":-2,"wind":1.6,"hairwind":2,"hx":7,"hh":30,"sdeg":75,"bow":1.6,"eyes":1.6,"blink":1,"rune":0.4,"flash":0.85,"shx":4.5,"shh":25,"shw":5.0},{"x":-6,"y":-1,"sink":4,"stretch":0.95,"lean":-7,"nod":-2,"wind":1.6,"hairwind":2,"hx":5,"hh":29,"sdeg":82,"bow":1.6,"eyes":1.6,"blink":1,"rune":0.6,"flash":0.4,"shx":3.5,"shh":24,"shw":4.8},{"x":-5,"y":-0.5,"sink":5.5,"stretch":0.97,"lean":-3,"nod":-0.5,"wind":1.4,"hairwind":1.5,"hx":9,"hh":28,"sdeg":86,"bow":1.4,"eyes":1.25,"blink":0.5,"rune":0.6,"flash":0.2,"shx":4,"shh":22,"shw":5.0},{"x":-4,"sink":7,"lean":1,"nod":1,"wind":1.2,"hx":13,"hh":27,"sdeg":90,"bow":1.2,"eyes":0.9,"rune":0.6,"shx":4.5,"shh":19,"shw":5.2},{"x":-4,"sink":7.5,"lean":1.8,"nod":1.3,"wind":1.1,"hairwind":0.9,"hx":14,"hh":26,"sdeg":90,"bow":1.2,"eyes":0.87,"rune":0.57,"kneel":0.12,"drop":0.23,"shx":4.5,"shh":17,"shw":5.2},{"x":-4,"sink":8.5,"lean":3.2,"nod":1.7,"wind":0.9,"hairwind":0.7,"hx":14,"hh":24.5,"sdeg":90,"bow":1.2,"eyes":0.83,"rune":0.53,"kneel":0.33,"drop":0.68,"shx":4,"shh":15,"shw":5.3},{"x":-4,"sink":9,"lean":4,"nod":2,"wind":0.8,"hairwind":0.6,"hx":14,"hh":23,"sdeg":90,"bow":1.2,"eyes":0.8,"rune":0.5,"kneel":0.45,"drop":0.9,"shx":3.5,"shh":13.5,"shw":5.3},{"x":-4,"sink":6.9,"stretch":0.95,"lean":7.5,"nod":2.7,"wind":0.5,"hairwind":0.4,"hx":14,"hh":20.5,"sdeg":90,"bow":1.2,"eyes":0.73,"rune":0.43,"kneel":0.84,"drop":1.71,"shx":3,"shh":12,"shw":5.4},{"x":-4,"sink":6.1,"stretch":0.93,"lean":8.8,"nod":3,"wind":0.37,"hairwind":0.3,"hx":14,"hh":19.8,"sdeg":90,"bow":1.2,"eyes":0.7,"rune":0.4,"kneel":0.98,"drop":1.98,"shx":2.8,"shh":11.3,"shw":5.4},{"x":-4,"sink":6,"stretch":0.93,"lean":9,"nod":3,"wind":0.35,"hairwind":0.3,"hx":14,"hh":19.5,"sdeg":90,"bow":1.2,"eyes":0.7,"rune":0.4,"kneel":1,"drop":2.02,"shx":2.8,"shh":11,"shw":5.4},{"x":-4,"sink":6,"stretch":0.94,"lean":9,"nod":3,"wind":0.35,"hairwind":0.3,"hx":14,"hh":19.5,"sdeg":90,"bow":1.2,"eyes":0.7,"rune":0.4,"kneel":1,"drop":2.02,"shx":2.8,"shh":11,"shw":5.4},{"x":-4,"sink":6,"stretch":0.93,"lean":9,"nod":3,"wind":0.35,"hairwind":0.3,"hx":14,"hh":19.5,"sdeg":90,"bow":1.2,"eyes":0.7,"rune":0.4,"kneel":1,"drop":2.02,"shx":2.8,"shh":11,"shw":5.4},{"x":-4,"sink":6.1,"stretch":0.93,"lean":9.1,"nod":3.05,"wind":0.33,"hairwind":0.27,"hx":14,"hh":19.4,"sdeg":90,"bow":1.2,"eyes":0.63,"rune":0.36,"kneel":1,"fade":0.1,"drop":2.12,"shx":2.8,"shh":11,"shw":5.4},{"x":-4,"sink":6.35,"stretch":0.93,"lean":9.35,"nod":3.18,"wind":0.28,"hairwind":0.19,"hx":14,"hh":19.1,"sdeg":90,"bow":1.2,"eyes":0.45,"rune":0.26,"kneel":1,"fade":0.35,"drop":2.34,"shx":2.8,"shh":11,"shw":5.4},{"x":-4,"sink":6.65,"stretch":0.93,"lean":9.65,"nod":3.32,"wind":0.22,"hairwind":0.11,"hx":14,"hh":18.8,"sdeg":90,"bow":1.2,"eyes":0.25,"rune":0.14,"kneel":1,"fade":0.65,"drop":2.61,"shx":2.8,"shh":11,"shw":5.4},{"x":-4,"sink":6.9,"stretch":0.93,"lean":9.9,"nod":3.45,"wind":0.17,"hairwind":0.03,"hx":14,"hh":18.5,"sdeg":90,"bow":1.2,"eyes":0.07,"rune":0.04,"kneel":1,"fade":0.9,"drop":2.83,"shx":2.8,"shh":11,"shw":5.4},{"x":-4,"sink":7,"stretch":0.93,"lean":10,"nod":3.5,"wind":0.15,"hairwind":0,"hx":14,"hh":18.4,"sdeg":90,"bow":1.2,"eyes":0,"rune":0,"kneel":1,"fade":1,"drop":2.93,"shx":2.8,"shh":11,"shw":5.4}]};      // one complete pose per frame of every action (no tweening at play time)
+  const clock = (f, n) => frac((f - (n - 1)) / LOOP);
+  const withP = (p, o) => Object.assign({}, p, o);
+  function idlePose(t) {
+    const bob = Math.round(0.5 - 0.5 * Math.cos(t * 2 * Math.PI));
+    return withP(IDLE, { sink: IDLE.sink + bob, hh: IDLE.hh - bob, shh: IDLE.shh - bob, phase: t * 2 * Math.PI });
+  }
+  const pose = (name, f) => name === 'idle' ? idlePose(f / LOOP) : withP(IDLE, POSES[name][Math.min(f, POSES[name].length - 1)]);
+  const silhouette = p => { const F = figure(p); const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = F.lab[i] ? 1 : 0; return m; };
+
+  function idleFrame(f) {
+    const t = f / LOOP, p = withP(idlePose(t), { blink: f === 17 || f === 18 ? 1 : 0 });
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    paint(c, g, F, t);
+    bladeGlint(c, g, F, f, 41);
+    ambient(c, g, t);
+    return [c, g];
+  }
+  const strikePoint = () => figure(pose('attack', STRIKE_FRAME)).along(TIP - 6);
+  const castPoint = () => figure(pose('cast', CAST_FRAME)).tip;
+
+  function attackFrame(f) {
+    const n = 10; if (f === n - 1) return idleFrame(0);
+    const t = clock(f, n), p = withP(pose('attack', f), { phase: t * 2 * Math.PI });
+    const c = new Cv(), g = new Cv();
+    const cover = silhouette(p);
+    if (f >= 3 && f <= 5) ghost(c, g, silhouette(withP(pose('attack', 2), { phase: t * 2 * Math.PI })), { 3: 0.85, 4: 0.5, 5: 0.22 }[f], cover);
+    const F = figure(p);
+    const S4 = figure(pose('attack', STRIKE_FRAME)).shoulder;
+    const ARC = { 3: [150, 12, 0.75, 0.55], 4: [100, -30, 1.0, 0.5], 5: [30, -50, 0.55, 0.8], 6: [-10, -54, 0.2, 0.92] }[f];
+    if (ARC) slash(c, g, S4[0], S4[1], 44, 44 * ARC[3], ARC[0] * Math.PI / 180, ARC[1] * Math.PI / 180, ARC[2], cover, 61 + f);
+    if (f >= 3 && f <= 5) speedLines(c, g, F.gx - 12, F.yAt(36), 1, 0, { 3: 0.7, 4: 1.0, 5: 0.45 }[f], 31 + f, 5, 11, [5, 10], 0);
+    paint(c, g, F, t);
+    const [sx, sy] = strikePoint();
+    if (f === 4) { star4(c, g, sx, sy, 6, { gain: 1.5 }); ring(c, g, sx, sy, 4.0, 0.9, 5.0, 0.9); }
+    else if (f === 5) { star4(c, g, sx, sy, 3, { gain: 1.0 }); ring(c, g, sx, sy, 7.0, 0.45, 8.0, 0.6); }
+    else if (f === 6) star4(c, g, sx, sy, 1, { gain: 0.6, diag: false });
+    if (f === 2) { const [tx, ty] = F.tip; star4(c, g, tx, ty, 2, { gain: 0.9, diag: false }); }
+    sparks(c, g, sx, sy, f - STRIKE_FRAME, 5, 12, 2.4, -Math.PI * 0.2, 1.0, { grav: 0.18, life: 6, redEvery: 3 });
+    ambient(c, g, t);
+    return [c, g];
+  }
+
+  function guardFrame(f) {
+    const n = 9; if (f === n - 1) return idleFrame(0);
+    const t = clock(f, n), p = withP(pose('guard', f), { phase: t * 2 * Math.PI });
+    const c = new Cv(), g = new Cv();
+    const F = figure(p), cover = silhouette(p);
+    const k = [0, 0.4, 1, 1, 0.9, 0.7, 0.4, 0.12][f], fl = { 2: 1.0, 3: 0.55, 4: 0.2 }[f] || 0;
+    const F2 = figure(pose('guard', 2));
+    const hit = [F2.shield[0] + F2.p.shw * 2.0 + 4.5, F2.shield[1] - 3];
+    const rip = f >= 2 && f <= 5 ? [hit[0], hit[1], 3 + (f - 2) * 8] : null;
+    aegis(c, g, F, k, fl, t, rip, cover);
+    paint(c, g, F, t);
+    const gem = [F.shield[0] - 0.06 * p.shw, F.shield[1] - F.shieldH * 0.12];
+    if (f === 1) star4(c, g, gem[0], gem[1], 3, { gain: 1.0 });
+    if (f === 2) { star4(c, g, gem[0], gem[1], 6, { gain: 1.4 }); star4(c, g, hit[0], hit[1], 4, { gain: 1.2 }); }
+    if (f === 3) star4(c, g, gem[0], gem[1], 3, { gain: 1.1 });
+    if (f >= 2 && f <= 6) {
+      dust(c, ROOT_X + p.ff, GROUND - 1, f - 2, 5, [1]); dust(c, ROOT_X + p.bf, GROUND - 1, f - 2, 5, [-1]);
+      ring(c, g, F.gx, GROUND - 1.5, 6 + (f - 2) * 4, Math.max(0, 0.9 - (f - 2) * 0.25), 1.2 + (f - 2) * 0.7);
+    }
+    if (f >= 2 && f <= 5) sparks(c, g, hit[0], hit[1], f - 1.4, 71, 10, 2.2, -Math.PI * 0.1, 1.1, { grav: 0.2, life: 5 });
+    if (f >= 5) {
+      const r = rng(91), [sx, sy] = F2.shield, w = F2.p.shw * 2.0, h = F2.shieldH * 1.75;
+      for (let i = 0; i < 12; i++) {
+        const age = f - 4, x = sx + 4.5 + uni(r, -w, w), y = sy + 1.5 + uni(r, -h * 0.4, h * 0.4) - age * uni(r, 0.8, 1.6), a = 1 - age / 4;
+        if (a > 0 && y < GROUND - 1 && !cover[idx(x, y)]) { putPx(c, x, y, K.cyan3, a); addPx(g, x, y, LIGHT.cyan, 0.7 * a); }
+      }
+    }
+    ambient(c, g, t);
+    return [c, g];
+  }
+
+  function hurtFrame(f) {
+    const n = 7; if (f === n - 1) return idleFrame(0);
+    const t = clock(f, n), p = withP(pose('hurt', f), { phase: t * 2 * Math.PI });
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    paint(c, g, F, t);
+    const ch = figure(pose('hurt', 0)).chest;
+    sparks(c, g, ch[0] + 3, ch[1], f + 0.8, 13, 12, 2.6, Math.PI, 1.0, { grav: 0.12, life: 5.5, redEvery: 2 });
+    if (f === 0) star4(c, g, ch[0] + 4, ch[1] - 1, 3, RED_FX);
+    ambient(c, g, t);
+    return [c, g];
+  }
+
+  function castFrame(f) {
+    const n = 12; if (f === n - 1) return idleFrame(0);
+    const t = clock(f, n), p = withP(pose('cast', f), { phase: t * 2 * Math.PI });
+    const c = new Cv(), g = new Cv();
+    const rk = [0, 0.3, 0.7, 0.85, 1, 1, 1, 0.8, 0.5, 0.25, 0.08][f];
+    const F = figure(p);
+    flames(c, g, t * 3, 19, 18, [F.gx - 17, GROUND - 44, F.gx + 15, GROUND - 2], rk);
+    paint(c, g, F, t);
+    const [px, py] = castPoint(), [tx, ty] = F.tip;
+    if (f >= 2 && f <= 5) star4(c, g, tx, ty, { 2: 2, 3: 3, 4: 3, 5: 4 }[f], { ...RED_FX, gain: 1.0, diag: false });
+    if (f >= 6 && f <= 9) { star4(c, g, px, py, { 6: 8, 7: 5, 8: 3, 9: 1 }[f], { ...RED_FX, gain: 1.5 }); ring(c, g, px, py, 3 + (f - 6) * 2.6, 1 - (f - 6) / 4, undefined, 0.9, RED_FX); }
+    if (f >= 6 && f <= 9) ring(c, g, F.gx, GROUND - 1.5, 8 + (f - 6) * 5, 1 - (f - 6) / 4, 1.4 + (f - 6) * 0.6, 0.8, RED_FX);
+    sparks(c, g, px, py, f - CAST_FRAME + 0.6, 17, 14, 2.4, -Math.PI / 2, Math.PI * 0.85, { grav: 0.2, life: 6, redEvery: 1 });
+    if (f >= 1 && f <= 8) motes(c, g, t * 3, 17, 10, [F.gx - 18, GROUND - 46, F.gx + 18, GROUND - 1], K.red3, K.red4, LIGHT.red, LIGHT.warm, 0.8 * rk);
+    ambient(c, g, t);
+    return [c, g];
+  }
+
+  function deathFrame(f) {
+    const t = frac(f / LOOP), p = withP(pose('death', f), { phase: t * 2 * Math.PI });
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    paint(c, g, F, t);
+    const ch = figure(pose('death', 0)).chest;
+    sparks(c, g, ch[0] + 3, ch[1], f + 0.8, 13, 12, 2.6, Math.PI, 1.0, { grav: 0.12, life: 5.5, redEvery: 2 });
+    if (f === 0) star4(c, g, ch[0] + 4, ch[1] - 1, 3, RED_FX);
+    if (f >= 2 && f <= 7) dust(c, F.hand[0], GROUND - 1, f - 3, 5);
+    dust(c, F.gx - 2, GROUND - 1, f - 8, 5);
+    const g0 = F.along(GUARD_AT);
+    if (f >= 10 && f <= 14) star4(c, g, g0[0], g0[1], { 10: 2, 11: 1, 12: 2, 13: 1, 14: 1 }[f], { gain: 0.7 * (1 - (f - 10) / 5), diag: false });
+    if (f >= 10) motes(c, g, (f - 10) / 12, 29, 8, [F.gx - 14, GROUND - 40, F.gx + 14, GROUND - 2], K.cyan3, K.red3, LIGHT.cyan, LIGHT.red, 0.7 * (1 - (f - 10) / 9));
+    return [c, g];
+  }
+
+  const FRAME = { idle: idleFrame, attack: attackFrame, guard: guardFrame, hurt: hurtFrame, cast: castFrame, death: deathFrame };
+  const durationsMs = n => Array.from({ length: n }, (_, i) => Math.round((i + 1) * 1000 / FPS) - Math.round(i * 1000 / FPS));
+  /** The silhouette of frame f (the whole figure: body, arm, gauntlet and sword), for the one-region check. */
+  const silhouetteOf = (name, f) => { const fr = name === 'idle' || f >= POSES[name].length ? idlePose(name === 'idle' ? f / LOOP : 0) : pose(name, f); return silhouette(fr); };
+  const debug = (name, f) => { const F = figure(pose(name, f)); return { arm: F.alen, shoulder: F.shoulder, hand: F.hand, tip: F.tip }; };
+  const api = { CELL, GROUND, FPS, LOOP, ANIMATIONS, STRIKE_FRAME, CAST_FRAME, FRAME, durationsMs, strikePoint, castPoint, silhouetteOf, debug };
+  root.WarriorArt = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const A = window.WarriorArt;
+  const INFO = {
+    idle: ['Reposo', 'Bucle de 2 s: respira con el escudo delante y la espada baja; el penacho, la trenza y el tabardo se mecen y un destello recorre la hoja.'],
+    attack: ['Ataque', 'Espadazo: adelanta el escudo y recoge la espada atrás, avanza y corta de abajo arriba; la media luna sale en el fotograma 5 (ahí reacciona el enemigo).'],
+    guard: ['Guardia', 'Bloqueo / Guardia Férrea: alza el escudo, crece de él un escudo de placas de luz; el golpe lo ilumina y se deshace en motas.'],
+    hurt: ['Daño', 'Destello, retrocede, el escudo y la espada caen y saltan chispas carmesí.'],
+    cast: ['Habilidad', 'Furia: alza la espada, un aura carmesí la envuelve, las runas de la hoja se encienden y estallan en el fotograma 7.'],
+    death: ['Muerte', 'Clava la espada en el suelo y cae de rodillas apoyada en ella, el escudo en el suelo y la cabeza gacha; los ojos y las runas se apagan. Se queda en el último fotograma.']
+  };
+  const EVENTS = { attack: { [A.STRIKE_FRAME]: 'golpe' }, cast: { [A.CAST_FRAME]: 'lanzamiento' } };
+  const cache = {};
+  function toCanvases(c, g) {
+    const lit = document.createElement('canvas'), glow = document.createElement('canvas');
+    lit.width = glow.width = lit.height = glow.height = A.CELL;
+    const L = lit.getContext('2d').createImageData(A.CELL, A.CELL), G = glow.getContext('2d').createImageData(A.CELL, A.CELL);
+    for (let i = 0; i < A.CELL * A.CELL; i++) {
+      const o = i * 4;
+      let r = c.px[o] + Math.min(4, g.px[o]) * 0.6, gg = c.px[o + 1] + Math.min(4, g.px[o + 1]) * 0.6, b = c.px[o + 2] + Math.min(4, g.px[o + 2]) * 0.6;
+      const hot = Math.max(0, Math.max(r, gg, b) - 1) * 0.5;
+      r = Math.min(1, Math.min(1, r) + hot); gg = Math.min(1, Math.min(1, gg) + hot); b = Math.min(1, Math.min(1, b) + hot);
+      L.data[o] = r * 255 + 0.5; L.data[o + 1] = gg * 255 + 0.5; L.data[o + 2] = b * 255 + 0.5; L.data[o + 3] = c.px[o + 3] > 0.01 ? 255 : 0;
+      G.data[o] = Math.min(1, g.px[o] / 2.5) * 255; G.data[o + 1] = Math.min(1, g.px[o + 1] / 2.5) * 255; G.data[o + 2] = Math.min(1, g.px[o + 2] / 2.5) * 255; G.data[o + 3] = 255;
+    }
+    lit.getContext('2d').putImageData(L, 0, 0); glow.getContext('2d').putImageData(G, 0, 0);
+    return { lit, glow };
+  }
+  function frames(name) {
+    if (!cache[name]) { const n = A.ANIMATIONS.find(a => a[0] === name)[1]; cache[name] = Array.from({ length: n }, (_, f) => toCanvases(...A.FRAME[name](f))); }
+    return cache[name];
+  }
+  const stage = document.getElementById('stage'), ctx = stage.getContext('2d');
+  const strip = document.getElementById('strip'), readout = document.getElementById('readout'), note = document.getElementById('note');
+  const playBtn = document.getElementById('play'), haloBox = document.getElementById('halo');
+  let name = 'idle', frame = 0, playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches, acc = 0, last = 0, rest = 0;
+  function paint(target, fr, scale, withHalo) {
+    const t = target.getContext('2d'), s = A.CELL * scale, css = getComputedStyle(document.documentElement);
+    t.fillStyle = css.getPropertyValue('--stage').trim() || '#1c1932'; t.fillRect(0, 0, s, s);
+    t.fillStyle = css.getPropertyValue('--stage-floor').trim() || '#120f22'; t.fillRect(0, A.GROUND * scale, s, s - A.GROUND * scale);
+    t.imageSmoothingEnabled = false; t.drawImage(fr.lit, 0, 0, s, s);
+    if (!withHalo) return;
+    t.save(); t.globalCompositeOperation = 'lighter'; t.imageSmoothingEnabled = true;
+    t.filter = `blur(${1.4 * scale}px)`; t.globalAlpha = 0.55 * 0.9; t.drawImage(fr.glow, 0, 0, s, s);
+    t.filter = `blur(${4 * scale}px)`; t.globalAlpha = 0.55 * 1.1; t.drawImage(fr.glow, 0, 0, s, s);
+    t.restore();
+  }
+  function render() {
+    const fr = frames(name);
+    paint(stage, fr[frame], 4, haloBox.checked);
+    const n = fr.length, ev = (EVENTS[name] || {})[frame];
+    readout.innerHTML = `Fotograma <b>${frame + 1}</b> / ${n} · ${A.durationsMs(n)[frame]} ms${ev ? ` · <b>${ev}</b>` : ''}`;
+    strip.querySelectorAll('figure').forEach((el, i) => { el.dataset.on = String(i === frame); });
+  }
+  function buildStrip() {
+    strip.textContent = '';
+    frames(name).forEach((fr, i) => {
+      const fig = document.createElement('figure'), cv = document.createElement('canvas'), cap = document.createElement('figcaption');
+      cv.width = cv.height = 192; paint(cv, fr, 2, true);
+      cv.addEventListener('click', () => { frame = i; setPlaying(false); render(); });
+      const ev = (EVENTS[name] || {})[i];
+      cap.innerHTML = String(i + 1) + (ev ? ` <span class="ev">${ev}</span>` : '');
+      fig.append(cv, cap); strip.append(fig);
+    });
+  }
+  function select(n) {
+    name = n; frame = 0; acc = 0; rest = 0;
+    picker.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.anim === n)));
+    note.innerHTML = `<strong>${INFO[n][0]}.</strong> ${INFO[n][1]}`;
+    buildStrip(); render();
+  }
+  function setPlaying(v) { playing = v; playBtn.textContent = v ? 'Pausa' : 'Reproducir'; }
+  const picker = document.getElementById('picker');
+  A.ANIMATIONS.forEach(([n]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.anim = n; b.textContent = INFO[n][0];
+    b.addEventListener('click', () => select(n)); picker.append(b);
+  });
+  playBtn.addEventListener('click', () => setPlaying(!playing));
+  document.getElementById('prev').addEventListener('click', () => { setPlaying(false); const n = frames(name).length; frame = (frame - 1 + n) % n; render(); });
+  document.getElementById('next').addEventListener('click', () => { setPlaying(false); frame = (frame + 1) % frames(name).length; render(); });
+  haloBox.addEventListener('change', render);
+  function tick(now) {
+    const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
+    if (playing) {
+      const fr = frames(name), n = fr.length, loop = A.ANIMATIONS.find(a => a[0] === name)[2];
+      if (rest > 0) { rest -= dt; if (rest <= 0) { frame = 0; acc = 0; render(); } }
+      else {
+        acc += dt;
+        const dur = A.durationsMs(n)[frame] / 1000;
+        if (acc >= dur) {
+          acc -= dur;
+          if (frame === n - 1 && !loop) { rest = name === 'death' ? 1.6 : 0.6; }
+          else { frame = (frame + 1) % n; render(); }
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  setPlaying(playing);
+  select('idle');
+  requestAnimationFrame(tick);
+})();
+</script>

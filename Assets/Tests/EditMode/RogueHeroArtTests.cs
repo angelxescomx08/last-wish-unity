@@ -111,8 +111,9 @@ namespace LastWish.Tests
             canvas.PushAlpha(0f); sheets.DrawHalo(canvas, "idle", 0f, new RectF(0, 0, 192, 192)); canvas.PopAlpha();
             sheets.DrawHalo(canvas, "idle", 0f, new RectF(0, 0, 192, 192), tint: new Rgba(0, 0, 0));
             Assert.That(render.Quads, Is.Empty, "no light on an invisible or blacked-out hero");
-            art.Hero("warrior").DrawHalo(canvas, "idle", 0f, new RectF(0, 0, 192, 192));
-            Assert.That(render.Quads, Is.Empty, "heroes without a halo sheet draw nothing");
+            var bare = new HeroSheets("bare", MageHeroArtTests.NoHaloJson, key => render.LoadTexture(key));
+            bare.DrawHalo(canvas, "idle", 0f, new RectF(0, 0, 192, 192));
+            Assert.That((bare.HasHalo, render.Quads.Count), Is.EqualTo((false, 0)), "heroes without a halo sheet draw nothing");
             foreach (var t in new[] { float.NaN, -5f, 1e9f })
                 Assert.DoesNotThrow(() => sheets.Halo("death", t));
         }

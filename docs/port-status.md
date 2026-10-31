@@ -161,6 +161,12 @@ Small domain additions for presentation (rules unchanged, tests green):
   (`--hero` picks one; `BORDER_OK` lets the mage's bolt leave the cell) and checks the whole figure is one region.
   CombatScene gives the mage the authored guard/kneel cues. This HTML method is mandatory for every character and
   enemy (docs/art-style.md 3.1); the rogue's sheet still draws her arm and dagger as pieces and must be redone.
+* La Guerrera's sheet (2026-10-31) uses the same method: `Tools/VfxLab/warrior_hero.html` (`<script id="warrior-art">`:
+  closed helmet with a T visor, plume, braid, armour, tabard, heater shield on the far arm and long sword, no cape, all
+  one label map) through `Tools/VfxLab/warrior_hero_html.py` (`--hero warrior`; `BORDER_OK` for the slash on attack
+  frames 3-4). Same layout, counts and events as the mage (slash on frame 4, Furia on frame 6) plus a halo sheet; it
+  replaces the old 72-column sheet. CombatScene's UI/enemy idle clock no longer reads the warrior's idle length: it is
+  the original's fixed 1.6 s (`IdleCycle`). HeroFx keeps her warm palette with the authored guard/kneel cues.
 
 ## Animated card illustrations (beyond the original)
 

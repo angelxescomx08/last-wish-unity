@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Exports the hero sheets drawn in the approved art style (docs/art-style.md) to the game:
-El Mago (Tools/VfxLab/mage_hero.html, drawn by code as one figure per frame, run with Node through mage_hero_html.py)
-and La Pícara (Tools/VfxLab/rogue_hero_art.py, pending a redraw with the same method).
+El Mago (Tools/VfxLab/mage_hero.html) and La Guerrera (Tools/VfxLab/warrior_hero.html), drawn by code as one figure per
+frame and run with Node through mage_hero_html.py / warrior_hero_html.py, and La Pícara (Tools/VfxLab/rogue_hero_art.py,
+pending a redraw with the same method).
 
 Writes Assets/Resources/Game/Heroes/, per hero <id>:
   <id>_96.png        native 96 px cells, already lit (paint + emissive x 0.6, hot cores to white)
@@ -11,11 +12,11 @@ Writes Assets/Resources/Game/Heroes/, per hero <id>:
 One row per animation (idle, attack, guard, hurt, cast, death), one column per frame.
 
 Validation (exit 1 when broken): every action except death ends on idle frame 0 pixel for pixel, nothing touches the
-cell border except the frames a hero allows (`BORDER_OK`: the rogue's strike, the mage's bolt), feet on row 93, the
+cell border except the frames a hero allows (`BORDER_OK`: the rogue's strike, the mage's bolt, the warrior's slash), feet on row 93, the
 death pose is held and not empty, and the figure of every frame is ONE 4-connected mass (heroes are never assembled
 from pieces: docs/art-style.md).
 
-Usage (the mage needs Node.js on PATH):
+Usage (the mage and the warrior need Node.js on PATH):
   python Tools/VfxLab/export_hero_art.py                       # write every hero
   python Tools/VfxLab/export_hero_art.py --hero mage           # only one
   python Tools/VfxLab/export_hero_art.py --check               # compare with the files on disk
@@ -37,11 +38,12 @@ sys.path.insert(0, HERE)
 
 import mage_hero_html  # noqa: E402
 import rogue_hero_art  # noqa: E402
+import warrior_hero_html  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 EMISSIVE_GAIN = 0.6
 HALO_GAIN = 0.55
-HEROES = {'rogue': rogue_hero_art, 'mage': mage_hero_html}
+HEROES = {'rogue': rogue_hero_art, 'mage': mage_hero_html, 'warrior': warrior_hero_html}
 
 
 def columns(R):
