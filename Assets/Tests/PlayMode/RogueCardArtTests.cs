@@ -19,7 +19,7 @@ namespace LastWish.Tests
             yield return GameDriver.Boot();
             var manager = GameDriver.Manager;
             var art = GameDriver.Game.Context.Art;
-            Assert.That(CardArtAnimations.Ids(art).Count, Is.EqualTo(3), "Cards/Anim/anim.json is in Resources");
+            Assert.That(CardArtAnimations.Ids(art), Is.SupersetOf(new[] { "punalada_base", "esquiva_base", "finta_base" }), "Cards/Anim/anim.json is in Resources");
             var run = new RunState(HeroKind.Rogue, 4242);
             manager.StartRun(run);
             yield return GameDriver.Until(() => manager.Top is MapScene, 5, "map");

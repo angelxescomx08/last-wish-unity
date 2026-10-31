@@ -1,0 +1,1233 @@
+<title>La Cripta</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: the fight-sized stage first (the backdrop at 2x with everything that moves), the switches under it, then
+     what moves and the layers the game loads. One dark look on purpose: the page is the crypt at night. */
+  :root {
+    --bg: #0d0b17; --panel: #161328; --line: #29243f; --fg: #e8e4f8; --muted: #9b95b8;
+    --accent: #58dcff; --warm: #f2b35e; --moon: #a69be6;
+    --font-display: "Pixelify Sans", "Silkscreen", ui-monospace, monospace;
+    --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { background: var(--bg); color: var(--fg); }
+  body { font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .page { max-width: 1120px; margin: 0 auto; padding-block: 28px 44px; display: grid; gap: 22px; }
+  header { display: grid; gap: 6px; }
+  .eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--moon); margin: 0; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(32px, 6vw, 48px); line-height: 1; margin: 0; letter-spacing: 0.02em; text-wrap: balance; }
+  h1 span { color: var(--accent); }
+  .lede { color: var(--muted); max-width: 68ch; margin: 0; }
+  .stage { position: relative; border: 1px solid var(--line); background: #07050c; }
+  .stage canvas { display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 16 / 9; image-rendering: pixelated; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+  .controls label { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; color: var(--fg); }
+  .controls input { accent-color: var(--accent); width: 16px; height: 16px; }
+  button { font-family: var(--font-display); font-size: 15px; color: var(--bg); background: var(--accent); border: 0; padding: 7px 14px; cursor: pointer; }
+  button:focus-visible, .controls input:focus-visible { outline: 2px solid var(--warm); outline-offset: 2px; }
+  .clock { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; margin-left: auto; }
+  h2 { font-family: var(--font-display); font-weight: 500; font-size: 22px; margin: 0; letter-spacing: 0.02em; }
+  .moves { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 22px; margin: 0; padding: 0; list-style: none; }
+  .moves li { display: grid; grid-template-columns: 12px 1fr; gap: 10px; align-items: baseline; min-width: 0; }
+  .moves li::before { content: ""; width: 8px; height: 8px; background: var(--c, var(--accent)); transform: translateY(-1px); }
+  .moves b { font-weight: 600; }
+  .moves span { color: var(--muted); }
+  .layers { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  figure { margin: 0; display: grid; gap: 6px; align-content: start; min-width: 0; }
+  figure canvas { width: 100%; max-width: 100%; height: auto; image-rendering: pixelated; background: #07050c; border: 1px solid var(--line); }
+  figcaption { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+  section { display: grid; gap: 12px; }
+  footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 14px; }
+  code { font-family: var(--font-mono); font-size: 13px; color: var(--fg); }
+</style>
+
+<div class="page">
+  <header>
+    <p class="eyebrow">Piso 1 · fondo de combate · 640×360 nativos a ×2</p>
+    <h1>La <span>Cripta</span></h1>
+    <p class="lede">Osario bajo el cementerio: arquería de piedra, nichos de calaveras, una ventana con reja que da a las tumbas
+      y a la luna, y su rayo de luz en el suelo. Todo está dibujado con código, píxel a píxel, con tramado y la paleta de la guía.
+      Lo que ves moverse es lo mismo que hará el juego.</p>
+  </header>
+
+  <div class="stage"><canvas id="stage" width="1280" height="720" aria-label="Fondo animado de la cripta"></canvas></div>
+
+  <div class="controls">
+    <button id="play" type="button">Pausa</button>
+    <label><input type="checkbox" id="cast" checked> Con personajes y barras</label>
+    <label><input type="checkbox" id="halo" checked> Halo</label>
+    <label><input type="checkbox" id="parts" checked> Partículas</label>
+    <span class="clock" id="clock">0.0 s</span>
+  </div>
+
+  <section>
+    <h2>Lo que se mueve</h2>
+    <ul class="moves">
+      <li style="--c: var(--warm)"><div><b>Velas.</b> <span>14 llamas fotograma a fotograma, cada una con su fase; los halos parpadean en 3 niveles.</span></div></li>
+      <li style="--c: var(--warm)"><div><b>Ascuas.</b> <span>Suben de los candelabros y de los apliques.</span></div></li>
+      <li style="--c: var(--moon)"><div><b>Rayo de luna.</b> <span>Polvo que flota dentro del haz, con las sombras de la reja.</span></div></li>
+      <li style="--c: var(--moon)"><div><b>Cielo.</b> <span>Nubes que tapan la luna, estrellas que destellan y una bandada de murciélagos cada 16 s.</span></div></li>
+      <li><div><b>Almas.</b> <span>Motas cian que salen de la losa y de las grietas; ojos de calavera que se encienden.</span></div></li>
+      <li><div><b>Runas.</b> <span>La losa de la tumba respira con un brillo lento.</span></div></li>
+      <li style="--c: var(--moon)"><div><b>Gotas.</b> <span>Caen del techo, salpican y abren una onda en el charco.</span></div></li>
+      <li style="--c: var(--muted)"><div><b>Niebla.</b> <span>Dos bandas a ras de suelo, a velocidades contrarias, por detrás de las figuras.</span></div></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Capas que carga el juego</h2>
+    <div class="layers">
+      <figure><canvas id="l-room"></canvas><figcaption>room.png · sala con el hueco de la ventana</figcaption></figure>
+      <figure><canvas id="l-sky"></canvas><figcaption>sky.png · cielo, luna y cementerio</figcaption></figure>
+      <figure><canvas id="l-halo"></canvas><figcaption>halo.png · luz difuminada (se suma)</figcaption></figure>
+      <figure><canvas id="l-atlas"></canvas><figcaption>atlas.png · llamas, halos, niebla, nubes, murciélagos, onda</figcaption></figure>
+    </div>
+  </section>
+
+  <footer>Fuente: <code>Tools/VfxLab/floor1_backdrop.html</code>. El exportador ejecuta el mismo script con Node y escribe
+    <code>Assets/Resources/Game/Dungeon/Floor1/</code>. Solo el piso 1 usa este fondo.</footer>
+</div>
+
+<script id="crypt-art">
+/* Piso 1 — la Cripta. Fondo de combate dibujado por código (docs/art-style.md): pixel art a 640x360 nativos,
+   tramado Bayer 4x4, luz arriba-izquierda, noche fría + magia cian + acentos cálidos. Todo determinista.
+   Capas: cielo (recorte de la ventana), nubes (tira que se repite), sala (con hueco en la ventana), emisivo (para el
+   halo), llamas y halos de las velas, niebla y murciélagos; las partículas son del juego. */
+(function (root) {
+  'use strict';
+  const W = 640, H = 360;
+
+  // ------------------------------------------------------------------------------------------- paleta
+  const hex = h => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
+  const ramp = a => a.map(hex);
+  const K = {};
+  for (const [k, v] of Object.entries({
+    ink: '#07050c', night0: '#0b0817', night1: '#120d24', night2: '#1b1436', night3: '#271d4a',
+    teal0: '#070d16', teal1: '#0c1726', teal2: '#11243a', teal3: '#1a3550',
+    vio0: '#0e0718', vio1: '#1a0c2c', vio2: '#281242', vio3: '#3a1a5c',
+    moon0: '#6f63b8', moon1: '#a69be6', moon2: '#e2dcff', white: '#ffffff',
+    cyan0: '#0d3550', cyan1: '#137ea3', cyan2: '#2fc4e6', cyan3: '#8ff1ff', cyan4: '#e6feff',
+    violet0: '#2d1346', violet1: '#55248a', violet2: '#8a47cf', violet3: '#c79bff',
+    rimc: '#58dcff', rimv: '#3a2163', warm0: '#a8603a', warm1: '#f2b35e', gold: '#8a6a3a'
+  })) K[k] = hex(v);
+  const RAMP = {
+    // piedra: pizarra fría (luna) y la misma piedra bajo las velas
+    stone: ramp(['#07050c', '#0c0a17', '#121224', '#191a2f', '#21243b', '#2b3049', '#373e5b', '#48516f', '#5f6a8a', '#7d88a8']),
+    stoneW: ramp(['#07050c', '#120a12', '#1d1118', '#2a181c', '#3b2120', '#512d25', '#6c3c2b', '#8d5233', '#b26c3c', '#d68c4c']),
+    deep: ramp(['#05030a', '#08060f', '#0d0a17', '#13101f', '#1a1628', '#221d33', '#2b2540']),
+    deepW: ramp(['#05030a', '#0c0609', '#160c10', '#231316', '#331b19', '#47261e', '#5e3423']),
+    bone: ramp(['#141220', '#24223a', '#3a3852', '#56546e', '#7a7792', '#a29fb8']),
+    boneW: ramp(['#1c1216', '#33221f', '#523629', '#77513a', '#a07550', '#c99c6c']),
+    moss: ramp(['#08100f', '#0d1a18', '#132622', '#1b342c', '#26473a', '#345c48']),
+    mossW: ramp(['#100d0b', '#1d1710', '#2e2614', '#433a1b', '#5c5124', '#7a6a30']),
+    iron: ramp(['#07050c', '#100e18', '#1a1824', '#272533', '#383747', '#4f4e62']),
+    wax: ramp(['#3a2a2a', '#6a5048', '#9c8068', '#cdb490', '#efe0bc']),
+    sky: ramp(['#0b0817', '#100c20', '#151029', '#1b1436', '#221941', '#271d4a', '#2f2459', '#3b2f6c']),
+    hill: ramp(['#05030a', '#08060f', '#0b0817', '#100c1f', '#151029', '#6f63b8']),
+    cloud: ramp(['#120d24', '#1b1436', '#271d4a', '#3a2f68', '#5a4f9a', '#8a7fd0']),
+    root: ramp(['#07050c', '#0d0f12', '#151b1a', '#1e2a24', '#2a3b30']),
+    fog: ramp(['#3a4262', '#4d5778', '#66709a', '#8a93bd'])
+  };
+  const LIGHT = { cyan: [0.25, 0.85, 1.0], white: [1, 1, 1], violet: [0.6, 0.3, 1.0], warm: [1.0, 0.6, 0.25], fire: [1.0, 0.42, 0.1], moon: [0.55, 0.5, 1.0] };
+  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+  // ------------------------------------------------------------------------------------------- utilidades
+  const BAY = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  const bay = (x, y) => (BAY[((y % 4) + 4) % 4][((x % 4) + 4) % 4] + 0.5) / 16;
+  const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+  function hash(x, y, s = 0) {
+    let h = Math.imul((x | 0) ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul((y | 0) + 0x632be5ab, 0xc2b2ae35) ^ Math.imul(s + 0x27d4eb2f, 0x165667b1);
+    h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); h ^= h >>> 12; h = Math.imul(h, 0x297a2d39); h ^= h >>> 15;
+    return (h >>> 0) / 4294967296;
+  }
+  function vnoise(x, y, s = 0) {
+    const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi;
+    const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+    const a = hash(xi, yi, s), b = hash(xi + 1, yi, s), c = hash(xi, yi + 1, s), d = hash(xi + 1, yi + 1, s);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  }
+  const fbm = (x, y, s = 0) => 0.55 * vnoise(x, y, s) + 0.3 * vnoise(x * 2.1, y * 2.1, s + 7) + 0.15 * vnoise(x * 4.3, y * 4.3, s + 13);
+  function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+  class Img {
+    constructor(w, h) { this.w = w; this.h = h; this.px = new Float32Array(w * h * 4); }
+    i(x, y) { return x < 0 || y < 0 || x >= this.w || y >= this.h ? -1 : (y * this.w + x) * 4; }
+    set(x, y, col, a = 1) {
+      x = Math.floor(x); y = Math.floor(y); const o = this.i(x, y); if (o < 0) return;
+      if (a < 1 && bay(x, y) >= a) return;
+      this.px[o] = col[0]; this.px[o + 1] = col[1]; this.px[o + 2] = col[2]; this.px[o + 3] = 1;
+    }
+    clear(x, y) { const o = this.i(Math.floor(x), Math.floor(y)); if (o >= 0) this.px[o] = this.px[o + 1] = this.px[o + 2] = this.px[o + 3] = 0; }
+    add(x, y, l, a = 1) { x = Math.floor(x); y = Math.floor(y); const o = this.i(x, y); if (o < 0) return; this.px[o] += l[0] * a; this.px[o + 1] += l[1] * a; this.px[o + 2] += l[2] * a; this.px[o + 3] = 1; }
+    alpha(x, y) { const o = this.i(Math.floor(x), Math.floor(y)); return o < 0 ? 0 : this.px[o + 3]; }
+  }
+  const tone = (x, y, b, n, amp = 0.9) => Math.max(0, Math.min(n - 1, Math.floor(b * (n - 1) + 0.5 + (bay(x, y) - 0.5) * amp)));
+
+  // ------------------------------------------------------------------------------------------- composición
+  // Pantalla 1280x720 = 640x360 x2. La barra de arriba tapa y < 31 y la mano y >= 232. La heroína ocupa x 105..170,
+  // los enemigos x 381..625 (y 62..137); los pies pisan en y 137..157. Lo vistoso va en el centro libre y en los bordes.
+  const FLOOR_Y = 140;
+  const SPRING = 60;                                     // arranque de los arcos de la arquería
+  const PILLARS = [-6, 92, 182, 458, 548, 646];          // pilastras (centro), en los huecos entre figuras
+  const PIL_W = 9;                                       // medio ancho
+  const WIN = { cx: 320, x0: 268, x1: 372, apex: 42, spring: 94, sill: 120 };
+  WIN.r = (WIN.x1 - WIN.x0) / 2;
+  const SKY = { x: WIN.x0, y: WIN.apex, w: WIN.x1 - WIN.x0, h: WIN.sill - WIN.apex };
+  const MOON = { x: 337, y: 60, r: 9 };
+  const VP = { x: 320, y: 46 };
+  const BARS = [295, 345];                               // barrotes enteros; el del centro está partido
+  const inWindow = (x, y) => y >= WIN.apex && y < WIN.sill && x >= WIN.x0 && x < WIN.x1 &&
+    (y >= WIN.spring || Math.hypot(x + 0.5 - WIN.cx, y + 0.5 - WIN.spring) <= WIN.r);
+  // reja: barrotes de 2 px y travesaño; el del centro acaba en y 100 (doblado)
+  const onBar = (x, y) => BARS.some(b => x >= b && x < b + 2) || (x >= 319 && x < 321 && y < 100) || (y >= 89 && y < 91);
+
+  // luces (las llamas son del juego; aquí solo su luz sobre la piedra)
+  const LIGHTS = [
+    { id: 'candelabra_l', x: 40, y: 82, r: 74, k: 0.85, kind: 'warm', flame: 'big', arms: [[-7, 3], [0, -2], [7, 3]] },
+    { id: 'candelabra_r', x: 612, y: 82, r: 70, k: 0.8, kind: 'warm', flame: 'big', arms: [[-7, 3], [0, -2], [7, 3]] },
+    { id: 'sconce_l', x: 182, y: 78, r: 54, k: 0.7, kind: 'warm', flame: 'sconce' },
+    { id: 'sconce_r', x: 458, y: 78, r: 54, k: 0.65, kind: 'warm', flame: 'sconce' },
+    { id: 'sill', x: 320, y: 114, r: 44, k: 0.5, kind: 'warm', flame: 'small', candles: [[282, 120, 9], [289, 120, 5], [297, 120, 7], [346, 120, 6], [353, 120, 10], [360, 120, 4]] }
+  ];
+
+  // haz de luna: dirección de los rayos (por cada px que bajan avanzan dx hacia la izquierda y se acercan)
+  const BEAM = { dx: -0.9, floorTop: 150, len: 54 };
+  // la mancha de luz en el suelo: (x, y) del suelo -> punto de la ventana por el que entró el rayo
+  function beamSource(x, y) {
+    if (y < BEAM.floorTop || y >= BEAM.floorTop + BEAM.len) return null;
+    const t = (y - BEAM.floorTop) / BEAM.len;                         // 0 = junto al muro (rayo por el alféizar)
+    const wy = WIN.sill - t * (WIN.sill - WIN.apex);
+    const scale = 1.0 + t * 0.35;                                     // la mancha se abre al acercarse
+    const cx = WIN.cx - 46 + (y - BEAM.floorTop) * BEAM.dx;
+    const wx = WIN.cx + (x + 0.5 - cx) / scale;
+    return [wx, wy];
+  }
+  const inPatch = (x, y) => { const s = beamSource(x, y); return s && inWindow(s[0], s[1]) ? (onBar(Math.floor(s[0]), Math.floor(s[1])) ? 2 : 1) : 0; };
+
+  function lightFields() {
+    const amb = new Float32Array(W * H), cool = new Float32Array(W * H), warm = new Float32Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      const dx = (x - 320) / 320;
+      let a = 0.46 - 0.10 * dx * dx;
+      if (y < FLOOR_Y) a -= 0.16 * clamp01((SPRING + 6 - y) / 40);       // la bóveda se pierde en la sombra
+      else a -= 0.07 * clamp01((y - 190) / 60);
+      amb[i] = a;
+      // luna: resplandor en el muro alrededor de la ventana y la mancha del suelo
+      const wd = Math.hypot((x - WIN.cx) / 1.3, (y - (WIN.spring + 4)) * 1.1);
+      let c = 0.20 * clamp01(1 - wd / 105) ** 1.3;
+      const p = y >= FLOOR_Y ? inPatch(x, y) : 0;
+      if (p === 1) c += 0.2; else if (p === 2) c += 0.0;
+      cool[i] = c;
+      let w = 0;
+      for (const L of LIGHTS) {
+        const d = Math.hypot(x - L.x, (y - L.y) * (y > FLOOR_Y ? 1.7 : 1.0)) / L.r;
+        if (d >= 1) continue;
+        w += ((1 - d) ** 2.2) * L.k;
+      }
+      warm[i] = w;
+    }
+    return { amb, cool, warm };
+  }
+
+  // color de un material con la luz del sitio: tono por brillo y calidez tramada
+  function lit(F, x, y, mat, base, opts = {}) {
+    const i = y * W + x;
+    const coolR = RAMP[mat], warmR = RAMP[opts.warm || (mat + 'W')] || null;
+    const wk = opts.warmK ?? 0.75;
+    const b = base + F.amb[i] + F.cool[i] * (opts.coolK ?? 1) + F.warm[i] * wk;
+    const n = coolR.length;
+    const t = tone(x, y, b, n, opts.amp ?? 0.9);
+    const wsh = F.warm[i] / (F.warm[i] + F.cool[i] * 1.6 + 0.06);
+    let col = coolR[t];
+    const wp = wsh * 1.1 * Math.min(1, F.warm[i] / 0.22);             // la calidez entra poco a poco (sin borde de disco)
+    if (warmR && bay(x + 2, y + 1) < wp) col = warmR[Math.min(t, warmR.length - 1)];
+    return col;
+  }
+
+  // ------------------------------------------------------------------------------------------- muro
+  function blockAt(x, y, y0, rowH, seed, wmin = 16, wvar = 16) {
+    const row = Math.floor((y - y0) / rowH), v = (y - y0) - row * rowH;
+    let bx = -Math.floor(hash(row, 0, seed) * 30), k = 0;
+    for (;;) {
+      const w = wmin + Math.floor(hash(row, k, seed + 3) * wvar);
+      if (x < bx + w) return { row, k, u: x - bx, v, w, h: rowH, id: hash(row, k, seed + 9) };
+      bx += w; k++;
+    }
+  }
+  function blockLight(B, x, y, chip = true) {
+    if (B.v === B.h - 1 || B.u === B.w - 1) return null;               // mortero
+    if (chip && ((B.u <= 1 && B.v <= 1 && B.id > 0.72) || (B.u >= B.w - 3 && B.v >= B.h - 3 && B.id < 0.22))) return null;
+    let s = (B.id - 0.5) * 0.16 + (fbm(x / 6, y / 6, 3) - 0.5) * 0.14;
+    if (B.v === 0) s += 0.12; else if (B.u === 0) s += 0.07;
+    if (B.v === B.h - 2) s -= 0.08; else if (B.u === B.w - 2) s -= 0.05;
+    return s;
+  }
+
+  // dónde está cada cosa de la arquería: pilastra, arco (dovelas), fondo del tramo, enjuta
+  function bayOf(x) {
+    for (let k = 0; k < PILLARS.length - 1; k++) if (x >= PILLARS[k] + PIL_W && x < PILLARS[k + 1] - PIL_W) return { x0: PILLARS[k] + PIL_W, x1: PILLARS[k + 1] - PIL_W };
+    return null;
+  }
+  function archOf(b) {
+    // arco rebajado: flecha 24 px (26 en el tramo de la ventana)
+    const s = b.x1 - b.x0, h = s > 150 ? 28 : 22;
+    const R = (s * s / 4 + h * h) / (2 * h);
+    return { cx: (b.x0 + b.x1) / 2, cy: SPRING - h + R, R, h };
+  }
+  function zoneAt(x, y) {
+    for (let k = 0; k < PILLARS.length; k++) if (Math.abs(x + 0.5 - PILLARS[k]) < PIL_W) return { z: 'pillar', k, u: x + 0.5 - PILLARS[k] };
+    const b = bayOf(x);
+    if (!b) return { z: 'wall' };
+    const A = archOf(b);
+    const d = Math.hypot(x + 0.5 - A.cx, y + 0.5 - A.cy);
+    if (y < SPRING + 2 && d < A.R + 8 && d >= A.R) return { z: 'arch', A, b, d, ang: Math.atan2(y + 0.5 - A.cy, x + 0.5 - A.cx) };
+    if (d < A.R || y >= SPRING) return { z: 'bay', A, b };
+    return { z: 'wall' };
+  }
+
+  function paintWall(room, F) {
+    for (let y = 0; y < FLOOR_Y; y++) for (let x = 0; x < W; x++) {
+      const Z = zoneAt(x, y);
+      if (Z.z === 'pillar') {
+        // pilastra: cara izquierda iluminada, arista, cara derecha en sombra; sillares altos
+        const B = blockAt(x, y, 4, 14, 31 + Z.k, 40, 1);
+        const s = (B.v === B.h - 1) ? null : (B.v === 0 ? 0.1 : 0) + (hash(B.row, Z.k, 33) - 0.5) * 0.1 + (fbm(x / 5, y / 7, 8) - 0.5) * 0.1;
+        let face = Z.u < -PIL_W + 2 ? 0.16 : Z.u < -1 ? 0.08 : Z.u < 1 ? 0.14 : Z.u < PIL_W - 2 ? -0.04 : -0.12;
+        if (Math.abs(Z.u) > PIL_W - 1) { room.set(x, y, RAMP.stone[1]); continue; }
+        room.set(x, y, s === null ? RAMP.stone[2] : lit(F, x, y, 'stone', 0.06 + face + s));
+        continue;
+      }
+      if (Z.z === 'arch') {
+        const seg = Math.floor((Z.ang + Math.PI) / 0.16);
+        const edge = Math.abs(((Z.ang + Math.PI) / 0.16) % 1 - 0.5) > 0.4 || Z.d >= Z.A.R + 7;
+        const intrados = Z.d < Z.A.R + 1.2;
+        const b = 0.1 + (hash(seg, Math.round(Z.A.cx), 5) - 0.5) * 0.1 + (intrados ? 0.1 : 0) + (Z.ang < -Math.PI / 2 ? 0.05 : -0.02);
+        room.set(x, y, edge && !intrados ? RAMP.stone[2] : lit(F, x, y, 'stone', b));
+        continue;
+      }
+      if (Z.z === 'bay') {
+        // fondo del tramo: un plano más atrás, sillares menudos y más oscuro bajo el arco
+        const B = blockAt(x, y, 2, 9, 2, 14, 12);
+        const s = blockLight(B, x, y);
+        const under = clamp01((SPRING + 26 - y) / 30) * 0.12;
+        if (s === null) { room.set(x, y, lit(F, x, y, 'stone', -0.2 - under, { warmK: 0.55 })); continue; }
+        room.set(x, y, lit(F, x, y, 'stone', -0.05 + s - under));
+        const damp = clamp01((y - 92) / 40) * 0.6;
+        if (fbm(x / 5, y / 4, 11) * damp > 0.33 && B.v > 0) room.set(x, y, lit(F, x, y, 'moss', 0.02 + s, { warm: 'mossW' }));
+        continue;
+      }
+      // enjutas y bóveda por encima de los arcos: piedra en sombra
+      const B = blockAt(x, y, 0, 10, 4, 18, 14);
+      const s = blockLight(B, x, y);
+      room.set(x, y, s === null ? RAMP.stone[1] : lit(F, x, y, 'stone', -0.1 + s * 0.8));
+    }
+    // sombra bajo cada arco (el intradós proyecta sobre el fondo)
+    for (let y = SPRING - 30; y < SPRING + 14; y++) for (let x = 0; x < W; x++) {
+      const Z = zoneAt(x, y);
+      if (Z.z !== 'bay') continue;
+      const d = Math.hypot(x + 0.5 - Z.A.cx, y + 0.5 - Z.A.cy);
+      const inside = Z.A.R - d;
+      if (inside >= 0 && inside < 5 && bay(x, y) < 0.75 - inside * 0.14) room.set(x, y, RAMP.stone[1]);
+      if (y >= SPRING && y < SPRING + 12) { const ex = Math.min(x - Z.b.x0, Z.b.x1 - 1 - x); if (ex < 3 && bay(x, y) < 0.6 - ex * 0.15) room.set(x, y, RAMP.stone[1]); }
+    }
+    // capiteles: una moldura de 4 px en el arranque de cada pilastra
+    for (const px of PILLARS) for (let y = SPRING - 2; y < SPRING + 3; y++) for (let x = px - PIL_W - 2; x < px + PIL_W + 2; x++) {
+      const top = y === SPRING - 2, bot = y === SPRING + 2;
+      room.set(x, y, bot ? RAMP.stone[1] : lit(F, x, y, 'stone', top ? 0.22 : 0.08 - (x - px) * 0.012));
+    }
+  }
+
+  // nichos de osario: arco de medio punto, interior hondo con huesos y calaveras
+  const NICHES = [
+    { x0: 26, x1: 60, top: 70, bottom: 124 },
+    { x0: 120, x1: 156, top: 76, bottom: 126 },
+    { x0: 210, x1: 246, top: 80, bottom: 126 },
+    { x0: 394, x1: 430, top: 80, bottom: 126 },
+    { x0: 484, x1: 522, top: 74, bottom: 126 },
+    { x0: 576, x1: 594, top: 98, bottom: 126 }
+  ];
+  const inArch = (x, y, n, pad = 0) => {
+    const r = (n.x1 - n.x0) / 2 + pad, cx = (n.x0 + n.x1) / 2, sy = n.top + (n.x1 - n.x0) / 2;
+    return x >= n.x0 - pad && x < n.x1 + pad && y >= n.top - pad && y < n.bottom + pad && (y >= sy || Math.hypot(x + 0.5 - cx, y + 0.5 - sy) <= r);
+  };
+  const SKULL = ['.XXXX.', 'XXXXXX', 'XooXoo', 'XooXoo', 'XXX.XX', '.XxXx.'];
+  function paintSkull(room, F, x0, y0, deep, emis, glowEyes = false, flip = false) {
+    for (let j = 0; j < SKULL.length; j++) for (let i = 0; i < 6; i++) {
+      const ch = SKULL[j][flip ? 5 - i : i];
+      const x = x0 + i, y = y0 + j;
+      if (ch === 'X') room.set(x, y, lit(F, x, y, 'bone', deep + (j <= 1 ? 0.12 : 0) + (i <= 1 ? 0.05 : 0) - (i >= 4 ? 0.1 : 0), { warm: 'boneW', amp: 0.6 }));
+      else if (ch === 'x') room.set(x, y, lit(F, x, y, 'bone', deep - 0.15, { warm: 'boneW', amp: 0.6 }));
+      else if (ch === 'o') {
+        room.set(x, y, RAMP.deep[0]);
+        if (glowEyes && j === 3 && (i === 1 || i === 4)) { room.set(x, y, K.cyan2); emis && emis.add(x, y, LIGHT.cyan, 0.9); }
+      } else room.set(x, y, RAMP.deep[0]);
+    }
+  }
+  const GLOW_EYES = [], STARS = [];                                  // calaveras con ojos de alma (parpadean en el juego)
+  function paintNiche(room, F, n, seed, emis) {
+    const r = (n.x1 - n.x0) / 2, cx = (n.x0 + n.x1) / 2, sy = n.top + r;
+    // dovelas del nicho
+    for (let y = n.top - 5; y < n.bottom; y++) for (let x = n.x0 - 5; x < n.x1 + 5; x++) {
+      if (!inArch(x, y, n, 4) || inArch(x, y, n, 0)) continue;
+      const ang = Math.atan2(y + 0.5 - sy, x + 0.5 - cx);
+      const seg = y < sy ? Math.floor((ang + Math.PI) / (Math.PI / 6)) : 100 + Math.floor((y - sy) / 8) * 2 + (x > cx ? 1 : 0);
+      const edge = y < sy ? Math.abs(((ang + Math.PI) / (Math.PI / 6)) % 1 - 0.5) > 0.42 || !inArch(x, y, n, 3) : (y - sy) % 8 === 7 || !inArch(x, y, n, 3);
+      const inner = !inArch(x, y, n, 1);
+      room.set(x, y, edge ? RAMP.stone[1] : lit(F, x, y, 'stone', 0.06 + (inner ? 0.08 : 0) + (x < cx ? 0.04 : -0.04) + (hash(seg, 3, seed) - 0.5) * 0.1));
+    }
+    // fondo en sombra
+    for (let y = n.top; y < n.bottom; y++) for (let x = n.x0; x < n.x1; x++) if (inArch(x, y, n, 0)) room.set(x, y, lit(F, x, y, 'deep', -0.08, { warmK: 0.4, coolK: 0.5 }));
+    // pilas: hileras de cabezas de hueso y de calaveras
+    const R = rng(seed);
+    let y = sy - 2, row = 0;
+    while (y < n.bottom - 4) {
+      if (row % 3 === 1) {
+        for (let x = n.x0 + 1 + (row % 2) * 3; x + 6 <= n.x1 - 1; x += 7) {
+          if (!(inArch(x, y, n, -1) && inArch(x + 5, y, n, -1))) continue;
+          const eyes = R() < 0.14;
+          paintSkull(room, F, x, y, -0.06 + R() * 0.1, emis, eyes, R() < 0.4);
+          if (eyes) GLOW_EYES.push([x + 1, y + 3], [x + 4, y + 3]);
+        }
+        y += 7;
+      } else {
+        for (let x = n.x0 + 1 + (row % 2) * 2; x + 3 <= n.x1; x += 4) {
+          const d = -0.16 + R() * 0.12;
+          for (const [i, j] of [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2]]) {
+            const px = x + i, py = y + j;
+            if (inArch(px, py, n, -1)) room.set(px, py, lit(F, px, py, 'bone', d + (j === 0 || i === 0 ? 0.07 : 0) - (i === 2 ? 0.06 : 0), { warm: 'boneW', amp: 0.5 }));
+          }
+        }
+        y += 4;
+      }
+      row++;
+    }
+    // la bóveda del nicho tapa la luz arriba, y la jamba derecha hace sombra
+    for (let yy = n.top; yy < n.bottom; yy++) for (let x = n.x0; x < n.x1; x++) {
+      if (!inArch(x, yy, n, 0)) continue;
+      const topShade = 0.7 * (1 - (yy - n.top) / (r + 10));
+      const sideShade = 0.5 * clamp01(1 - (n.x1 - 1 - x) / 6);
+      if (bay(x, yy) < Math.max(topShade, sideShade)) room.set(x, yy, RAMP.deep[0]);
+    }
+    for (let x = n.x0 - 4; x < n.x1 + 4; x++) for (let yy = n.bottom; yy < n.bottom + 3; yy++) room.set(x, yy, yy === n.bottom + 2 ? RAMP.stone[1] : lit(F, x, yy, 'stone', yy === n.bottom ? 0.18 : 0.02));
+  }
+
+  // ------------------------------------------------------------------------------------------- ventana
+  function paintWindow(room, F) {
+    const R0 = WIN.r, R1 = WIN.r + 10;
+    for (let y = WIN.apex - 11; y < WIN.sill + 1; y++) for (let x = WIN.x0 - 11; x < WIN.x1 + 11; x++) {
+      if (inWindow(x, y)) continue;
+      const dy = y + 0.5 - WIN.spring, dx = x + 0.5 - WIN.cx;
+      let seg = 0, edge = false, depth = 0, inFrame = false;
+      if (y < WIN.spring) {
+        const d = Math.hypot(dx, dy);
+        if (d >= R0 && d < R1) { inFrame = true; const a = (Math.atan2(dy, dx) + Math.PI) / (Math.PI / 11); seg = Math.floor(a); edge = Math.abs((a % 1) - 0.5) > 0.44 || d >= R1 - 1; depth = d - R0; }
+      } else if (Math.abs(dx) >= R0 && Math.abs(dx) < R1) {
+        inFrame = true; seg = 50 + Math.floor((y - WIN.spring) / 9) * 2 + (dx > 0 ? 1 : 0); edge = (y - WIN.spring) % 9 === 8 || Math.abs(dx) >= R1 - 1; depth = Math.abs(dx) - R0;
+      }
+      if (!inFrame) continue;
+      // intradós: la luna (arriba a la derecha) aclara el lado izquierdo del hueco
+      const reveal = depth < 3;
+      let b = 0.12 + (hash(seg, 1, 5) - 0.5) * 0.12 + (reveal ? (dx < 0 ? 0.26 : -0.04) : 0);
+      room.set(x, y, edge ? RAMP.stone[2] : lit(F, x, y, 'stone', b, { coolK: 1.2 }));
+    }
+    // alféizar
+    for (let y = WIN.sill; y < WIN.sill + 6; y++) for (let x = WIN.x0 - 14; x < WIN.x1 + 14; x++) {
+      const top = y === WIN.sill || y === WIN.sill + 1;
+      room.set(x, y, y === WIN.sill + 5 ? RAMP.stone[1] : top ? lit(F, x, y, 'stone', 0.3, { coolK: 1.3 }) : lit(F, x, y, 'stone', 0.05 - (y - WIN.sill) * 0.03));
+    }
+    for (let y = WIN.apex; y < WIN.sill; y++) for (let x = WIN.x0; x < WIN.x1; x++) if (inWindow(x, y)) room.clear(x, y);
+    // reja con luz de luna en el canto derecho
+    for (let y = WIN.apex; y < WIN.sill; y++) for (let x = WIN.x0; x < WIN.x1; x++) {
+      if (!inWindow(x, y) || !onBar(x, y)) continue;
+      const hz = y >= 89 && y < 91;
+      const right = !onBar(x + 1, y);
+      room.set(x, y, hz ? (y === 89 ? RAMP.iron[4] : RAMP.iron[2]) : right ? mix(RAMP.iron[4], K.moon0, 0.5) : RAMP.iron[2]);
+    }
+    for (let y = WIN.apex; y < WIN.sill; y++) for (let x = WIN.x0; x < WIN.x1; x++) {
+      if (!inWindow(x, y) || onBar(x, y)) continue;
+      if (onBar(x - 1, y) || onBar(x + 1, y) || (onBar(x, y - 1) && y === 91) || (onBar(x, y + 1) && y === 88)) room.set(x, y, K.ink);
+    }
+    // el barrote partido: muñón doblado hacia la izquierda
+    for (let k = 0; k < 7; k++) { const x = 319 - Math.floor(k * 0.8), y = 100 + k; room.set(x - 1, y, K.ink); room.set(x, y, RAMP.iron[3]); room.set(x + 1, y, RAMP.iron[2]); room.set(x + 2, y, K.ink); }
+    // árbol seco fuera, a la izquierda: vive en esta capa para que las nubes pasen por detrás
+    const R = rng(77);
+    const pts = new Set();
+    function branch(x, y, ang, len, w) {
+      for (let s = 0; s < len; s++) {
+        x += Math.cos(ang); y += Math.sin(ang); ang += (R() - 0.5) * 0.4;
+        for (let k = 0; k < w; k++) pts.add((Math.floor(x) + k) + ',' + Math.floor(y));
+        if (w > 1 && s > len * 0.35 && R() < 0.14) branch(x, y, ang + (R() < 0.5 ? -0.8 : 0.8), len * 0.5, w - 1);
+      }
+      if (w > 1) branch(x, y, ang - 0.5, len * 0.5, w - 1);
+    }
+    branch(281, 112, -Math.PI / 2 - 0.15, 32, 3);
+    branch(281, 112, -Math.PI / 2 + 0.55, 14, 2);
+    for (const p of pts) {
+      const [x, y] = p.split(',').map(Number);
+      if (!inWindow(x, y) || onBar(x, y)) continue;
+      const lit_ = !pts.has((x + 1) + ',' + y);
+      room.set(x, y, lit_ && bay(x, y) < 0.55 ? RAMP.hill[4] : RAMP.hill[1]);
+    }
+  }
+
+  // ------------------------------------------------------------------------------------------- cielo
+  function paintSky() {
+    const sky = new Img(SKY.w, SKY.h), glow = new Img(SKY.w, SKY.h);
+    for (let j = 0; j < SKY.h; j++) for (let i = 0; i < SKY.w; i++) {
+      const x = SKY.x + i, y = SKY.y + j;
+      const md = Math.hypot(x - MOON.x, (y - MOON.y) * 1.1);
+      let b = 0.18 + 0.5 * (j / SKY.h) ** 1.4;
+      b += 0.42 * clamp01(1 - md / 44) ** 1.2;                        // halo de la luna en anillos tramados
+      sky.set(i, j, RAMP.sky[tone(x, y, b, RAMP.sky.length, 0.7)]);
+    }
+    const R = rng(5);
+    for (let k = 0; k < 22; k++) {
+      const i = Math.floor(R() * SKY.w), j = Math.floor(R() * (SKY.h - 34));
+      if (Math.hypot(SKY.x + i - MOON.x, SKY.y + j - MOON.y) < 20) continue;
+      sky.set(i, j, R() < 0.3 ? K.moon1 : K.moon0);
+      STARS.push([SKY.x + i, SKY.y + j]);
+    }
+    for (let j = -MOON.r - 1; j <= MOON.r + 1; j++) for (let i = -MOON.r - 1; i <= MOON.r + 1; i++) {
+      const d = Math.hypot(i + 0.5, j + 0.5);
+      if (d > MOON.r) continue;
+      const lx = (i + 0.5) / MOON.r, ly = (j + 0.5) / MOON.r;
+      let b = 0.7 + 0.35 * lx - 0.15 * ly;
+      if (vnoise(i / 3 + 4, j / 3 + 9, 21) > 0.6) b -= 0.26;
+      const col = b > 0.95 ? K.white : b > 0.6 ? K.moon2 : b > 0.36 ? K.moon1 : K.moon0;
+      const sx = MOON.x + i - SKY.x, sy = MOON.y + j - SKY.y;
+      sky.set(sx, sy, d > MOON.r - 1 && lx < 0 ? K.moon0 : col);
+      glow.add(sx, sy, LIGHT.moon, 0.5 + 0.3 * clamp01(b));
+    }
+    // colinas del cementerio, bruma teal entre ellas, capilla con ventana cálida, lápidas con canto de luna
+    const far = i => 101 + Math.round(3 * Math.sin(i / 17 + 1) + 2 * Math.sin(i / 7.3));
+    const near = i => 110 + Math.round(2.5 * Math.sin(i / 23 + 2.4) + 1.5 * Math.sin(i / 9.1));
+    for (let i = 0; i < SKY.w; i++) {
+      const x = SKY.x + i;
+      for (let y = far(i); y < SKY.y + SKY.h; y++) sky.set(i, y - SKY.y, RAMP.hill[3]);
+      sky.set(i, far(i) - SKY.y, RAMP.hill[4]);
+      for (let y = far(i) + 2; y < near(i) + 2; y++) if (bay(x, y) < 0.5 - (y - far(i)) * 0.05) sky.set(i, y - SKY.y, K.teal2);
+      for (let y = near(i); y < SKY.y + SKY.h; y++) sky.set(i, y - SKY.y, RAMP.hill[1]);
+    }
+    const cx = 306 - SKY.x;
+    for (let y = 89; y < 102; y++) for (let x = cx - 4; x <= cx + 4; x++) if (!(y < 95 && Math.abs(x - cx) > (y - 89) * 0.8)) sky.set(x, y - SKY.y, x > cx + 2 ? RAMP.hill[3] : RAMP.hill[2]);
+    for (let y = 83; y < 89; y++) sky.set(cx, y - SKY.y, RAMP.hill[2]);
+    sky.set(cx - 1, 85 - SKY.y, RAMP.hill[2]); sky.set(cx + 1, 85 - SKY.y, RAMP.hill[2]);
+    sky.set(cx, 97 - SKY.y, K.warm1); sky.set(cx, 98 - SKY.y, K.warm0);
+    glow.add(cx, 97 - SKY.y, LIGHT.warm, 1.0); glow.add(cx, 98 - SKY.y, LIGHT.warm, 0.5);
+    const stones = [[287, 'cross'], [300, 'round'], [313, 'round'], [329, 'cross'], [340, 'round'], [354, 'angel'], [366, 'round']];
+    for (const [sx0, kind] of stones) {
+      const i0 = sx0 - SKY.x, base = near(i0) + 1;
+      const shape = kind === 'cross' ? ['.X.', 'XXX', '.X.', '.X.', '.X.'] : kind === 'angel' ? ['.X.', 'XXX', 'X.X', '.X.', 'XXX', 'XXX', 'XXX'] : ['.XX.', 'XXXX', 'XXXX', 'XXXX'];
+      const h = shape.length;
+      for (let j = 0; j < h; j++) for (let k = 0; k < shape[j].length; k++) {
+        if (shape[j][k] !== 'X') continue;
+        const last = k === shape[j].length - 1 || shape[j][k + 1] !== 'X';
+        sky.set(i0 + k, base - h + j - SKY.y, last && j < h - 1 ? RAMP.hill[5] : RAMP.hill[0]);
+      }
+    }
+    return { sky, glow };
+  }
+
+  // nubes: tira de 2x el ancho de la ventana que se repite sin costura; bordes de arriba con luz de luna
+  // nubes: racimos de círculos con la base plana (nube de pixel art), borde de arriba-derecha con luz de luna,
+  // tira de 2x el ancho de la ventana que se repite sin costura
+  function paintClouds() {
+    const CW = SKY.w * 2, CH = 30;
+    const c = new Img(CW, CH);
+    const R = rng(404), puffs = [];
+    for (const [x0, y0, n, len] of [[10, 13, 6, 46], [92, 7, 4, 26], [140, 17, 7, 52]]) {
+      for (let k = 0; k < n; k++) {
+        const t = k / (n - 1), r = 3.5 + 4.5 * Math.sin(t * Math.PI) + R() * 1.5;
+        puffs.push({ x: x0 + t * len, y: y0 + 4 - r * 0.55 + R(), r, base: y0 + 5 });
+      }
+    }
+    const dens = (x, y) => {
+      let best = -1;
+      for (const p of puffs) for (const ox of [-CW, 0, CW]) {
+        if (y > p.base) continue;
+        const d = p.r - Math.hypot(x + 0.5 - (p.x + ox), (y + 0.5 - p.y) * 1.15);
+        if (d > best) best = d;
+      }
+      return best;
+    };
+    for (let j = 0; j < CH; j++) for (let i = 0; i < CW; i++) {
+      const d = dens(i, j);
+      if (d < 0) continue;
+      if (d < 0.8 && bay(i, j) > 0.55) continue;                        // borde tramado
+      const lit_ = dens(i + 1, j - 1) < 0.2 || dens(i + 2, j - 2) < 0;
+      const under = j >= CH - 1 || dens(i, j + 2) < 0;
+      let col = RAMP.cloud[Math.min(3, 1 + Math.floor(d / 3))];
+      if (under) col = RAMP.cloud[0];
+      if (lit_) col = dens(i + 1, j - 1) < 0 ? RAMP.cloud[5] : RAMP.cloud[4];
+      c.set(i, j, col);
+    }
+    return c;
+  }
+
+  // ------------------------------------------------------------------------------------------- suelo
+  function floorCell(x, y) {
+    const v = 1 / (y + 0.5 - VP.y), v0 = 1 / (FLOOR_Y - VP.y);
+    const dv = 0.00062;
+    const rowF = (v0 - v) / dv, row = Math.floor(rowF), fy = rowF - row;
+    const u = (x + 0.5 - VP.x) * v, du = 0.34;
+    const colF = u / du + (row % 2) * 0.5 + hash(row, 0, 41) * 0.3, col = Math.floor(colF);
+    return { row, col, fx: colF - col, fy, rowH: dv / (v * v), colW: du / v, id: hash(row, col, 43) };
+  }
+  const SLAB = { x0: 384, x1: 462, y0: 162, y1: 186 };
+  const PUD = { x: 214, y: 206, rx: 15, ry: 4 };
+  const CRACKS = [[248, 214, 14], [366, 196, 11], [150, 178, 10], [520, 200, 13], [60, 214, 12]];
+  function paintFloor(room, F, emis) {
+    for (let y = FLOOR_Y; y < H; y++) for (let x = 0; x < W; x++) {
+      const C = floorCell(x, y);
+      const jy = C.fy * C.rowH < 1, jx = C.fx * C.colW < 1;
+      let s = (C.id - 0.5) * 0.14 + (fbm(x / 9, y / 5, 17) - 0.5) * 0.14;
+      if (C.fy * C.rowH < 2.2 && !jy) s += 0.09;
+      if ((C.fy > 1 - 1.5 / C.rowH) && !jx) s -= 0.07;
+      if (jy || jx) { room.set(x, y, lit(F, x, y, 'stone', -0.26, { coolK: 0.6, warmK: 0.5 })); continue; }
+      room.set(x, y, lit(F, x, y, 'stone', -0.04 + s, { coolK: 1.25 }));
+      if (C.id < 0.05 && fbm(x / 4, y / 3, 19) > 0.62 && !inPatch(x, y)) room.set(x, y, lit(F, x, y, 'moss', 0.0, { warm: 'mossW' }));
+    }
+    // sombra de contacto del zócalo
+    for (let x = 0; x < W; x++) for (let y = FLOOR_Y; y < FLOOR_Y + 5; y++) if (bay(x, y) < 0.85 - (y - FLOOR_Y) * 0.18) room.set(x, y, RAMP.stone[1]);
+    // la mancha de luna: borde de 1 px más claro arriba, sombra de la reja tramada
+    for (let y = BEAM.floorTop; y < BEAM.floorTop + BEAM.len; y++) for (let x = 120; x < 340; x++) {
+      const p = inPatch(x, y);
+      if (p === 1 && !inPatch(x, y - 1) && bay(x, y) < 0.8) room.set(x, y, RAMP.stone[8]);
+    }
+    // grietas por las que asoma un brillo de alma (cian tenue, emisivo)
+    const R = rng(31);
+    for (const [cx, cy, len] of CRACKS) {
+      let x = cx, y = cy, a = R() * Math.PI;
+      for (let k = 0; k < len; k++) {
+        x += Math.cos(a); y += Math.sin(a) * 0.45; a += (R() - 0.5) * 1.0;
+        room.set(x, y, K.ink);
+        if (k > 2 && k < len - 2 && R() < 0.55) { room.set(x, y, K.cyan0); emis.add(x, y, LIGHT.cyan, 0.3); }
+      }
+    }
+    // losa de tumba (lado de los enemigos, algo apartada del haz): borde, cruz grabada y runas que respiran
+    const sl = (x, y) => {
+      const t = (y - SLAB.y0) / (SLAB.y1 - SLAB.y0);
+      const hw0 = (SLAB.x1 - SLAB.x0) / 2, hw = hw0 * (1 + t * 0.16), cx = (SLAB.x0 + SLAB.x1) / 2 + t * 6;
+      return y >= SLAB.y0 && y < SLAB.y1 && Math.abs(x + 0.5 - cx) < hw ? { u: (x + 0.5 - cx) / hw, v: t } : null;
+    };
+    for (let y = SLAB.y0 - 1; y <= SLAB.y1; y++) for (let x = SLAB.x0 - 10; x < SLAB.x1 + 12; x++) {
+      const p = sl(x, y);
+      if (!p) { if (sl(x, y - 1) || sl(x - 1, y) || sl(x + 1, y)) room.set(x, y, K.ink); continue; }
+      const edge = Math.abs(p.u) > 0.92 || p.v < 0.08 || p.v > 0.9;
+      let b = 0.05 + (fbm(x / 6, y / 4, 5) - 0.5) * 0.14 + (p.v < 0.08 ? 0.14 : 0) + (p.u < -0.92 ? 0.06 : 0) - (p.v > 0.9 ? 0.1 : 0);
+      room.set(x, y, lit(F, x, y, 'stone', b));
+      const cu = p.u * 40, cv = p.v * 24;
+      const cross = (Math.abs(cu) < 1.5 && cv > 4.5 && cv < 20) || (Math.abs(cv - 9) < 1.0 && Math.abs(cu) < 7);
+      if (cross) room.set(x, y, RAMP.stone[1]);
+    }
+    // runas grabadas en dos hileras (arriba y abajo de la cruz): glifos de 3x3 que brillan cian
+    const GLYPHS = [['X.X', '.X.', 'X.X'], ['XXX', 'X..', 'XXX'], ['.X.', 'XXX', '.X.'], ['X..', 'XXX', '..X'], ['XX.', 'X.X', '.XX'], ['X.X', 'XXX', 'X.X']];
+    let g = 0;
+    for (const [ry, shift] of [[SLAB.y0 + 4, 0], [SLAB.y1 - 7, 4]]) for (let gx = SLAB.x0 + 6 + shift; gx < SLAB.x1 - 4; gx += 9) {
+      const G = GLYPHS[(g++ * 5 + 3) % GLYPHS.length];
+      if (Math.abs(gx + 1 - (SLAB.x0 + SLAB.x1) / 2 - 3) < 9) continue;           // deja libre la cruz
+      for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) if (G[j][i] === 'X') {
+        const x = gx + i + Math.round((ry - SLAB.y0) / (SLAB.y1 - SLAB.y0) * 6), y = ry + j;
+        room.set(x, y, j === 0 ? K.cyan2 : K.cyan1); emis.add(x, y, LIGHT.cyan, 0.5);
+      }
+    }
+    // charco que refleja la luna
+    for (let y = PUD.y - PUD.ry - 1; y <= PUD.y + PUD.ry + 1; y++) for (let x = PUD.x - PUD.rx - 2; x <= PUD.x + PUD.rx + 2; x++) {
+      const d = ((x + 0.5 - PUD.x) / PUD.rx) ** 2 + ((y + 0.5 - PUD.y) / PUD.ry) ** 2 + (vnoise(x / 4, y / 2, 3) - 0.5) * 0.5;
+      if (d > 1) continue;
+      room.set(x, y, d > 0.8 ? RAMP.stone[2] : RAMP.sky[tone(x, y, 0.2 + 0.4 * (1 - d), RAMP.sky.length)]);
+    }
+    for (let k = -2; k <= 2; k++) room.set(PUD.x + 4 + k, PUD.y, Math.abs(k) < 2 ? K.moon1 : K.moon0);
+    room.set(PUD.x + 4, PUD.y - 1, K.moon0);
+    // huesos y calaveras sueltos
+    paintSkull(room, F, 72, 190, 0.08, null);
+    paintSkull(room, F, 566, 200, 0.0, null, false, true);
+    for (const [bx, by, len, sl2] of [[90, 198, 11, 0.12], [532, 206, 13, -0.08], [470, 216, 9, 0.2], [176, 220, 10, -0.15], [300, 226, 8, 0.05]]) for (let k = 0; k < len; k++) {
+      const x = bx + k, y = Math.round(by + k * sl2), end = k < 2 || k >= len - 2;
+      room.set(x, y - 1, end ? lit(F, x, y, 'bone', 0.2, { warm: 'boneW' }) : K.ink);
+      room.set(x, y, lit(F, x, y, 'bone', 0.08, { warm: 'boneW' }));
+      room.set(x, y + 1, end ? lit(F, x, y, 'bone', -0.1, { warm: 'boneW' }) : K.ink);
+    }
+  }
+
+  // haz de luna en el aire: velo frío tramado entre la ventana y la mancha del suelo, con las sombras de la reja
+  // cada punto de la ventana manda un rayo recto hasta su sitio en la mancha del suelo; la densidad de rayos por
+  // píxel es el velo (los barrotes no mandan rayos, así quedan sus sombras en el aire)
+  function beamTarget(wx, wy) {
+    const t = (WIN.sill - wy) / (WIN.sill - WIN.apex);
+    const y = BEAM.floorTop + t * BEAM.len, scale = 1.0 + t * 0.35;
+    const cx = WIN.cx - 46 + (y - BEAM.floorTop) * BEAM.dx;
+    return [cx + (wx - WIN.cx) * scale, y];
+  }
+  function beamDensity() {
+    const dens = new Float32Array(W * H);
+    for (let wy = WIN.apex; wy < WIN.sill; wy += 1) for (let wx = WIN.x0; wx < WIN.x1; wx += 1) {
+      if (!inWindow(wx, wy) || onBar(wx, wy)) continue;
+      const [tx, ty] = beamTarget(wx + 0.5, wy + 0.5);
+      const n = Math.ceil(Math.hypot(tx - wx, ty - wy));
+      for (let k = 0; k <= n; k++) {
+        const s = k / n, x = Math.floor(wx + (tx - wx) * s), y = Math.floor(wy + (ty - wy) * s);
+        if (x >= 0 && y >= 0 && x < W && y < H) dens[y * W + x] += 1 - 0.55 * s;      // se apaga al bajar
+      }
+    }
+    let mx = 0; for (const v of dens) mx = Math.max(mx, v);
+    for (let i = 0; i < dens.length; i++) dens[i] /= mx;
+    return dens;
+  }
+  function paintBeamAir(room) {
+    const dens = beamDensity();
+    for (let y = WIN.sill; y < BEAM.floorTop + BEAM.len; y++) for (let x = 100; x < 380; x++) {
+      if (room.alpha(x, y) === 0) continue;
+      const a = Math.min(1, dens[y * W + x] * 1.8) * 0.6;
+      if (a <= 0.02 || (y >= FLOOR_Y && inPatch(x, y))) continue;
+      if (bay(x + 1, y + 2) < a) {
+        const o = room.i(x, y); const c = [room.px[o], room.px[o + 1], room.px[o + 2]];
+        room.set(x, y, mix(c, a > 0.36 ? K.moon1 : K.moon0, 0.38));
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------------------------------- props
+  function paintPlinth(room, F) {
+    for (let y = 128; y < FLOOR_Y; y++) for (let x = 0; x < W; x++) {
+      if (x >= WIN.x0 - 14 && x < WIN.x1 + 14 && y < WIN.sill + 6) continue;
+      const B = blockAt(x, y, 128, 12, 7, 30, 20);
+      const s = blockLight(B, x, y, false);
+      if (y === 128) { room.set(x, y, lit(F, x, y, 'stone', 0.2)); continue; }
+      if (y === 129) { room.set(x, y, RAMP.stone[2]); continue; }
+      room.set(x, y, s === null ? RAMP.stone[1] : lit(F, x, y, 'stone', -0.04 + s * 0.8));
+    }
+  }
+  function waxCandle(room, emis, cx, base, h) {
+    for (let y = base - h; y < base; y++) { room.set(cx - 1, y, RAMP.wax[y === base - h ? 4 : 3]); room.set(cx, y, RAMP.wax[y === base - h ? 3 : 2]); }
+    room.set(cx - 2, base - 1, RAMP.wax[2]); room.set(cx + 1, base - 1, RAMP.wax[1]);
+    if (h > 5) { room.set(cx + 1, base - h + 2, RAMP.wax[2]); room.set(cx + 1, base - h + 3, RAMP.wax[1]); }
+    room.set(cx - 2, base - h, K.ink); room.set(cx + 1, base - h, K.ink);
+    emis.add(cx - 1, base - h, LIGHT.warm, 0.4); emis.add(cx, base - h, LIGHT.warm, 0.25);
+  }
+  function paintCandelabra(room, F, L, emis) {
+    const x = L.x, base = 156;
+    const iron = (px, py, k) => room.set(px, py, RAMP.iron[Math.max(0, Math.min(5, k))]);
+    for (let y = L.y + 9; y < base - 4; y++) {
+      const knot = y === L.y + 24 || y === base - 14;
+      const hw = knot ? 2 : 1;
+      for (let k = -hw; k <= hw; k++) iron(x + k, y, k < 0 ? 4 : k === 0 ? 3 : 2);
+      room.set(x - hw - 1, y, K.ink); room.set(x + hw + 1, y, K.ink);
+      if (bay(x, y) < 0.5) room.set(x - hw, y, K.warm0);
+    }
+    // patas
+    for (let k = 0; k <= 9; k++) {
+      const yy = base - 5 + Math.floor(k / 2.3);
+      iron(x - k, yy, 3); iron(x + k, yy, 2); room.set(x - k, yy - 1, K.ink); room.set(x + k, yy - 1, K.ink); room.set(x - k, yy + 1, K.ink); room.set(x + k, yy + 1, K.ink);
+    }
+    // brazos en curva con platillos y velas
+    for (const [ax, ay] of L.arms) {
+      const steps = Math.abs(ax) * 2 + 8;
+      let last = null;
+      for (let s = 0; s <= steps; s++) {
+        const t = s / steps;
+        const px = Math.round(x + ax * t), py = Math.round(L.y + 11 - (11 - ay) * Math.sin(t * Math.PI / 2) ** 0.8);
+        if (last && last[0] === px && last[1] === py) continue;
+        last = [px, py];
+        iron(px, py, 3); room.set(px, py + 1, K.ink);
+      }
+      const cx = x + ax, cy = L.y + ay;
+      for (let k = -3; k <= 3; k++) { iron(cx + k, cy + 1, Math.abs(k) === 3 ? 2 : 4); room.set(cx + k, cy + 2, K.ink); }
+      waxCandle(room, emis, cx + 1, cy + 1, 6);
+    }
+  }
+  function paintSconce(room, F, L, emis) {
+    // aplique de hierro en la pilastra: escudo, brazo y cazoleta con una vela gruesa
+    const x = L.x, y = L.y;
+    const plate = ['.XXX.', 'XXXXX', 'XX.XX', 'XXXXX', 'XXXXX', '.XXX.', '..X..'];
+    for (let j = 0; j < plate.length; j++) for (let i = 0; i < 5; i++) if (plate[j][i] === 'X') room.set(x - 2 + i, y + 6 + j, RAMP.iron[i < 2 ? 4 : 2]);
+    for (let j = 0; j < plate.length; j++) { const r = plate[j]; room.set(x - 2 + r.indexOf('X') - 1, y + 6 + j, K.ink); room.set(x - 2 + r.lastIndexOf('X') + 1, y + 6 + j, K.ink); }
+    for (let k = -4; k <= 4; k++) { room.set(x + k, y + 4, RAMP.iron[k < 0 ? 4 : 3]); room.set(x + k, y + 5, RAMP.iron[2]); room.set(x + k, y + 6 + (Math.abs(k) > 2 ? 0 : 7), K.ink); }
+    room.set(x - 5, y + 4, K.ink); room.set(x + 5, y + 4, K.ink); room.set(x - 5, y + 3, RAMP.iron[3]); room.set(x + 5, y + 3, RAMP.iron[2]);
+    for (let yy = y - 2; yy < y + 4; yy++) for (let k = -2; k <= 1; k++) room.set(x + k, yy, RAMP.wax[yy === y - 2 ? 4 : k < 0 ? 3 : k === 0 ? 2 : 1]);
+    room.set(x - 3, y - 2, K.ink); room.set(x + 2, y - 2, K.ink);
+    room.set(x + 2, y, RAMP.wax[2]); room.set(x + 2, y + 1, RAMP.wax[1]);
+    emis.add(x - 1, y - 2, LIGHT.warm, 0.5); emis.add(x, y - 2, LIGHT.warm, 0.3);
+  }
+  function paintRoots(room) {
+    const R = rng(13);
+    for (const [rx, len] of [[299, 15], [306, 9], [336, 12], [351, 19], [262, 20], [381, 13], [100, 18], [540, 22]]) {
+      let x = rx, y = rx === 100 || rx === 540 ? SPRING - 30 : WIN.apex - 9 + Math.floor(R() * 3);
+      for (let k = 0; k < len; k++) {
+        y++; if (R() < 0.3) x += R() < 0.5 ? -1 : 1;
+        if (room.alpha(x, y) === 0) continue;
+        room.set(x, y, k < len * 0.6 ? RAMP.root[3] : RAMP.root[2]);
+        room.set(x + 1, y, K.ink);
+        if (R() < 0.14) { room.set(x - 1, y, RAMP.moss[4]); room.set(x - 2, y + 1, RAMP.moss[3]); }
+      }
+    }
+  }
+  function paintWebs(room) {
+    // telarañas en las esquinas de arriba de algunos tramos: hilos radiales y dos arcos, tramados
+    const col = mix(RAMP.bone[3], RAMP.stone[4], 0.4);
+    for (const [x0, y0, dir] of [[101, SPRING + 1, 1], [449, SPRING + 1, -1], [557, SPRING + 1, 1]]) {
+      for (const a of [0.15, 0.6, 1.1, 1.45]) for (let r = 0; r < 14; r++) { const x = x0 + dir * Math.round(Math.cos(a) * r), y = y0 + Math.round(Math.sin(a) * r); if (bay(x, y) < 0.7) room.set(x, y, col); }
+      for (const r of [6, 11]) for (let a = 0.1; a < 1.5; a += 0.12) { const x = x0 + dir * Math.round(Math.cos(a) * r), y = y0 + Math.round(Math.sin(a) * r + Math.sin(a * 2) * 1.2); if (bay(x, y) < 0.55) room.set(x, y, col); }
+    }
+  }
+  function vignette(room) {
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (room.alpha(x, y) === 0) continue;
+      const dx = (x - 320) / 320, dy = (y - 120) / 200;
+      const v = clamp01((dx * dx * 0.9 + dy * dy * 0.7 - 0.42) * 1.1);
+      if (bay(x, y) < v * 0.6) room.set(x, y, K.ink);
+    }
+  }
+
+  // ------------------------------------------------------------------------------------------- lo que se mueve
+  // Rampa de fuego (mage_art.KM): borde rojo oscuro tramado -> núcleo casi blanco; el fuego no lleva contorno.
+  const KM = ramp(['#3d0f14', '#8f2419', '#d9531e', '#f5973a', '#ffd47a', '#fff6dc']);
+  const FLAME_KINDS = {
+    big: { w: 4, h: 10, frames: 6, durations_ms: [90, 80, 100, 80, 90, 100] },
+    small: { w: 4, h: 7, frames: 6, durations_ms: [100, 90, 80, 100, 90, 80] },
+    sconce: { w: 6, h: 12, frames: 6, durations_ms: [90, 100, 80, 90, 80, 100] }
+  };
+  // una llama de vela por fotograma: lágrima que se estira, se encoge y cabecea (fotograma a fotograma, nada rotado)
+  function flameFrame(kind, f) {
+    const k = FLAME_KINDS[kind], img = new Img(k.w, k.h);
+    const grow = [0, 1, 2, 1, 0, -1][f], sway = [0, 1, 1, 0, -1, -1][f], lean = [0, 0, 1, 1, 0, -1][f];
+    const h = k.h - 2 + grow, cx = k.w / 2;
+    for (let y = k.h - 1; y >= k.h - h; y--) {
+      const t = (k.h - 1 - y) / (h - 1);                              // 0 abajo, 1 la punta
+      // lágrima: base redonda hasta t = 0,3 y cuerpo que se afila hasta la punta
+      const hw = t < 0.3 ? (k.w / 2) * Math.sqrt(Math.max(0, 1 - ((0.3 - t) / 0.34) ** 2)) : (k.w / 2) * Math.pow((1 - t) / 0.7, 0.85);
+      const c = cx + (sway * t * t + lean * t * 0.5) * (k.w > 4 ? 1.3 : 1.0);
+      for (let x = 0; x < k.w; x++) {
+        const d = Math.abs(x + 0.5 - c) / Math.max(0.55, hw);
+        if (d > 1.0) continue;
+        const core = (1 - d) * (1 - Math.max(0, t - 0.1) * 1.2);
+        let idx = core > 0.55 ? 5 : core > 0.38 ? 4 : core > 0.22 ? 3 : core > 0.08 ? 2 : 1;
+        if (t > 0.75) idx = Math.min(idx, 2);
+        if (t > 0.9) idx = 1;
+        if (d > 0.75 && bay(x + f, y) > 0.55) idx = Math.max(1, idx - 1);
+        img.set(x, y, KM[idx]);
+      }
+    }
+    return img;
+  }
+  // halos de las velas: luz sobre negro (se suma), anillos tramados; 3 niveles para el parpadeo
+  const GLOW_KINDS = { big: { r: 30, k: 0.26, color: LIGHT.warm }, mid: { r: 22, k: 0.24, color: LIGHT.warm }, small: { r: 14, k: 0.2, color: LIGHT.warm }, eye: { r: 4, k: 0.55, color: LIGHT.cyan }, rune: { r: 0, k: 0.32, color: LIGHT.cyan } };
+  const GLOW_LEVELS = [0.62, 0.8, 1.0];
+  function glowSprite(kind, level) {
+    const G = GLOW_KINDS[kind];
+    if (kind === 'rune') {
+      // brillo de las runas de la losa (su forma, ensanchada): elipse baja a lo ancho de la losa
+      const w = SLAB.x1 - SLAB.x0 + 24, h = SLAB.y1 - SLAB.y0 + 14, img = new Img(w, h);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const d = Math.hypot((x + 0.5 - w / 2) / (w / 2), (y + 0.5 - h / 2) / (h / 2));
+        if (d >= 1) continue;
+        const v = Math.floor((1 - d) ** 1.4 * 4 + bay(x, y) * 0.9) / 4;
+        if (v > 0) img.add(x, y, G.color, v * G.k * GLOW_LEVELS[level]);
+      }
+      return img;
+    }
+    const n = G.r * 2, img = new Img(n, n);
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const d = Math.hypot(x + 0.5 - G.r, y + 0.5 - G.r) / G.r;
+      if (d >= 1) continue;
+      const v = Math.floor((1 - d) ** 1.6 * 5 + bay(x, y) * 0.95) / 5;
+      if (v > 0) img.add(x, y, G.color, v * G.k * GLOW_LEVELS[level]);
+    }
+    return img;
+  }
+  // niebla: tira que se repite (ruido periódico en x), tramada, más densa en el centro de la banda
+  function fogStrip(seed, w, h, density) {
+    const img = new Img(w, h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const u = x / w * Math.PI * 2;
+      const n = 0.6 * vnoise(Math.cos(u) * 4 + 30, Math.sin(u) * 4 + y / 7, seed) + 0.4 * vnoise(Math.cos(u) * 9 + 50, Math.sin(u) * 9 + y / 3.5, seed + 1);
+      const band = Math.sin(Math.PI * (y + 0.5) / h) ** 1.5;
+      const d = (n - 0.22) * 2.0 * band * density;
+      if (d <= 0 || bay(x, y) >= d) continue;
+      img.set(x, y, RAMP.fog[Math.min(3, Math.floor(d * 2.6))]);
+    }
+    return img;
+  }
+  // murciélagos: alas arriba, medio, abajo, medio (9x6), silueta con un píxel de luz de luna
+  const BAT = [
+    ['X.......X', 'XX.....XX', '.XX.X.XX.', '..XXXXX..', '...XXX...', '....X....'],
+    ['.........', 'XXX...XXX', '.XXXXXXX.', '...XXX...', '....X....', '.........'],
+    ['.........', '.........', '..XXXXX..', '.XXXXXXX.', 'XX.XXX.XX', 'X...X...X'],
+    ['.........', '.........', 'XXXXXXXXX', '.XX.X.XX.', '...XXX...', '....X....']
+  ];
+  function batFrame(f) {
+    const img = new Img(9, 6);
+    for (let j = 0; j < 6; j++) for (let i = 0; i < 9; i++) if (BAT[f][j][i] === 'X') img.set(i, j, j === 0 || (BAT[f][j - 1] || '')[i] !== 'X' ? RAMP.hill[3] : K.ink);
+    return img;
+  }
+  // onda del charco al caer la gota: 5 fotogramas, elipse que se abre y se apaga
+  const RIPPLE = { w: 26, h: 7, frames: 5, durations_ms: [70, 80, 90, 110, 130] };
+  function rippleFrame(f) {
+    const img = new Img(RIPPLE.w, RIPPLE.h);
+    const rx = 2.5 + f * 2.4, ry = 0.8 + f * 0.55, cx = RIPPLE.w / 2, cy = RIPPLE.h / 2;
+    const col = f < 2 ? K.moon1 : f < 4 ? K.moon0 : RAMP.sky[6];
+    for (let y = 0; y < RIPPLE.h; y++) for (let x = 0; x < RIPPLE.w; x++) {
+      const d = Math.hypot((x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry);
+      if (Math.abs(d - 1) < 0.22 && (f < 3 || bay(x, y) < 0.6)) img.set(x, y, col);
+    }
+    return img;
+  }
+
+  // dónde va cada cosa animada (coordenadas nativas) y las partículas del juego
+  function layout() {
+    const flames = [], glows = [];
+    for (const L of LIGHTS) {
+      if (L.flame === 'big') {
+        for (const [ax, ay] of L.arms) { const cx = L.x + ax, top = L.y + ay - 5; flames.push({ kind: 'big', x: cx - 1, y: top - FLAME_KINDS.big.h }); }
+        glows.push({ kind: 'big', x: L.x, y: L.y - 6 });
+      } else if (L.flame === 'sconce') {
+        flames.push({ kind: 'sconce', x: L.x - 3, y: L.y - 2 - FLAME_KINDS.sconce.h });
+        glows.push({ kind: 'mid', x: L.x - 1, y: L.y - 8 });
+      } else if (L.flame === 'small') {
+        for (const [cx, base, h] of L.candles) flames.push({ kind: 'small', x: cx - 2, y: base - h - FLAME_KINDS.small.h });
+        glows.push({ kind: 'small', x: 289, y: 110 }, { kind: 'small', x: 353, y: 110 });
+      }
+    }
+    flames.forEach((f, i) => { f.phase = Math.round(hash(i, 7, 3) * 1000) / 1000; });
+    const pal = {
+      ember: [[255, 246, 220], [255, 212, 122], [245, 151, 58], [217, 83, 30], [143, 36, 25]],
+      soul: [[13, 53, 80], [47, 196, 230], [143, 241, 255], [47, 196, 230], [19, 126, 163]],
+      dust: [[111, 99, 184], [166, 155, 230], [226, 220, 255], [166, 155, 230], [111, 99, 184]],
+      drip: [[166, 155, 230], [111, 99, 184]], splash: [[226, 220, 255], [111, 99, 184]],
+      grit: [[43, 48, 73], [33, 36, 59]]
+    };
+    const emitters = [];
+    for (const L of LIGHTS.filter(l => l.flame === 'big'))
+      emitters.push({ name: 'embers_' + L.id, rate: 3.2, life: [0.9, 1.8], area: [L.x - 8, L.y - 16, 16, 6], vx: [-5, 5], vy: [-26, -14], gravity: -5, wobble: 8, colors: 'ember', capacity: 14 });
+    for (const L of LIGHTS.filter(l => l.flame === 'sconce'))
+      emitters.push({ name: 'embers_' + L.id, rate: 1.6, life: [0.8, 1.5], area: [L.x - 2, L.y - 14, 3, 4], vx: [-4, 4], vy: [-22, -12], gravity: -4, wobble: 6, colors: 'ember', capacity: 8 });
+    emitters.push({ name: 'moon_dust', rate: 5, life: [3, 6], area: [190, 122, 150, 70], vx: [-5, -1], vy: [-2, 3], wobble: 3, colors: 'dust', capacity: 28 });
+    emitters.push({ name: 'souls_slab', rate: 1.4, life: [2.6, 4.4], area: [SLAB.x0 + 6, SLAB.y0 + 2, SLAB.x1 - SLAB.x0 - 12, SLAB.y1 - SLAB.y0 - 6], vx: [-2, 2], vy: [-11, -6], wobble: 7, colors: 'soul', capacity: 10 });
+    CRACKS.forEach(([x, y], k) => emitters.push({ name: 'souls_crack' + k, rate: 0.28, life: [2.2, 3.6], area: [x + 2, y - 2, 8, 3], vx: [-2, 2], vy: [-9, -5], wobble: 6, colors: 'soul', capacity: 3 }));
+    emitters.push({ name: 'grit', rate: 0.35, life: [2.5, 2.5], area: [60, 31, 520, 1], vx: [-2, 2], vy: [8, 16], gravity: 30, colors: 'grit', capacity: 4, floor_y: 150 });
+    const drips = [
+      { name: 'drip_puddle', x: PUD.x + 4, y: 31, floor_y: PUD.y, rate: 0.5, ripple: [PUD.x + 4 - RIPPLE.w / 2, PUD.y - Math.floor(RIPPLE.h / 2)] },
+      { name: 'drip_slab', x: 532, y: 31, floor_y: 166, rate: 0.32 }
+    ];
+    const stars = [3, 7, 11, 15, 19].map(k => STARS[k % STARS.length]).filter(Boolean);
+    return { flames, glows, emitters, drips, palette: pal, stars, eyes: GLOW_EYES.slice() };
+  }
+
+  // ------------------------------------------------------------------------------------------- render
+  function renderAnimated() {
+    const flames = {}, glows = {};
+    for (const k of Object.keys(FLAME_KINDS)) flames[k] = Array.from({ length: FLAME_KINDS[k].frames }, (_, f) => flameFrame(k, f));
+    for (const k of Object.keys(GLOW_KINDS)) glows[k] = GLOW_LEVELS.map((_, l) => glowSprite(k, l));
+    return {
+      flames, glows, FLAME_KINDS, GLOW_KINDS, GLOW_LEVELS,
+      fog: [fogStrip(71, 320, 34, 0.9), fogStrip(91, 320, 26, 0.75)],
+      bats: [0, 1, 2, 3].map(batFrame), ripple: Array.from({ length: RIPPLE.frames }, (_, f) => rippleFrame(f)), RIPPLE
+    };
+  }
+
+  function render() {
+    GLOW_EYES.length = 0; STARS.length = 0;
+    const F = lightFields();
+    const room = new Img(W, H), emis = new Img(W, H);
+    paintWall(room, F);
+    NICHES.forEach((n, k) => paintNiche(room, F, n, 20 + k, emis));
+    paintPlinth(room, F);
+    paintWindow(room, F);
+    paintFloor(room, F, emis);
+    paintBeamAir(room);
+    paintRoots(room);
+    paintWebs(room);
+    for (const L of LIGHTS) {
+      if (L.flame === 'big') paintCandelabra(room, F, L, emis);
+      else if (L.flame === 'sconce') paintSconce(room, F, L, emis);
+      else if (L.flame === 'small') for (const [cx, base, h] of L.candles) waxCandle(room, emis, cx, base, h);
+    }
+    vignette(room);
+    const s = paintSky();
+    return { W, H, room, emis, sky: s.sky, skyGlow: s.glow, clouds: paintClouds(), SKY, WIN, MOON, LIGHTS, FLOOR_Y, PUD, SLAB, CRACKS, BEAM,
+      layout: layout(), anim: renderAnimated() };
+  }
+
+  // ------------------------------------------------------------------------------------------- lo que usa el juego
+  // Como las hojas de los héroes: pintura + emisivo x 0,6 (lo que pasa de 1 va hacia blanco) y un halo aparte, el
+  // emisivo difuminado a dos radios (sigma 1,4 y 4,0 px nativos) a media resolución, que el juego suma (Blend.Add).
+  const HALO_GAIN = 0.5, CLOUDS = { y: 44, speed: -1.6, clip: [SKY.x, SKY.y, SKY.w, 52] };
+  const FOG = [{ y: 118, speed: -3.0 }, { y: 140, speed: 4.5 }], FOG_ALPHA = 0.42;
+  const BATS = { fps: 12, period: 16, duration: 4.6, from: [386, 63], to: [252, 55], bob: 2, flock: [[0, 0, 0], [11, 5, 0.22], [-7, 9, 0.48]], clip: [SKY.x, SKY.y, SKY.w, 54] };
+
+  function litImage(base, emis, ox = 0, oy = 0) {
+    const out = new Img(base.w, base.h);
+    for (let y = 0; y < base.h; y++) for (let x = 0; x < base.w; x++) {
+      const o = (y * base.w + x) * 4;
+      if (base.px[o + 3] === 0) continue;
+      const e = emis ? emis.i(x + ox, y + oy) : -1;
+      let r = base.px[o], g = base.px[o + 1], b = base.px[o + 2];
+      if (e >= 0) { r += emis.px[e] * 0.6; g += emis.px[e + 1] * 0.6; b += emis.px[e + 2] * 0.6; }
+      const m = Math.max(r, g, b);
+      if (m > 1) { const over = (m - 1) * 0.5; r += over; g += over; b += over; }
+      out.px[o] = Math.min(1, r); out.px[o + 1] = Math.min(1, g); out.px[o + 2] = Math.min(1, b); out.px[o + 3] = base.px[o + 3];
+    }
+    return out;
+  }
+  function gaussian(src, w, h, sigma) {
+    const rad = Math.ceil(sigma * 3), ker = [];
+    let sum = 0;
+    for (let k = -rad; k <= rad; k++) { const v = Math.exp(-k * k / (2 * sigma * sigma)); ker.push(v); sum += v; }
+    for (let k = 0; k < ker.length; k++) ker[k] /= sum;
+    const tmp = new Float32Array(w * h * 3), out = new Float32Array(w * h * 3);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 3; c++) {
+      let v = 0;
+      for (let k = -rad; k <= rad; k++) { const xx = Math.min(w - 1, Math.max(0, x + k)); v += src[(y * w + xx) * 3 + c] * ker[k + rad]; }
+      tmp[(y * w + x) * 3 + c] = v;
+    }
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 3; c++) {
+      let v = 0;
+      for (let k = -rad; k <= rad; k++) { const yy = Math.min(h - 1, Math.max(0, y + k)); v += tmp[(yy * w + x) * 3 + c] * ker[k + rad]; }
+      out[(y * w + x) * 3 + c] = v;
+    }
+    return out;
+  }
+  function haloImage(r) {
+    const E = new Float32Array(W * H * 3);
+    for (let i = 0; i < W * H; i++) for (let c = 0; c < 3; c++) E[i * 3 + c] = r.emis.px[i * 4 + c];
+    for (let j = 0; j < SKY.h; j++) for (let i = 0; i < SKY.w; i++) for (let c = 0; c < 3; c++) E[((SKY.y + j) * W + SKY.x + i) * 3 + c] += r.skyGlow.px[(j * SKY.w + i) * 4 + c];
+    const a = gaussian(E, W, H, 1.4), b = gaussian(E, W, H, 4.0);
+    const out = new Img(W / 2, H / 2);
+    for (let y = 0; y < H / 2; y++) for (let x = 0; x < W / 2; x++) {
+      const o = (y * out.w + x) * 4;
+      for (let c = 0; c < 3; c++) {
+        let v = 0;
+        for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const k = ((2 * y + dy) * W + 2 * x + dx) * 3 + c; v += 0.5 * a[k] + 0.5 * b[k]; }
+        out.px[o + c] = Math.min(1, v / 4);
+      }
+      out.px[o + 3] = 1;
+    }
+    return out;
+  }
+  // un atlas para todo lo pequeño (estantes de 320 px de ancho)
+  function packAtlas(items) {
+    const AW = 320; let x = 0, y = 0, rowH = 0;
+    const rects = items.map(it => {
+      if (x + it.img.w > AW) { x = 0; y += rowH + 1; rowH = 0; }
+      const rc = [x, y, it.img.w, it.img.h]; x += it.img.w + 1; rowH = Math.max(rowH, it.img.h); return rc;
+    });
+    const atlas = new Img(AW, y + rowH);
+    items.forEach((it, k) => {
+      const [ax, ay] = rects[k];
+      for (let j = 0; j < it.img.h; j++) for (let i = 0; i < it.img.w; i++) {
+        const s = (j * it.img.w + i) * 4, d = ((ay + j) * AW + ax + i) * 4;
+        for (let c = 0; c < 3; c++) atlas.px[d + c] = Math.min(1, it.img.px[s + c]);
+        atlas.px[d + 3] = it.opaque ? 1 : it.img.px[s + 3] * (it.alpha ?? 1);
+      }
+    });
+    return { atlas, rects };
+  }
+  // todo lo que exporta el juego: imágenes (RGBA 0..1) y backdrop.json
+  function exportSet(r) {
+    r = r || render();
+    const A = r.anim, L = r.layout, items = [];
+    const push = (img, opaque = false, alpha = 1) => { items.push({ img, opaque, alpha }); return items.length - 1; };
+    const flameKinds = {};
+    for (const k of Object.keys(A.FLAME_KINDS)) flameKinds[k] = { ids: A.flames[k].map(f => push(f)), durations_ms: A.FLAME_KINDS[k].durations_ms };
+    const glowKinds = {};
+    for (const k of Object.keys(A.GLOW_KINDS)) glowKinds[k] = { ids: A.glows[k].map(g => push(g, true)) };
+    const bats = A.bats.map(b => push(b)), ripple = A.ripple.map(f => push(f));
+    const fog = A.fog.map(f => push(f, false, FOG_ALPHA)), clouds = push(r.clouds);
+    const { atlas, rects } = packAtlas(items);
+    const R = id => rects[id];
+    const json = {
+      style: 'docs/art-style.md', generator: 'Tools/VfxLab/floor1_backdrop.html', floor: 1, theme: 'cripta',
+      scale: 2, size: [W, H],
+      room: 'Dungeon/Floor1/room', sky: { image: 'Dungeon/Floor1/sky', at: [SKY.x, SKY.y] },
+      halo: { image: 'Dungeon/Floor1/halo', scale: 4, gain: HALO_GAIN }, atlas: 'Dungeon/Floor1/atlas',
+      clouds: { rect: R(clouds), y: CLOUDS.y, speed: CLOUDS.speed, clip: CLOUDS.clip },
+      fog: FOG.map((f, k) => ({ rect: R(fog[k]), y: f.y, speed: f.speed })),
+      flame_kinds: Object.fromEntries(Object.entries(flameKinds).map(([k, v]) => [k, { frames: v.ids.map(R), durations_ms: v.durations_ms }])),
+      flames: L.flames,
+      glow_kinds: Object.fromEntries(Object.entries(glowKinds).map(([k, v]) => [k, { levels: v.ids.map(R) }])),
+      glows: L.glows,
+      eyes: L.eyes, runes: { kind: 'rune', x: SLAB.x0 - 12, y: SLAB.y0 - 7, period: 3.2 },
+      stars: L.stars,
+      bats: { frames: bats.map(R), fps: BATS.fps, period: BATS.period, duration: BATS.duration, from: BATS.from, to: BATS.to, bob: BATS.bob, flock: BATS.flock, clip: BATS.clip },
+      ripple: { frames: ripple.map(R), durations_ms: A.RIPPLE.durations_ms },
+      palette: L.palette, emitters: L.emitters, drips: L.drips
+    };
+    return {
+      images: { room: litImage(r.room, r.emis), sky: litImage(r.sky, r.skyGlow), halo: haloImage(r), atlas },
+      json
+    };
+  }
+
+  root.CryptArt = { W, H, render, exportSet, K, RAMP, LIGHT, hash, rng, bay, Img, mix, tone, vnoise };
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+/* Visor: dibuja el fondo como el juego (CryptBackdrop.cs) a partir de lo mismo que exporta el generador. */
+(function () {
+  'use strict';
+  const CAST = {"png": "data:image/png;base64,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", "parts": [{"name": "mage", "src": [0, 0, 192, 192], "at": [176, 91]}, {"name": "rat", "src": [193, 0, 140, 56], "at": [774, 229]}, {"name": "crow", "src": [334, 0, 122, 106], "at": [954, 177]}, {"name": "worm", "src": [457, 0, 128, 148], "at": [1124, 135]}]};
+  const A = window.CryptArt, S = A.exportSet(), J = S.json, SC = J.scale;
+  function canvasOf(img) {
+    const c = document.createElement('canvas'); c.width = img.w; c.height = img.h;
+    const g = c.getContext('2d'), id = g.createImageData(img.w, img.h);
+    for (let i = 0; i < img.px.length; i++) id.data[i] = Math.max(0, Math.min(255, Math.round(img.px[i] * 255)));
+    g.putImageData(id, 0, 0); return c;
+  }
+  const T = {}; for (const k of Object.keys(S.images)) T[k] = canvasOf(S.images[k]);
+  const stage = document.getElementById('stage'), ctx = stage.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
+  const PAL = {}; for (const [k, v] of Object.entries(J.palette)) PAL[k] = v.map(rgb);
+
+  function blit(src, r, x, y, scale = SC, op = 'source-over', alpha = 1) {
+    ctx.globalCompositeOperation = op; ctx.globalAlpha = alpha;
+    ctx.drawImage(src, r[0], r[1], r[2], r[3], Math.floor(x) * SC, Math.floor(y) * SC, r[2] * scale, r[3] * scale);
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  }
+  const clip = (r, fn) => { ctx.save(); ctx.beginPath(); ctx.rect(r[0] * SC, r[1] * SC, r[2] * SC, r[3] * SC); ctx.clip(); fn(); ctx.restore(); };
+  const frameAt = (durs, t) => { const tot = durs.reduce((a, b) => a + b, 0) / 1000; let u = ((t % tot) + tot) % tot; for (let i = 0; i < durs.length; i++) { u -= durs[i] / 1000; if (u < 0) return i; } return durs.length - 1; };
+  const fmod = (a, b) => ((a % b) + b) % b;
+
+  // partículas: el mismo modelo que Presentation/Fx ParticleSystem (pool, ritmo, vida, gravedad, ondulación, suelo)
+  class PS {
+    constructor(c, seed, onFloor = null) { this.c = c; this.r = A.rng(seed); this.p = []; this.acc = 0; this.time = 0; this.onFloor = onFloor; this.onLand = null; }
+    uni(a) { return a[0] + (a[1] - a[0]) * this.r(); }
+    spawn(px, py) {
+      const c = this.c; if (this.p.length >= c.capacity) return false;
+      this.p.push({ x: px ?? c.area[0] + this.r() * c.area[2], y: py ?? c.area[1] + this.r() * c.area[3], vx: this.uni(c.vx || [0, 0]), vy: this.uni(c.vy || [0, 0]), age: 0, life: this.uni(c.life), ph: this.r() * Math.PI * 2 });
+      return true;
+    }
+    emitAt(x, y, n) { for (let i = 0; i < n; i++) if (!this.spawn(x, y)) break; }
+    update(dt) {
+      dt = Math.min(0.1, Math.max(0, dt)); if (!dt) return;
+      const c = this.c; this.time += dt;
+      if (c.rate > 0) { this.acc += c.rate * dt; while (this.acc >= 1) { this.acc -= 1; if (!this.spawn()) { this.acc = 0; break; } } }
+      for (let i = this.p.length - 1; i >= 0; i--) {
+        const p = this.p[i]; p.age += dt;
+        if (p.age >= p.life) { this.p.splice(i, 1); continue; }
+        p.vy += (c.gravity || 0) * dt;
+        p.x += p.vx * dt + (c.wobble ? c.wobble * Math.sin(p.ph + this.time * 5) * dt : 0);
+        p.y += p.vy * dt;
+        if (c.floor_y != null && p.y >= c.floor_y) {
+          if (this.onFloor && c.burst) this.onFloor.emitAt(p.x, c.floor_y, c.burst);
+          if (this.onLand) this.onLand(p.x, c.floor_y);
+          this.p.splice(i, 1);
+        }
+      }
+      if (this.onFloor) this.onFloor.update(dt);
+    }
+    draw() {
+      const cols = PAL[this.c.colors], n = cols.length, len = Math.max(1, this.c.length || 1);
+      for (const p of this.p) {
+        const k = Math.min(n - 1, Math.floor(p.age / p.life * n));
+        ctx.fillStyle = cols[k]; ctx.fillRect(Math.floor(p.x) * SC, Math.floor(p.y) * SC, SC, SC * len);
+      }
+      if (this.onFloor) this.onFloor.draw();
+    }
+  }
+  const systems = [];
+  J.emitters.forEach((e, k) => systems.push(new PS(e, 11 + k)));
+  const ripples = [];
+  J.drips.forEach((d, k) => {
+    const splash = new PS({ rate: 0, life: [0.15, 0.3], vx: [-24, 24], vy: [-45, -20], gravity: 380, colors: 'splash', capacity: 12 }, 31 + k);
+    const drip = new PS({ rate: d.rate, life: [3, 3], area: [d.x, d.y, 1, 1], gravity: 380, colors: 'drip', length: 2, floor_y: d.floor_y, burst: 3, capacity: 4 }, 41 + k, splash);
+    if (d.ripple) drip.onLand = () => ripples.push({ at: d.ripple, t0: now });
+    systems.push(drip);
+  });
+  let now = 0;
+  for (let s = 0; s < 3; s += 1 / 30) for (const p of systems) p.update(1 / 30);     // precalentado
+  ripples.length = 0;
+
+  const cast = new Image(); if (CAST) cast.src = CAST.png;
+  const opt = { cast: true, halo: true, parts: true, playing: !matchMedia('(prefers-reduced-motion: reduce)').matches };
+
+  function glowLevel(i, t) {
+    const ph = i * 0.37, v = Math.sin(t * 7.3 + ph) * 0.5 + Math.sin(t * 13.1 + ph * 2) * 0.3 + Math.sin(t * 2.1 + ph) * 0.2;
+    return v < -0.35 ? 0 : v > 0.35 ? 2 : 1;
+  }
+  function draw(t) {
+    ctx.fillStyle = '#07050c'; ctx.fillRect(0, 0, 1280, 720);
+    // cielo, estrellas que destellan, nubes y murciélagos (por detrás de la sala)
+    ctx.drawImage(T.sky, J.sky.at[0] * SC, J.sky.at[1] * SC, T.sky.width * SC, T.sky.height * SC);
+    J.stars.forEach(([x, y], k) => {
+      const u = fmod(t / (2.7 + 0.9 * k) + 0.17 * k, 1);
+      if (u > 0.16) return;
+      const peak = u > 0.04 && u < 0.12;
+      ctx.fillStyle = peak ? '#ffffff' : '#e2dcff'; ctx.fillRect(x * SC, y * SC, SC, SC);
+      if (peak) { ctx.fillStyle = '#a69be6'; for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) ctx.fillRect((x + dx) * SC, (y + dy) * SC, SC, SC); }
+    });
+    const C = J.clouds, cw = C.rect[2];
+    clip(C.clip, () => { const ox = Math.floor(fmod(t * C.speed, cw)); for (let x = C.clip[0] + ox - cw; x < C.clip[0] + C.clip[2]; x += cw) blit(T.atlas, C.rect, x, C.y); });
+    const B = J.bats, tb = fmod(t, B.period);
+    clip(B.clip, () => {
+      for (const [dx, dy, delay] of B.flock) {
+        const s = (tb - delay) / B.duration; if (s < 0 || s > 1) continue;
+        const x = B.from[0] + (B.to[0] - B.from[0]) * s + dx, y = B.from[1] + (B.to[1] - B.from[1]) * s + dy + B.bob * Math.sin((t + delay) * 6.5);
+        blit(T.atlas, B.frames[Math.floor((t + delay) * B.fps) % 4], x - 4, y - 3);
+      }
+    });
+    ctx.drawImage(T.room, 0, 0, 1280, 720);
+    if (opt.halo) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = J.halo.gain; ctx.drawImage(T.halo, 0, 0, 1280, 720); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
+    // halos de las velas, ojos de alma y runas (se suman)
+    J.glows.forEach((g, i) => { const r = J.glow_kinds[g.kind].levels[glowLevel(i, t)]; blit(T.atlas, r, g.x - r[2] / 2, g.y - r[3] / 2, SC, 'lighter'); });
+    for (let k = 0; k + 1 < J.eyes.length; k += 2) {
+      const sk = k / 2, period = 3.4 + (sk % 3) * 0.9, u = fmod(t / period + sk * 0.31, 1);
+      if (u > 0.6) continue;
+      const env = Math.pow(Math.sin(Math.PI * u / 0.6), 1.5), lvl = env > 0.75 ? 2 : env > 0.4 ? 1 : env > 0.12 ? 0 : -1;
+      if (lvl < 0) continue;
+      for (const [x, y] of [J.eyes[k], J.eyes[k + 1]]) {
+        blit(T.atlas, J.glow_kinds.eye.levels[lvl], x - 4, y - 4, SC, 'lighter');
+        if (lvl === 2) { ctx.fillStyle = '#8ff1ff'; ctx.fillRect(x * SC, y * SC, SC, SC); }
+      }
+    }
+    const ru = fmod(t / J.runes.period, 1), rl = Math.min(2, Math.floor((0.5 - 0.5 * Math.cos(2 * Math.PI * ru)) * 3));
+    blit(T.atlas, J.glow_kinds.rune.levels[rl], J.runes.x, J.runes.y, SC, 'lighter');
+    // llamas
+    J.flames.forEach(f => { const K = J.flame_kinds[f.kind]; const tot = K.durations_ms.reduce((a, b) => a + b, 0) / 1000; blit(T.atlas, K.frames[frameAt(K.durations_ms, t + f.phase * tot)], f.x, f.y); });
+    // onda del charco
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      const R = ripples[i], e = now - R.t0, d = J.ripple.durations_ms, tot = d.reduce((a, b) => a + b, 0) / 1000;
+      if (e >= tot) { ripples.splice(i, 1); continue; }
+      blit(T.atlas, J.ripple.frames[frameAt(d, e)], R.at[0], R.at[1]);
+    }
+    // niebla a ras de suelo
+    for (const F of J.fog) { const w = F.rect[2], ox = Math.floor(fmod(t * F.speed, w)); for (let x = ox - w; x < 640; x += w) blit(T.atlas, F.rect, x, F.y); }
+    if (opt.parts) for (const p of systems) p.draw();
+    if (opt.cast) drawCast();
+  }
+  function drawCast() {
+    if (CAST && cast.complete) for (const p of CAST.parts) ctx.drawImage(cast, p.src[0], p.src[1], p.src[2], p.src[3], p.at[0], p.at[1], p.src[2], p.src[3]);
+    ctx.fillStyle = '#100d1a'; ctx.fillRect(0, 0, 1280, 61); ctx.fillStyle = '#c9a24a'; ctx.fillRect(0, 59, 1280, 3);
+    ctx.fillStyle = '#09080f'; ctx.fillRect(0, 465, 1280, 255); ctx.fillStyle = '#c9a24a'; ctx.fillRect(0, 463, 1280, 3);
+    ctx.fillStyle = '#32aa3c'; ctx.fillRect(195, 290, 155, 10); for (const x of [762, 942, 1122]) ctx.fillRect(x, 281, 128, 8);
+    ctx.fillStyle = '#e8e4f8'; ctx.font = '600 18px "Source Sans 3", system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Barra de turno', 640, 38); ctx.fillText('Mano de cartas', 640, 600);
+  }
+
+  let last = performance.now();
+  const clock = document.getElementById('clock');
+  function frame(ts) {
+    const dt = Math.min(0.1, (ts - last) / 1000); last = ts;
+    if (opt.playing) { now += dt; for (const p of systems) p.update(dt); }
+    draw(now); clock.textContent = now.toFixed(1) + ' s';
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  const play = document.getElementById('play');
+  play.textContent = opt.playing ? 'Pausa' : 'Reproducir';
+  play.addEventListener('click', () => { opt.playing = !opt.playing; play.textContent = opt.playing ? 'Pausa' : 'Reproducir'; });
+  for (const k of ['cast', 'halo', 'parts']) document.getElementById(k).addEventListener('change', e => { opt[k] = e.target.checked; });
+
+  // miniaturas de las capas
+  for (const [id, src, s] of [['l-room', T.room, 1], ['l-sky', T.sky, 3], ['l-halo', T.halo, 2], ['l-atlas', T.atlas, 1]]) {
+    const c = document.getElementById(id); c.width = src.width * s; c.height = src.height * s;
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(src, 0, 0, c.width, c.height);
+  }
+})();
+</script>

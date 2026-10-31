@@ -480,10 +480,15 @@ namespace LastWish.Presentation
 
         private void AdvanceHeroAnimation(float dt)
         {
-            if (heroAction == null) { idleTime = (float)MathX.PyMod(idleTime + dt, idleCycle > 0 ? idleCycle : 1.6); return; }
+            if (heroAction == null)
+            {
+                idleTime = (float)MathX.PyMod(idleTime + dt, idleCycle > 0 ? idleCycle : 1.6);
+                heroIdleTime = (float)MathX.PyMod(heroIdleTime + dt, heroIdleCycle > 0 ? heroIdleCycle : 1.6);
+                return;
+            }
             heroActionTime += dt;
             if (heroAction == "death") return;
-            if (heroActionTime >= HeroSeconds(heroAction)) { heroAction = null; heroActionTime = 0f; idleTime = 0f; }
+            if (heroActionTime >= HeroSeconds(heroAction)) { heroAction = null; heroActionTime = 0f; idleTime = 0f; heroIdleTime = 0f; }
         }
 
         // ------------------------------------------------------------------ reactions, banners

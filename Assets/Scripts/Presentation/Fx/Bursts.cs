@@ -175,6 +175,8 @@ namespace LastWish.Presentation
         public int Scale { get; }
         public (float x, float y, float w, float h)? Clip { get; }
         public ParticleSystem OnFloor { get; }
+        /// <summary>Called with (x, floorY) when a particle reaches the floor (e.g. the crypt's drop opens a ripple).</summary>
+        public Action<float, float> Landed;
         public int Capacity { get; }
         public float Rate { get; }
         private readonly Rng rng;
@@ -232,6 +234,7 @@ namespace LastWish.Presentation
                 if (c.FloorY.HasValue && y[i] >= c.FloorY.Value)
                 {
                     if (OnFloor != null && c.BurstOnFloor > 0) OnFloor.EmitAt(x[i], c.FloorY.Value, c.BurstOnFloor);
+                    Landed?.Invoke(x[i], c.FloorY.Value);
                     Kill(i); continue;
                 }
                 i++;

@@ -34,7 +34,7 @@ namespace LastWish.Presentation
 
         private int selected;
         private readonly List<RectF> panelRects = new List<RectF>();
-        private float idleTime;
+        private double idleClock;   // shared clock; each hero's idle loop wraps at its own length (1.6 s, 2 s, ...)
         private readonly long defaultSeed;
         private string seedText;
         private bool seedActive;
@@ -81,8 +81,7 @@ namespace LastWish.Presentation
 
         public override void Update(float dt)
         {
-            var cycle = Art.Hero("warrior").Seconds("idle");
-            idleTime = (idleTime + Math.Max(0f, dt)) % (cycle > 0 ? cycle : 1f);
+            idleClock = (idleClock + Math.Max(0f, dt)) % 3600.0;
         }
 
         public override void Draw(Canvas canvas)
@@ -112,8 +111,11 @@ namespace LastWish.Presentation
             var top = y + 68 - MathX.FloorDiv(lines.Count * lineH, 2);
             for (var k = 0; k < lines.Count; k++) Txt.DrawAt(canvas, font, lines[k], Anchor.MidTop, cx, top + k * lineH, Colors.TextSecondary);
             var sheets = Art.Hero(hero.AssetId);
+            var idleTime = (float)MathX.PyMod(idleClock, Math.Max(1e-3, sheets.Seconds("idle")));
             var frame = sheets.Frame("idle", idleTime, 96, out var scale);
-            canvas.BlitRect(frame, RectF.CenteredInt(cx, y + 137, (int)(frame.W * scale), (int)(frame.H * scale)), Rgba.White);
+            var heroRect = RectF.CenteredInt(cx, y + 137, (int)(frame.W * scale), (int)(frame.H * scale));
+            canvas.BlitRect(frame, heroRect, Rgba.White);
+            sheets.DrawHalo(canvas, "idle", idleTime, heroRect);
             Fonts.Get(9).Draw(canvas, "ESTADÍSTICAS", x + 14, y + 200, Colors.TextSecondary);
             var statY = y + 218;
             foreach (var (label, value, color) in Rows)

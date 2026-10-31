@@ -47,13 +47,15 @@ namespace LastWish.Presentation
         // ------------------------------------------------------------------ state
         private readonly CombatState state;
         private readonly IReadOnlyList<OwnedRelic> relics;
-        private readonly DungeonBackdrop backdrop;
+        private readonly IBackdrop backdrop;
         private float idleTime;
         private string heroAction;           // attack | guard | hurt | cast | death
         private readonly string heroId;
         private readonly HeroSheets heroSheets;
         private readonly bool hasHeroSprites;
         private readonly float idleCycle;
+        private readonly float heroIdleCycle;   // the hero's own idle loop (the rogue's is 2 s, like her card art)
+        private float heroIdleTime;
         private float heroActionTime;
         public bool IsBoss { get; }
         public bool IsElite { get; }
@@ -134,12 +136,13 @@ namespace LastWish.Presentation
         {
             this.state = state ?? throw new ArgumentNullException(nameof(state));
             this.relics = relics ?? Array.Empty<OwnedRelic>();
-            backdrop = new DungeonBackdrop(game.Art);
+            backdrop = Backdrops.ForFloor(game.Art, state.Enemies.Count > 0 ? state.Enemies.Max(e => e.Floor) : 1);   // floor 1: La Cripta
             var heroName = state.Hero.Name;
             heroId = Art.HeroIdFor(heroName) ?? "warrior";
             hasHeroSprites = Art.HeroIdFor(heroName) != null;
             heroSheets = game.Art.Hero(heroId);
             idleCycle = game.Art.Hero("warrior").Seconds("idle");
+            heroIdleCycle = heroSheets.Seconds("idle");
             IsBoss = isBoss;
             for (var i = 0; i < state.Enemies.Count; i++) { view.Add(i); if (state.Enemies[i].Definition.Elite) IsElite = true; }
             initialEnemyCount = state.Enemies.Count;
@@ -172,10 +175,13 @@ namespace LastWish.Presentation
             SyncEnemyAnims(null);
             var strike = hasHeroSprites ? heroSheets.StrikeSeconds : 0f;
             var castRelease = heroSheets.CastSeconds;
-            var authoredWarrior = heroId == "warrior" && castRelease > 0;
+            // authored sheets (cast event): the ward and the kneel follow their clips; the rogue's and the mage's art
+            // (docs/art-style.md) use the cyan/violet arcane palette
+            var authored = (heroId == "warrior" || heroId == "rogue" || heroId == "mage") && castRelease > 0;
             if (strike > 0)
-                heroFx = new HeroFx(strike, 5, 260, heroSheets.StrikeOffset, heroSheets.CastOffset, castRelease > 0 ? castRelease : (float?)null, heroId == "mage",
-                    authoredWarrior ? heroSheets.Seconds("guard") * 0.4f : (float?)null, authoredWarrior ? heroSheets.Seconds("death") * 0.6f : (float?)null);
+                heroFx = new HeroFx(strike, 5, 260, heroSheets.StrikeOffset, heroSheets.CastOffset, castRelease > 0 ? castRelease : (float?)null,
+                    heroId == "mage" || heroId == "rogue",
+                    authored ? heroSheets.Seconds("guard") * 0.4f : (float?)null, authored ? heroSheets.Seconds("death") * 0.6f : (float?)null);
             AnnouncePair();
             reactionShow = new ReactionShow(bursts, 17);
             log.Turn(state.Turn);

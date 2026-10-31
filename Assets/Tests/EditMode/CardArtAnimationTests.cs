@@ -13,6 +13,8 @@ namespace LastWish.Tests
     public sealed class CardArtAnimationTests
     {
         private static readonly string[] Rogue = { "punalada_base", "esquiva_base", "finta_base" };
+        private static readonly string[] Mage = { "proyectil_base", "egida_base", "chispa_ignea_base" };
+        private static readonly string[] All = Rogue.Concat(Mage).ToArray();
 
         private sealed class Recorder : IRenderBackend
         {
@@ -50,19 +52,21 @@ namespace LastWish.Tests
 
         // ------------------------------------------------------------------ metadata and sheets
 
-        [Test] public void TheRogueStarterCardsAreAnimated()
+        [Test] public void TheRogueAndMageStarterCardsAreAnimated()
         {
             var (g, _) = Game();
-            Assert.That(CardArtAnimations.Ids(g.Art), Is.EquivalentTo(Rogue));
+            Assert.That(CardArtAnimations.Ids(g.Art), Is.EquivalentTo(All));
             var deck = RunContent.StarterDeck(HeroKind.Rogue).Select(c => c.Id).Distinct();
             Assert.That(deck, Is.EquivalentTo(Rogue), "every basic rogue card has its animation");
-            foreach (var id in Rogue)
+            Assert.That(RunContent.StarterDeck(HeroKind.Mage).Select(c => c.Id).Distinct(), Is.EquivalentTo(Mage),
+                "every basic mage card has its animation");
+            foreach (var id in All)
             {
                 var anim = CardArtAnimations.For(g.Art, id);
                 Assert.That((anim.Frames, anim.Fps, anim.Duration), Is.EqualTo((24, 12f, 2f)), id);
                 Assert.That(anim.Still, Is.InRange(0, anim.Frames - 1), id);
             }
-            Assert.That(CardArtAnimations.For(g.Art, "espadazo_base"), Is.Null, "the other heroes keep their still art");
+            Assert.That(CardArtAnimations.For(g.Art, "espadazo_base"), Is.Null, "the warrior keeps her still art");
             Assert.That(CardArtAnimations.For(g.Art, null), Is.Null);
             Assert.That(CardArtAnimations.For(null, "punalada_base"), Is.Null);
         }
@@ -70,7 +74,7 @@ namespace LastWish.Tests
         [Test] public void EveryFrameAndHaloFitsItsSheet()
         {
             var (g, _) = Game();
-            foreach (var id in Rogue)
+            foreach (var id in All)
             {
                 var anim = CardArtAnimations.For(g.Art, id);
                 foreach (var key in new[] { id, id + "_halo" })
@@ -111,9 +115,9 @@ namespace LastWish.Tests
         [Test] public void PhasesComeFromTheIdAndDiffer()
         {
             var (g1, _) = Game(); var (g2, _) = Game();
-            var phases = Rogue.Select(id => CardArtAnimations.For(g1.Art, id).Phase).ToArray();
-            Assert.That(Rogue.Select(id => CardArtAnimations.For(g2.Art, id).Phase), Is.EqualTo(phases), "same id, same phase (no jump when a card is rebuilt)");
-            Assert.That(phases.Distinct().Count(), Is.EqualTo(3), "different cards do not animate in step");
+            var phases = All.Select(id => CardArtAnimations.For(g1.Art, id).Phase).ToArray();
+            Assert.That(All.Select(id => CardArtAnimations.For(g2.Art, id).Phase), Is.EqualTo(phases), "same id, same phase (no jump when a card is rebuilt)");
+            Assert.That(phases.Distinct().Count(), Is.EqualTo(All.Length), "different cards do not animate in step");
             Assert.That(phases.All(p => p >= 0 && p < 2f), Is.True);
             Assert.That(CardArtAnimation.StableHash("punalada_base"), Is.EqualTo(CardArtAnimation.StableHash("punalada_base")));
             Assert.That(CardArtAnimation.StableHash(null), Is.EqualTo(CardArtAnimation.StableHash("")));
@@ -138,6 +142,22 @@ namespace LastWish.Tests
             Assert.That(composed, Is.Not.Empty, "a fresh face was composed");
             Assert.That(composed.Any(q => q.tex != null && (q.tex.StartsWith("Cards/Anim/") || q.tex.StartsWith("Cards/Art/"))), Is.False,
                 "the hollow face leaves the art window empty");
+        }
+
+        [Test] public void TheMageCardsAreDrawnBehindAHollowFaceToo()
+        {
+            foreach (var id in Mage)
+            {
+                var (g, render) = Game();
+                g.Time = 0.75f;
+                CardWidget.DrawAt(g.Canvas, g, Starter(HeroKind.Mage, id), 640, 600, Fresh(47 + Array.IndexOf(Mage, id)), 1.3f, 6f);
+                var screen = render.Quads.Where(q => q.target == null).ToList();
+                var art = screen.FindIndex(q => q.tex == "Cards/Anim/" + id);
+                var halo = screen.FindIndex(q => q.tex == "Cards/Anim/" + id + "_halo");
+                var face = screen.FindIndex(q => q.tex != null && q.tex.StartsWith("card_face_"));
+                Assert.That(art >= 0 && art < halo && halo < face, Is.True, id + ": art, light, then the face over them");
+                Assert.That(render.Quads.Any(q => q.tex == "Cards/Art/" + id), Is.False, id + ": the old still is not used");
+            }
         }
 
         [Test] public void TiltedAndScaledHandCardsAnimateToo()

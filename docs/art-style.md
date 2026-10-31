@@ -8,6 +8,9 @@
 > redibujo que pida el usuario se hace con ella, para que enemigos, personajes y cartas se vean como una sola cosa.
 > El arte que ya existe se queda hasta que el usuario pida rehacerlo (sus generadores siguen sirviendo para
 > regenerarlo tal cual).
+>
+> **Personajes, enemigos y animaciones: se dibujan con código en HTML, una figura completa por fotograma, como
+> `Tools/VfxLab/mage_hero.html`; nunca por piezas (reglas del usuario, 30-10-2026; §3.1).**
 
 Referencias aprobadas (mirarlas antes de dibujar):
 
@@ -17,35 +20,142 @@ Referencias aprobadas (mirarlas antes de dibujar):
 | La mano real en combate (GIF, 125 ms por fotograma) | `docs/screenshots/estilo-referencia-mano.gif` |
 | Partículas: proyectil arcano cian (anticipación → vuelo → impacto → disipación) | `docs/screenshots/estilo-referencia-particulas.png` |
 | Código del arte aprobado | `Tools/VfxLab/rogue_art.py`, `Tools/VfxLab/pixelkit.py` |
+| Cartas básicas del Mago (hechizos sin personaje, rampa de fuego) | `Tools/VfxLab/mage_art.py` |
 | Hojas del juego | `Assets/Resources/Game/Cards/Anim/` |
+| **Personajes y enemigos: método y diseño obligatorios (§3.1)** — ábrelo en el navegador | `Tools/VfxLab/mage_hero.html` → `Assets/Resources/Game/Heroes/mage*` |
+| La Pícara en combate: hecha por piezas, pendiente de rehacer con el método del Mago | `Tools/VfxLab/rogue_hero_art.py` |
 
 ---
 
 ## 1. El prompt original
 
-El texto exacto no se conservó (la conversación se resumió). Esto es lo que pidió el usuario, con sus requisitos en
-orden; la última frase sí es literal. Si el usuario pega el texto exacto, sustitúyelo aquí.
+Texto exacto, pegado por el usuario el 30-10-2026 (sustituye a la reconstrucción que había aquí):
 
-> Actúa como **Senior Unity 2D VFX Engineer**. Mejora lo visual de este juego, que es 100 % 2D, con iluminación y
-> partículas mágicas inspiradas en **Core Keeper** y **Noita**.
+> Actúa como un **Senior Technical Artist, Pixel Art VFX Artist y Unity Graphics Engineer**, especializado en videojuegos 2D con efectos visuales de alta calidad, similares a los de **Core Keeper, Noita y otros videojuegos pixel art modernos**.
 >
-> 1. Inspecciona la versión de Unity, el render pipeline, la cámara y los sistemas visuales (no asumas URP).
-> 2. Partículas (*Particle System*) en el plano XY.
-> 3. Materiales compatibles con 2D, aditivos y alfa.
-> 4. HDR y *Bloom* cuando sea compatible, con un **núcleo de píxel nítido** y el **resplandor suave en una capa aparte**.
-> 5. Capas **Core, Glow, Sparks, Trails e Impact**.
-> 6. *Color/Size over Lifetime*, *Noise*, *Burst*, *Sub Emitters*.
-> 7. *Light2D* opcional.
-> 8. Prefabs reutilizables y ajustes en el Inspector.
-> 9. Optimiza (overdraw, materiales compartidos, *pooling*).
-> 10. Diseña primero **un solo** efecto mágico azul/cian y una escena de demostración; no hagas muchos efectos antes de
->     validarlo.
-> 11. Verifica compilación y referencias, y **nunca digas que se ve bien sin haberlo inspeccionado visualmente**.
+> Estoy desarrollando un videojuego **100% 2D en Unity utilizando C#**. Quiero implementar efectos visuales espectaculares, con partículas luminosas, animaciones fluidas, colores vibrantes y una estética pixel art coherente.
 >
-> Criterios de calidad: pixel art nítido; bloom visible sin saturar; partículas variadas; **anticipación → impacto →
-> disipación**; legible con muchos efectos a la vez; atractivo **también sin bloom**. Implementa, configura y documenta
-> lo que no se pueda hacer automáticamente.
+> ### Objetivo principal
 >
+> Diseñar e implementar un sistema profesional de VFX 2D que consiga efectos visualmente atractivos, con iluminación, partículas, brillos y animaciones que se integren perfectamente en un mundo pixel art.
+>
+> No quiero partículas genéricas de Unity ni efectos visuales simples. Busco resultados pulidos, con personalidad, profundidad visual y calidad de producción.
+>
+> ### 1. Técnicas de partículas
+>
+> Utiliza las técnicas más adecuadas para conseguir efectos de calidad:
+>
+> - Unity Particle System configurado exclusivamente para el plano XY.
+> - Partículas basadas en sprites pixel art.
+> - Sprite sheets con animaciones de partículas.
+> - Emisión, velocidad, tamaño y rotación controlados mediante curvas.
+> - Color over Lifetime y Size over Lifetime.
+> - Sub Emitters para explosiones, impactos y efectos secundarios.
+> - Particle Trails y Trail Renderer cuando sean apropiados.
+> - Ruido y movimiento orgánico para simular magia, fuego, energía y electricidad.
+> - Partículas secundarias para chispas, humo, residuos y destellos.
+>
+> ### 2. Iluminación y shaders
+>
+> Aprovecha las capacidades gráficas de Unity 2D:
+>
+> - Universal Render Pipeline (URP) con 2D Renderer.
+> - Shader Graph para crear materiales personalizados.
+> - Bloom mediante HDR y postprocesamiento.
+> - Light2D para iluminación dinámica.
+> - Shaders aditivos para partículas luminosas.
+> - Máscaras, gradientes, distorsión y animaciones procedurales cuando aporten valor.
+> - Control del brillo y de los colores sin perder la estética pixel art.
+>
+> El brillo debe verse espectacular, pero sin convertir el efecto en una mancha borrosa.
+>
+> ### 3. Estética pixel art
+>
+> Respeta las siguientes reglas:
+>
+> - Mantener una resolución visual consistente.
+> - Evitar filtrado bilineal en los sprites pixel art.
+> - Utilizar Point Filtering cuando corresponda.
+> - Conservar siluetas de píxeles definidas.
+> - Combinar núcleos pixelados con halos luminosos suaves.
+> - Evitar que los efectos parezcan gráficos 3D o partículas genéricas.
+> - Mantener coherencia entre sprites, iluminación y animaciones.
+>
+> ### 4. Principios de diseño profesional de VFX
+>
+> Aplica principios de animación y efectos visuales:
+>
+> - Anticipation.
+> - Impact.
+> - Follow-through.
+> - Dissipation.
+> - Timing y spacing.
+> - Squash and stretch cuando corresponda.
+> - Contraste de tamaño, velocidad y luminosidad.
+> - Jerarquía visual entre partículas principales y secundarias.
+> - Variación controlada para evitar movimientos artificiales.
+>
+> Cada efecto debe tener una secuencia visual clara: **anticipación → acción principal → impacto → disipación**.
+>
+> ### 5. Arquitectura e implementación en Unity
+>
+> Cuando te solicite crear un efecto:
+>
+> 1. Analiza primero el resultado visual deseado.
+> 2. Propón la técnica más apropiada para Unity 2D.
+> 3. Define la estructura de GameObjects y componentes.
+> 4. Proporciona el código C# necesario.
+> 5. Especifica los valores recomendados del Particle System.
+> 6. Describe los shaders y materiales necesarios.
+> 7. Explica cómo configurar la iluminación y el Bloom.
+> 8. Implementa optimizaciones de rendimiento.
+> 9. Indica cómo convertir el resultado en un prefab reutilizable.
+>
+> Prioriza soluciones mantenibles, modulares y eficientes.
+>
+> Utiliza object pooling cuando sea conveniente y evita asignaciones innecesarias durante la ejecución.
+>
+> ### 6. Calidad visual
+>
+> Quiero que los efectos tengan las siguientes características:
+>
+> - Partículas brillantes con núcleos definidos.
+> - Chispas con movimiento dinámico.
+> - Estelas luminosas atractivas.
+> - Explosiones con varias capas de partículas.
+> - Animaciones orgánicas y no repetitivas.
+> - Colores intensos y armoniosos.
+> - Buena legibilidad incluso cuando aparecen múltiples efectos simultáneamente.
+> - Integración natural con escenarios pixel art.
+>
+> ### 7. Criterios técnicos
+>
+> No propongas sistemas 3D cuando una solución 2D sea suficiente.
+>
+> No utilices herramientas externas innecesarias.
+>
+> No dependas exclusivamente de Bloom para conseguir un buen resultado: el efecto debe ser visualmente atractivo incluso sin postprocesamiento.
+>
+> Distingue claramente entre técnicas que Unity ofrece de forma nativa y soluciones que requieren shaders o implementaciones personalizadas.
+>
+> ### 8. Forma de trabajar
+>
+> Cuando te pida implementar un efecto, no te limites a explicar conceptos.
+>
+> Quiero soluciones concretas, configuraciones precisas, código funcional y recomendaciones visuales.
+>
+> Si existen varias técnicas, compara sus ventajas en términos de calidad visual, rendimiento y complejidad.
+>
+> **Prioridad final: calidad visual excepcional, coherencia pixel art, rendimiento y facilidad de reutilización.**
+>
+> Mi objetivo es conseguir efectos que parezcan diseñados por un artista profesional de VFX para videojuegos 2D, no simplemente partículas configuradas con los valores predeterminados de Unity.
+
+Notas para este proyecto: Last Wish usa el **Built-in Render Pipeline, sin URP** (no hay 2D Renderer, Shader Graph,
+Light2D ni Volume). Por eso el juego hornea la luz en las hojas y añade un halo aditivo y partículas vivas (§4.1),
+y el VFX Lab hace su propio HDR, bloom y luz 2D simulada (§4.2). No se cambia de pipeline sin que el usuario lo pida.
+
+La primera petición de arte con este prompt (cartas de la Pícara) fue, literal:
+
 > «quiero que hagas los sprites de las cartas basicas de picara y no sigas los lineamientos que estan en el proyecto
 > porque como que he visto que no quedan bien esto es una prueba, deben estar animados tener particulas brillantes y
 > bonitas»
@@ -95,6 +205,10 @@ Luces de la capa emisiva (`rogue_art.L`): cian `(0.25, 0.85, 1.0)`, blanco, viol
 
 Personajes y enemigos nuevos usan estas mismas rampas (un color propio por criatura como acento, p. ej. veneno verde,
 fuego naranja, siempre en rampa de 4–5 pasos con el mismo contraste) para que todo parezca del mismo mundo.
+
+Rampa de fuego (`mage_art.KM`, Chispa Ígnea): `#3d0f14` `#8f2419` `#d9531e` `#f5973a` `#ffd47a` `#fff6dc` (borde oscuro →
+núcleo), humo `#2a2233` `#3d3348`; luces `fire` `(1.0, 0.42, 0.1)` y `ember` `(1.0, 0.68, 0.3)`. El fuego no lleva
+contorno `ink`: su borde es el rojo oscuro tramado.
 
 ### 2.3 Reglas de pintura
 
@@ -159,7 +273,103 @@ def mi_frame(f):
 `render(id)` devuelve las listas `(frames, glows)`. Para una pieza nueva: un módulo como `rogue_art.py` con su
 `<id>_frame`, registrado en los exportadores (abajo).
 
+**Cartas de hechizo sin personaje** (`mage_art.py`, 30-10-2026: Proyectil Arcano, Égida, Chispa Ígnea). El usuario pidió
+la técnica de la Pícara **sin figuras armadas por piezas** (la figura de Esquiva lo es): cada imagen es el hechizo,
+como la daga de Puñalada. Proyectil Arcano = orbe cian en un círculo rúnico vertical que gira → se recoge (aplasta) →
+sale disparado como cometa (estela cian→violeta, anillo de pulso, líneas de velocidad) → estalla en el cielo (estrella,
+anillo de choque, chispas, esquirlas violetas) → se vuelve a formar con motas que convergen. Égida = escudo de
+cometa con un sigilo arcano (cristal, anillo y rayos con runas), dentro de una cúpula; una flecha maldita violeta
+llega (la cúpula se ilumina de ese lado), choca (destello de toda la red hexagonal y onda de celdas, retroceso,
+chispas que rebotan) y sale dando vueltas. Chispa Ígnea = llama flotante sobre un círculo de brasas → se encoge →
+bola de fuego en parábola con brasas y humo → aterriza (abanico de lenguas, chispas) y deja **dos llamas** en el suelo
+(las 2 de Fuego) que arden durante el bucle y se apagan; la llama de casa se reaviva. La llama se pinta por capas
+escaladas (rojo, naranja, amarillo, núcleo blanco) con lenguas laterales y trozos que se desprenden de la punta.
+
 ---
+
+### 3.1 Personajes, enemigos y sus animaciones: método y diseño obligatorios
+
+> **Regla del usuario (30-10-2026):** «que a fuerzas sea así […] quiero que sea este para todas las animaciones y el
+> diseño de personajes y enemigos». El método con el que se hizo El Mago (`Tools/VfxLab/mage_hero.html`) es el
+> **único** permitido para cualquier personaje, enemigo, jefe o figura animada, y su diseño es el del juego.
+> Antes ya había dicho: «no uses eso porque se ve muy mal […] ya lo había aclarado muchas veces que funciona mal esa
+> técnica» (la técnica por piezas, prohibida abajo).
+
+**Referencia:** `Tools/VfxLab/mage_hero.html`. Ábrelo en el navegador: el Mago animado (reposo, ataque, guardia, daño,
+habilidad, muerte), con su halo y cada fotograma a tamaño de combate. Ese mismo archivo es la fuente de las hojas del
+juego (`Assets/Resources/Game/Heroes/mage*`).
+
+#### Prohibido (técnica por piezas, sin excepciones)
+
+- Unir partes sueltas: cápsulas o tubos por extremidad, IK de brazos o piernas, polígonos por pieza, barridos de
+  miembros apilados, *rigs* con articulaciones o cadenas rígidas.
+- **«Masa + brazo y arma encima»**: un brazo como tubo del hombro a la mano y un arma rígida dibujados encima del
+  cuerpo, con su propio contorno. Así estaba el primer Mago de este método y la hoja actual de la Pícara
+  (`rogue_hero_art.py`); el usuario lo rechazó el 30-10-2026.
+- Animar moviendo o girando partes por separado, o interpolando ángulos de brazos y armas entre poses.
+- Copiar la figura de la carta Esquiva (`rogue_art.figure_parts`, un polígono por extremidad).
+- Volver a proponer la técnica por piezas en cualquier forma, ni «solo para el brazo».
+
+Historial de rechazos: La Guerrera (dos veces), primer sprite de la Pícara (cápsulas + IK, 27-10-2026), Pícara y Mago
+con brazo y arma encima (30-10-2026).
+
+#### El método: dibujar con código en una página HTML, una figura completa por fotograma
+
+Todo es un programa en JavaScript dentro de una página HTML (`<script id="mage-art">` en `mage_hero.html`); no hay
+dibujos a mano ni piezas montadas.
+
+1. **Mapa de zonas de la figura entera** (`figure(p)`). En cada fotograma se recorren los 96×96 píxeles y se decide a
+   qué parte pertenece cada uno, fila a fila según su altura sobre el suelo: sombrero (se estrecha hacia la punta, que
+   se dobla y se mece), ala, cabeza redonda, cara, pelo, esclavina, torso, faja, túnica (se ensancha y su bajo sigue a
+   los pies), botas, capa detrás. Las extremidades y lo que sostiene son **zonas del mismo mapa**: la manga se calcula
+   como un paño que cuelga de la esclavina (borde de arriba recto, el de abajo cayendo en campana hacia el puño), la
+   mano cierra sobre el bastón y el bastón con su cuna y su cristal también es zona del mapa. Todo queda conectado en
+   una sola silueta (lo que quedara suelto se descarta).
+2. **Pintado** (`paint`). Cada zona con su rampa de color (oscuro → claro), luz desde arriba a la izquierda, tramado
+   Bayer entre tonos, **un único contorno** oscuro de 1 px alrededor de toda la figura, luz de borde cian en los bordes
+   de delante y de arriba y violeta detrás, sombra de la manga sobre el cuerpo, ribetes dorados, runas.
+3. **Dos capas**: pintura (se lee sola) + luz emisiva solo en lo mágico (cristal, ojos, gema, runas). El halo del juego
+   es esa luz difuminada y sumada (no hay bloom).
+4. **Cada fotograma tiene su pose completa escrita en una tabla** (`POSES`: posición, agacharse, inclinarse, cabeceo,
+   dónde está la mano, ángulo del bastón, brillo del cristal, viento de la tela…). La figura se dibuja entera desde
+   cero en cada fotograma; al reproducir no se interpola nada ni se gira ninguna pieza. El reposo respira y mueve la
+   tela como deformación de toda la figura.
+5. **Efectos por fotograma** con el vocabulario de las cartas (estrellas de 4 puntas, motas, chispas, líneas de
+   velocidad, imágenes residuales, orbe y rayo, cúpula de hexágonos, círculo rúnico), anticipación → impacto →
+   disipación.
+6. **Exportación con el mismo código**: `Tools/VfxLab/mage_hero_html.py` ejecuta el script de la página con Node y
+   `export_hero_art.py` hace las hojas (×1 y ×2), el halo, el JSON con eventos y la validación (cada fotograma, con su
+   arma, es **una sola región conectada**; las acciones terminan en el fotograma 0 del reposo). La página y el juego no
+   pueden quedar distintos.
+
+#### El diseño de personajes y enemigos
+
+- **Celda nativa de 96×96** (jefes y élites pueden usar una mayor), suelas en la fila 93; los héroes miran a la
+  derecha y los enemigos hacia el héroe. Hoja ×2 para combate.
+- **Proporciones chibi**: cabeza grande (unos 15 px en una figura de ~80), cuerpo compacto, silueta clara que se lee a
+  tamaño de combate.
+- **Silueta oscura** en rampas frías (night, vio, teal o el azul del Mago) con luz arriba a la izquierda, un único
+  contorno `#07050c`, luz de borde cian `#58dcff` delante y arriba y violeta `#3a2163` detrás.
+- **Cara en sombra con ojos que brillan** (cian en los héroes; cada enemigo con su color de acento).
+- **Un acento propio por personaje** en rampa de 4–5 pasos (Mago: túnica azul, faja violeta y ribetes dorados; Pícara:
+  violeta; enemigos: veneno verde, fuego naranja, hielo…) y pocos detalles dorados.
+- **Solo lo mágico emite luz** (ojos, cristales, runas, gemas, hechizos).
+- **Animación a 12 fps**: reposo de 24 fotogramas (2 s) en bucle sin costura; acciones cortas (ataque ~10, guardia ~9,
+  daño ~7, habilidad ~12) que vuelven al fotograma 0 del reposo; muerte (~17) que se queda en su último fotograma;
+  eventos de golpe y lanzamiento en el JSON; halo aditivo.
+- **Cada acción usa el vocabulario de sus cartas o de sus movimientos** (Mago: Proyectil Arcano, Égida, círculo
+  rúnico; Pícara: Puñalada, Esquiva, Finta; enemigos: sus golpes y hechizos con el mismo lenguaje de efectos).
+
+#### Cómo hacer un personaje o enemigo nuevo
+
+1. Copiar `mage_hero.html` como plantilla y cambiar el mapa de zonas (`figure`), el pintado y las tablas de poses.
+2. Abrirlo en el navegador y mirarlo fotograma a fotograma.
+3. **Enseñar al usuario una pose de prueba** (la página publicada vale) y esperar su visto bueno antes de la hoja entera.
+4. Exportar con un adaptador como `mage_hero_html.py` (Node) desde `export_hero_art.py`, y pruebas como
+   `MageHeroArtTests`.
+
+**Estado (30-10-2026):** El Mago, hecho con este método y en el juego. Pendientes de rehacer con él: la Pícara (su hoja
+actual es por piezas), la Guerrera y los enemigos, cuando el usuario lo pida.
 
 ## 4. Partículas
 
@@ -229,11 +439,16 @@ sistema de efectos del juego (`Presentation/Fx`, con *pooling*), con la paleta y
 python Tools/VfxLab/generate_vfxlab_art.py --preview TestResults/vfxlab-art    # arte + GIF por carta (laboratorio)
 python Tools/VfxLab/export_game_card_art.py --preview TestResults/card-anim    # hojas del juego + GIF de la ventana
 python Tools/VfxLab/export_game_card_art.py --check                            # el repositorio coincide con el generador
+python Tools/VfxLab/export_hero_art.py --preview TestResults/hero-preview       # hojas de la Pícara y el Mago + GIFs
+python Tools/VfxLab/export_hero_art.py --hero mage                               # solo uno (el Mago necesita Node)
+# Tools/VfxLab/mage_hero.html: ábrelo en el navegador para ver el Mago animado; es la fuente de su hoja
+python Tools/VfxLab/export_hero_art.py --check                                 # hoja = generador; una sola masa
 ```
 
 1. Dibujar/ajustar en el módulo de arte, mirar el GIF fotograma a fotograma.
-2. Exportar al juego y mirar las capturas reales: prueba PlayMode `RogueCardArtTests` → `TestResults/rogue-hand-*.png`
-   (mano, carta sostenida, mazo). Para una pieza nueva, una prueba igual con capturas.
+2. Exportar al juego y mirar las capturas reales: pruebas PlayMode `RogueCardArtTests` → `TestResults/rogue-hand-*.png`
+   y `MageCardArtTests` → `TestResults/mage-hand-*.png` (mano, carta sostenida, mazo). Para una pieza nueva, una prueba
+   igual con capturas.
 3. Pruebas EditMode y PlayMode completas (AGENTS.md).
 
 Con el editor abierto: `Temp/vfxlab-tests.request` con `EditMode` o `PlayMode` (opcionalmente seguido de una clase)

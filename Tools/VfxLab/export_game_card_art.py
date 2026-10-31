@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Exports the VFX Lab rogue illustrations to the game (Last Wish, Unity port).
+"""Exports the animated card illustrations to the game (Last Wish, Unity port): the rogue's basic cards (rogue_art.py,
+the VFX Lab art) and the mage's (mage_art.py).
 
 The game draws cards on its own canvas without HDR or bloom, so each illustration is baked into two sheets:
   Assets/Resources/Game/Cards/Anim/<card id>.png       colour frames, already lit (base + emissive, hot cores to white), x2
@@ -26,6 +27,7 @@ from PIL import Image, ImageFilter
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+import mage_art   # noqa: E402
 import rogue_art  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
@@ -35,11 +37,15 @@ PAD = 2            # edge-extended gutter around every frame (texels of the stor
 COLUMNS = 6
 EMISSIVE_GAIN = 0.6
 
-# lab id -> game card id, the frame shown on static faces (deal flight, pack reveal…), twinkle and mote colours
+# art module, its id -> game card id, the frame shown on static faces (deal flight, pack reveal…), twinkle and mote
+# colours of the live particles
 CARDS = [
-    ('punalada', 'punalada_base', 0, (150, 240, 255), (90, 200, 255)),
-    ('esquiva', 'esquiva_base', 0, (200, 170, 255), (120, 220, 255)),
-    ('finta', 'finta_base', 0, (150, 240, 255), (190, 140, 255)),
+    (rogue_art, 'punalada', 'punalada_base', 0, (150, 240, 255), (90, 200, 255)),
+    (rogue_art, 'esquiva', 'esquiva_base', 0, (200, 170, 255), (120, 220, 255)),
+    (rogue_art, 'finta', 'finta_base', 0, (150, 240, 255), (190, 140, 255)),
+    (mage_art, 'proyectil', 'proyectil_base', 0, (150, 240, 255), (190, 140, 255)),
+    (mage_art, 'egida', 'egida_base', 0, (150, 240, 255), (120, 220, 255)),
+    (mage_art, 'chispa_ignea', 'chispa_ignea_base', 0, (255, 214, 150), (255, 140, 60)),
 ]
 
 def lit(base, glow):
@@ -83,8 +89,8 @@ def build():
     """{relative path: bytes} of every exported file."""
     files = {}
     meta = {'fps': FPS, 'columns': COLUMNS, 'pad': PAD, 'cards': {}}
-    for lab_id, card_id, still, spark, mote in CARDS:
-        frames, glows = rogue_art.render(lab_id)
+    for module, art_id, card_id, still, spark, mote in CARDS:
+        frames, glows = module.render(art_id)
         colour, cell, size = sheet([lit(b, g) for b, g in zip(frames, glows)], SCALE, PAD)
         light, hcell, hsize = sheet([halo(g) for g in glows], 1, PAD)
         files[card_id + '.png'] = png_bytes(colour)
@@ -98,8 +104,8 @@ def build():
 
 def write_preview(out_dir):
     os.makedirs(out_dir, exist_ok=True)
-    for lab_id, card_id, *_ in CARDS:
-        frames, glows = rogue_art.render(lab_id)
+    for module, art_id, card_id, *_ in CARDS:
+        frames, glows = module.render(art_id)
         imgs = []
         for b, g in zip(frames, glows):
             c = lit(b, g)

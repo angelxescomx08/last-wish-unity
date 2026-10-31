@@ -36,6 +36,7 @@ namespace LastWish.Presentation
             var w = frame.W * scale; var h = frame.H * scale;
             var rect = new RectF((float)Math.Floor(x) - (int)w / 2, bottom - h, w, h);
             canvas.BlitFlipped(frame, rect, flip, false, tint ?? Rgba.White);
+            sheets.DrawHalo(canvas, animation, elapsed, rect, flip, tint);
             return true;
         }
     }

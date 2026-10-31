@@ -44,7 +44,12 @@ namespace LastWish.Presentation
         public (float x, float y)? StrikePoint { get; }
         public int? CastFrame { get; }
         public (float x, float y)? CastPoint { get; }
+        /// <summary>Strength of the additive halo sheet (0 when the hero has none).</summary>
+        public float HaloGain { get; }
+        public bool HasHalo => haloTex != null;
         private readonly Dictionary<int, (Tex tex, int columns, int split)> sheets = new Dictionary<int, (Tex, int, int)>();
+        private readonly Tex haloTex;
+        private readonly int haloCell, haloColumns;
 
         public HeroSheets(string id, string json, Func<string, Tex> load)
         {
@@ -68,6 +73,37 @@ namespace LastWish.Presentation
             var sp = Json.Nums(attack?.Get("strike_point")); if (sp != null && sp.Length == 2) StrikePoint = ((float)sp[0], (float)sp[1]);
             if (cast?.Get("cast_frame") != null) CastFrame = Json.Int(cast.Get("cast_frame"));
             var cp = Json.Nums(cast?.Get("cast_point")); if (cp != null && cp.Length == 2) CastPoint = ((float)cp[0], (float)cp[1]);
+            // optional soft light of the emissive layer (Tools/VfxLab/export_hero_art.py): one native cell per frame
+            var halo = Json.Obj(meta.Get("halo"));
+            if (Json.Str(halo?.Get("sheet")) != null)
+            {
+                haloTex = load(Json.Str(halo.Get("sheet")));
+                haloCell = Math.Max(1, Json.Int(halo.Get("cell"), 96));
+                haloColumns = Math.Max(1, Json.Int(halo.Get("columns"), 1));
+                HaloGain = (float)Json.Num(halo.Get("gain"), 0.5);
+            }
+        }
+
+        /// <summary>The halo cell of <paramref name="animation"/> at <paramref name="elapsed"/> (default when the hero has none).</summary>
+        public Sprite Halo(string animation, float elapsed)
+        {
+            if (haloTex == null) return default;
+            var anim = Animations[Animations.ContainsKey(animation) ? animation : "idle"];
+            var frame = anim.FrameAt(elapsed);
+            return new Sprite(haloTex, frame % haloColumns * haloCell, (anim.Row + frame / haloColumns) * haloCell, haloCell, haloCell);
+        }
+
+        /// <summary>Adds the halo over a sprite drawn at <paramref name="dst"/>; additive light ignores the canvas alpha and tint,
+        /// so it is scaled by both here.</summary>
+        public void DrawHalo(Canvas canvas, string animation, float elapsed, RectF dst, bool flip = false, Rgba? tint = null)
+        {
+            var s = Halo(animation, elapsed);
+            if (!s.Valid) return;
+            var t = tint ?? Rgba.White;
+            var k = MathX.Clamp01(canvas.Alpha) * HaloGain * Math.Max(t.R, Math.Max(t.G, t.B)) / 255f;
+            var v = MathX.Round(255 * k);
+            if (v <= 2) return;
+            canvas.BlitFlipped(s, dst, flip, false, new Rgba(v, v, v), Blend.Add);
         }
 
         public float Seconds(string name) => Animations.TryGetValue(name, out var a) ? a.Total : 0f;

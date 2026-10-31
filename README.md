@@ -136,22 +136,58 @@ python Tools/GenerateCardArt.py --only a_tajo --preview TestResults/card-art   #
 
 Lee los tiles del repositorio Python (`--source-dir`, por defecto `../../python/last-wish`).
 
-### Ilustraciones animadas (cartas básicas de la Pícara)
+### Ilustraciones animadas (cartas básicas de la Pícara y del Mago)
 
-Puñalada, Esquiva y Finta tienen ilustración animada en el juego: la del VFX Lab (88×64, 24 fotogramas a
-12 fps) en la ventana de arte de la carta normal, con un halo de luz aditivo y destellos y motas en vivo. Se
-ven en la mano (también inclinadas y al sostenerlas), el mazo, recompensas y tienda; donde la carta es una
-imagen fija (vuelo al robar, apertura de sobres) se ve su fotograma fijo. El marco, el texto y los números no
-cambian.
+Puñalada, Esquiva y Finta (Pícara) y Proyectil Arcano, Égida y Chispa Ígnea (Mago) tienen ilustración animada en el
+juego (88×64, 24 fotogramas a 12 fps; las de la Pícara son las del VFX Lab, `Tools/VfxLab/rogue_art.py`; las del Mago,
+`Tools/VfxLab/mage_art.py`, son el hechizo en sí, sin personaje) en la ventana de arte de la carta normal, con un
+halo de luz aditivo y destellos y motas en vivo. Se ven en la mano (también inclinadas y al sostenerlas), el mazo,
+recompensas y tienda; donde la carta es una imagen fija (vuelo al robar, apertura de sobres) se ve su fotograma fijo.
+El marco, el texto y los números no cambian.
 
 ```powershell
 python Tools/VfxLab/export_game_card_art.py           # escribe Cards/Anim (hojas, halos y anim.json)
 python Tools/VfxLab/export_game_card_art.py --check   # comprueba que coinciden con el generador
 ```
 
-Código: `Presentation/Cards/CardArtAnimation.cs`. Pruebas: `CardArtAnimationTests` (EditMode) y
-`RogueCardArtTests` (PlayMode, capturas `TestResults/rogue-*.png`). Una carta nueva con animación solo
+Código: `Presentation/Cards/CardArtAnimation.cs`. Pruebas: `CardArtAnimationTests` (EditMode), `RogueCardArtTests` y
+`MageCardArtTests` (PlayMode, capturas `TestResults/rogue-*.png` y `TestResults/mage-*.png`). Una carta nueva con animación solo
 necesita su entrada en el exportador.
+
+### La Pícara en combate (sprite en el estilo de sus cartas)
+
+La hoja de la Pícara (`Heroes/rogue_96|192`, halo `rogue_halo_96`, `rogue.json`) está redibujada en el estilo de
+`docs/art-style.md`: la pícara encapuchada de Esquiva como **una sola silueta** escaneada fila a fila (nunca por
+piezas), a 12 fps. Reposo de 2 s; ataque = Puñalada, guardia = Esquiva, habilidad = Finta; daño y muerte (de
+rodillas, la daga clavada en el suelo). En combate, el reposo del héroe gira con su propio ciclo.
+
+```powershell
+python Tools/VfxLab/export_hero_art.py --preview TestResults/rogue-hero-preview   # escribe la hoja + GIFs
+python Tools/VfxLab/export_hero_art.py --check                                   # coincide con el generador y es una sola masa
+```
+
+Pruebas: `RogueHeroArtTests` (EditMode: tiempos, eventos, halo; PlayMode: capturas `TestResults/rogue-hero-*.png`).
+
+> **Pendiente de rehacer (30-10-2026):** la hoja de la Pícara lleva el brazo y la daga dibujados encima del cuerpo,
+> que cuenta como técnica por piezas y el usuario la prohibió; se rehará con el método del Mago (`docs/art-style.md` §3.1).
+
+### El Mago en combate (dibujado con código en HTML)
+
+`Tools/VfxLab/mage_hero.html` es a la vez la página para verlo (ábrela en el navegador: reposo, ataque, guardia, daño,
+habilidad y muerte, con halo y cada fotograma a tamaño de combate) y la fuente de su hoja (`Heroes/mage_96|192`, halo
+`mage_halo_96`, `mage.json`). Cada fotograma dibuja con código la figura entera —sombrero, cara en sombra con ojos
+cian, pelo plateado, túnica azul con ribetes dorados, capa, la manga que cuelga de la esclavina, la mano y el bastón con
+su cristal— como **una sola silueta** con un único contorno, con su pose escrita en una tabla; no hay piezas ni nada que
+gire al reproducir. Ataque = Proyectil Arcano (el rayo sale del cristal), guardia = Égida (cúpula hexagonal), habilidad
+= círculo rúnico; muerte de rodillas apoyado en el bastón. Es el método obligatorio para todos los personajes y enemigos
+(`docs/art-style.md` §3.1).
+
+```powershell
+python Tools/VfxLab/export_hero_art.py --hero mage --preview TestResults/mage-hero-preview   # necesita Node
+python Tools/VfxLab/export_hero_art.py --check
+```
+
+Pruebas: `MageHeroArtTests` (EditMode y PlayMode, capturas `TestResults/mage-hero-*.png`).
 
 ## VFX Lab (prueba de efectos y cartas de la Pícara)
 

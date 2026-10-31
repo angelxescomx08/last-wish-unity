@@ -44,6 +44,48 @@
         140,
         255
       ]
+    },
+    "proyectil_base": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        190,
+        140,
+        255
+      ]
+    },
+    "egida_base": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        120,
+        220,
+        255
+      ]
+    },
+    "chispa_ignea_base": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        214,
+        150
+      ],
+      "mote": [
+        255,
+        140,
+        60
+      ]
     }
   },
   "cell": [

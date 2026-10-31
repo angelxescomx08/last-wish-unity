@@ -145,6 +145,23 @@ Small domain additions for presentation (rules unchanged, tests green):
   effects. `--check` verifies the files and that no two pictures are identical.
 * The type placeholders and the element backdrop stay as fallbacks for cards without art.
 
+## Rogue hero sheet (beyond the original)
+
+* La Pícara's combat sheet is redrawn in `docs/art-style.md` by `Tools/VfxLab/rogue_hero_art.py` (one row-scanned
+  mass, never assembled from pieces) and baked by `Tools/VfxLab/export_hero_art.py`: 96 px cells (x2 sheet for combat),
+  24 columns, 12 fps (idle 24 = 2 s, attack 10, guard 9, hurt 7, cast 12, death 17 held), strike frame 4, cast frame 6,
+  plus an additive halo sheet (`HeroSheets.DrawHalo`, the stand-in for bloom) drawn in combat, hero select and menus.
+* The combat hero idle runs on its own cycle (`heroIdleTime`), and hero select wraps each hero's idle separately, so a
+  2 s loop no longer gets cut at the warrior's 1.6 s. HeroFx uses the arcane palettes and the authored guard/kneel cues.
+* El Mago's sheet (2026-10-30) is drawn by code in `Tools/VfxLab/mage_hero.html`: its `<script id="mage-art">`
+  computes every frame as one complete figure (body, sleeve, hand and staff in one label map with one outline,
+  one written pose per frame, nothing tweened or rotated) and the page shows it animated in a browser.
+  `Tools/VfxLab/mage_hero_html.py` runs that script with Node for `export_hero_art.py` (same layout, frame counts
+  and events as the rogue: bolt on frame 4, cast frame 6; halo sheet). The exporter bakes every styled hero
+  (`--hero` picks one; `BORDER_OK` lets the mage's bolt leave the cell) and checks the whole figure is one region.
+  CombatScene gives the mage the authored guard/kneel cues. This HTML method is mandatory for every character and
+  enemy (docs/art-style.md 3.1); the rogue's sheet still draws her arm and dagger as pieces and must be redone.
+
 ## Animated card illustrations (beyond the original)
 
 * The rogue's basic cards (Puñalada, Esquiva, Finta) show the animated illustrations of the VFX Lab
@@ -161,6 +178,9 @@ Small domain additions for presentation (rules unchanged, tests green):
 * The clock is `GameContext.Time` plus a phase from the card id (FNV-1a), so copies animate in
   step and cards rebuilt every frame (upgrade previews) never jump. Additive light ignores the
   canvas alpha and tint, so it is scaled by `Canvas.Alpha` and dimmed for unplayable cards.
+* The mage's basic cards (Proyectil Arcano, Égida, Chispa Ígnea) are animated the same way since 2026-10-30,
+  drawn by `Tools/VfxLab/mage_art.py` (the spell itself, no character; fire ramp for Chispa Ígnea) and listed in
+  the same exporter; `MageCardArtTests` (PlayMode) captures the mage's deck and hand.
 * Cards without an entry keep `Cards/Art` (unchanged, `GenerateCardArt.py --check` still passes).
 
 ## Gachapón sounds (beyond the original)

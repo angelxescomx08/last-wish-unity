@@ -34,7 +34,7 @@ namespace LastWish.Presentation
     }
 
     /// <summary>ui/dungeon_backdrop.DungeonBackdrop: baked room, flickering torches and pooled particles.</summary>
-    public sealed class DungeonBackdrop
+    public sealed class DungeonBackdrop : IBackdrop
     {
         private sealed class Torch
         {

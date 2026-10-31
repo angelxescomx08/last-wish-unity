@@ -161,10 +161,11 @@ namespace LastWish.Presentation
             var loss = shownEnemies == null ? Tooltip.LossFrom(state, IncomingDamage()) : 0;
             if (hasHeroSprites)
             {
-                var frame = heroSheets.Frame(heroAction ?? "idle", heroAction != null ? heroActionTime : idleTime, 192, out var scale);
+                var frame = heroSheets.Frame(heroAction ?? "idle", heroAction != null ? heroActionTime : heroIdleTime, 192, out var scale);
                 int w = (int)(frame.W * scale), h = (int)(frame.H * scale);
                 var r = IRect.AtCenter(PlayerX + EntityWidget.PlayerW / 2, PlayerY + EntityWidget.PlayerH / 2, w, h);
                 canvas.Blit(frame, r.X, r.Y, scale);
+                heroSheets.DrawHalo(canvas, heroAction ?? "idle", heroAction != null ? heroActionTime : heroIdleTime, new RectF(r.X, r.Y, w, h));
             }
             playerRect = EntityWidget.DrawPlayer(canvas, Art, Game.Data.Glossary, state, PlayerX, PlayerY, null, !hasHeroSprites, loss, idleTime, playerHitboxes, shownPlayerBlock);
             heroFx?.Draw(canvas, Art, center);
