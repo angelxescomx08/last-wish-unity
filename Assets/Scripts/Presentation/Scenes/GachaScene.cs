@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using LastWish.Domain;
 
 namespace LastWish.Presentation
@@ -7,11 +8,13 @@ namespace LastWish.Presentation
     /// <summary>scenes/gacha_scene.py: pay gold, turn the crank, open a capsule, keep or decline a random relic.</summary>
     public sealed class GachaScene : Scene
     {
-        private const int MachineX = 272, MachineY = 132, FloorY = 548, PanelX = 960, BtnW = 292, BtnH = 92;
+        private const int MachineX = 272, MachineY = 132, FloorY = 548, PanelX = 960, BtnW = 292, BtnH = 112;
         private const float StageX = 742f, StageY = 292f;
-        private static readonly IRect BtnNormal = new IRect(PanelX, 150, BtnW, BtnH), BtnStellar = new IRect(PanelX, 256, BtnW, BtnH), Exit = new IRect(1100, 654, 150, 44);
-        private IRect btnKeep = new IRect(0, 0, 160, 44), btnDecline = new IRect(0, 0, 160, 44);
-        private const int PurseX = 1200, PurseY = 35, RelicCounterX = 110, RelicCounterY = 96;
+        private static readonly IRect BtnNormal = new IRect(PanelX, 136, BtnW, BtnH), BtnStellar = new IRect(PanelX, 258, BtnW, BtnH), Exit = new IRect(1102, 658, 150, 36);
+        /// <summary>The relic counter in the top bar, left of the pause buttons: where kept relics fly.</summary>
+        private static readonly IRect RelicPlate = new IRect(24, 16, 196, 36);
+        private IRect btnKeep = new IRect(0, 0, 196, 48), btnDecline = new IRect(0, 0, 172, 36);
+        private const int PurseX = 1200, PurseY = 35, RelicCounterX = 122, RelicCounterY = 34;
         public const float CoinT = 0.75f, CrankT = 1.9f, ThunkAt = 0.86f, FallT = 0.78f, HopT = 0.55f, DropT = FallT + HopT, ShakeT = 0.34f, PresentAuto = 6f, OpenT = 1.05f, CollectT = 0.55f, DiscardT = 0.6f;
         private static readonly Rgba[] Gold = { new Rgba(255, 250, 210), new Rgba(255, 214, 90), new Rgba(230, 150, 30), new Rgba(140, 80, 10) };
         private static readonly Rgba[] Dust = { new Rgba(150, 140, 140), new Rgba(110, 100, 104), new Rgba(80, 72, 78) };
@@ -31,7 +34,7 @@ namespace LastWish.Presentation
         private readonly BurstParticles fx;
         private float time, t; private string phase = "idle";
         private PullResult result;
-        private float shake, flash, feedbackT, sparkleClock, focus, pulse, jump, bulbFlash;
+        private float shake, flash, feedbackT, sparkleClock, focus, pulse, jump, bulbFlash, counterPulse;
         private readonly HashSet<string> fired = new HashSet<string>();
         private string hoveredKey, feedback = "";
         private readonly List<(float x, float y, int ci, float ph)> pile;
@@ -44,6 +47,15 @@ namespace LastWish.Presentation
         public PullResult Result => result;
         public bool IsAnimating => phase != "idle" && phase != "reveal";
         public override (Anchor anchor, float x, float y)? GoldHudPos => (Anchor.TopRight, 1268, 12);
+        /// <summary>The room's interface boxes (tests: nothing overlaps, everything is on screen).</summary>
+        public static IRect PullButton(PullKind kind) => kind == PullKind.Stellar ? BtnStellar : BtnNormal;
+        public static IRect ExitButton => Exit;
+        public static IRect RelicCounter => RelicPlate;
+        public static IRect OddsBox => new IRect(PanelX, OddsTop, BtnW, OddsH);
+        /// <summary>The widest the reveal panel can be, centred on the stage.</summary>
+        public static IRect RevealBounds => new IRect((int)StageX - RevealMaxW / 2, (int)StageY + 84, RevealMaxW, 0);
+        /// <summary>Room for the price on a pull button (the button minus its edges).</summary>
+        public const int PriceRoom = BtnW - 48;
 
         public GachaScene(GameContext game, RunState run, int seed = 3) : base(game)
         {
@@ -197,7 +209,7 @@ namespace LastWish.Presentation
             time += dt; t += dt;
             backdrop.Update(dt);
             feedbackT = Math.Max(0f, feedbackT - dt); shake = Math.Max(0f, shake - dt * 30); flash = Math.Max(0f, flash - dt * 3.2f);
-            pulse = Math.Max(0f, pulse - dt * 5f); jump = Math.Max(0f, jump - dt * 3.5f); bulbFlash = Math.Max(0f, bulbFlash - dt * 2f);
+            pulse = Math.Max(0f, pulse - dt * 5f); counterPulse = Math.Max(0f, counterPulse - dt * 2.2f); jump = Math.Max(0f, jump - dt * 3.5f); bulbFlash = Math.Max(0f, bulbFlash - dt * 2f);
             float target = phase == "coin" ? 0.55f : phase == "crank" ? 1f : phase == "drop" ? 0.9f : phase == "present" ? 0.75f : phase == "open" ? 0.7f : phase == "reveal" ? 0.6f : 0f;
             focus += (target - focus) * Math.Min(1f, dt * 4f);
             for (var i = bolts.Count - 1; i >= 0; i--) { var b = bolts[i]; b.age += dt; if (b.age < b.life) bolts[i] = b; else bolts.RemoveAt(i); }
@@ -210,7 +222,7 @@ namespace LastWish.Presentation
                 case "present": UpdatePresent(); break;
                 case "open": if (t >= OpenT) SetPhase("reveal"); break;
                 case "collect":
-                    if (t >= CollectT) { fx.Burst(RelicCounterX, RelicCounterY, 16, TierPalette(Tier), (60f, 200f), null, (0.3f, 0.6f), (1.5f, 3f), ParticleStyle.Spark, 3f); Sound.PlayGachaStash(); SetPhase("idle"); }
+                    if (t >= CollectT) { fx.Burst(RelicCounterX, RelicCounterY, 16, TierPalette(Tier), (60f, 200f), null, (0.3f, 0.6f), (1.5f, 3f), ParticleStyle.Spark, 3f); Sound.PlayGachaStash(); counterPulse = 1f; SetPhase("idle"); }
                     break;
                 case "discard": if (t >= DiscardT) SetPhase("idle"); break;
             }
@@ -646,7 +658,13 @@ namespace LastWish.Presentation
                     if (at <= t && t < at + ShakeT) { var uu = (t - at) / ShakeT; angle = (float)(Math.Sin(uu * MathX.Tau * 2) * (10 + 4 * k) * (1 - uu)); }
                 }
                 Blit2(canvas, Big(tier, 0), (int)x, (int)(y + floatY), 1f, angle);
-                if (t > 0.6f) Fonts.Get(16).DrawCentered(canvas, "Haz clic para abrir", (int)x, (int)y + 92, new Rgba(235, 225, 200, (int)(175 + 80 * Math.Sin(time * 4))));
+                if (t > 0.6f)
+                {
+                    canvas.PushAlpha(Math.Min(1f, (t - 0.6f) / 0.3f) * (float)(0.78 + 0.22 * Math.Sin(time * 4)));
+                    var prompt = Text(canvas, "Haz clic para abrir", 16, Anchor.MidLeft, x - (TextWidth("Haz clic para abrir", 16) + 8 + PixelUi.KeycapWidth(Art, "Espacio")) / 2f, y + 94, Cream, true);
+                    PixelUi.Keycap(canvas, Art, prompt.Right + 8 + PixelUi.KeycapWidth(Art, "Espacio") / 2f - 3, y + 94, "Espacio");
+                    canvas.PopAlpha();
+                }
                 return;
             }
             var tOpen = phase == "open" ? t : OpenT + 1;
@@ -690,111 +708,372 @@ namespace LastWish.Presentation
             RelicIcon(canvas, size, x, y + bobY, Rgba.White);
         }
 
-        private void Label(Canvas canvas, string text, float cx, float cy, int size, Rgba color, int alpha = 255) =>
-            Fonts.Get(size).DrawCentered(canvas, text, cx, cy, alpha < 255 ? color.WithAlpha(alpha) : color);
-        private void LabelLeft(Canvas canvas, string text, float x, float cy, int size, Rgba color) => Txt.DrawAt(canvas, Fonts.Get(size), text, Anchor.MidLeft, x, cy, color);
+        // ------------------------------------------------------------------ interface pieces
+        // Every label is outlined in ink (one font pixel thick) so it reads over the rays, the glass and the room;
+        // panels and buttons are the HUD kit (iron panel, bronze and gold buttons); boxes, bars and gems are drawn
+        // on the 2 px grain of the art.
 
+        private static readonly (int dx, int dy)[] Ring = { (-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1) };
+        private static readonly Rgba Ink = Colors.Ink, Cream = Colors.Cream, Dim = new Rgba(186, 176, 160), Gilt = new Rgba(255, 214, 120),
+            Lucky = new Rgba(140, 240, 120), Short = new Rgba(255, 140, 118), Pink = new Rgba(255, 196, 228);
+
+        /// <summary>Outlined text placed like pygame get_rect(anchor=...); <paramref name="shadow"/> adds a drop shadow.</summary>
+        private RectF Text(Canvas canvas, string text, int size, Anchor anchor, float x, float y, Rgba color, bool shadow = false, bool bold = false)
+        {
+            if (string.IsNullOrEmpty(text)) return new RectF(x, y, 0, 0);
+            var font = bold ? Fonts.Bold(size) : Fonts.Get(size); var k = font.Scale;
+            var r = Txt.Place(font.Width(text) + 2 * k, font.Height + 2 * k, anchor, x, y);
+            float ox = (float)Math.Floor(r.X) + k, oy = (float)Math.Floor(r.Y) + k;
+            if (shadow) foreach (var dx in new[] { -1, 0, 1 }) font.Draw(canvas, text, ox + dx * k, oy + 2 * k, Ink);
+            foreach (var (dx, dy) in Ring) font.Draw(canvas, text, ox + dx * k, oy + dy * k, Ink);
+            font.Draw(canvas, text, ox, oy, color);
+            return r;
+        }
+
+        private int TextWidth(string text, int size) { var f = Fonts.Get(size); return f.Width(text) + 2 * f.Scale; }
+
+        /// <summary>A box with notched 2 px corners, a 2 px edge and an optional light top row.</summary>
+        private static void PixelBox(Canvas canvas, RectF r, Rgba fill, Rgba edge, Rgba? light = null)
+        {
+            r = new RectF((float)Math.Floor(r.X), (float)Math.Floor(r.Y), (float)Math.Floor(r.W), (float)Math.Floor(r.H));
+            canvas.Fill(new RectF(r.X + 2, r.Y, r.W - 4, 2), edge); canvas.Fill(new RectF(r.X + 2, r.Bottom - 2, r.W - 4, 2), edge);
+            canvas.Fill(new RectF(r.X, r.Y + 2, 2, r.H - 4), edge); canvas.Fill(new RectF(r.Right - 2, r.Y + 2, 2, r.H - 4), edge);
+            canvas.Fill(new RectF(r.X + 2, r.Y + 2, r.W - 4, r.H - 4), fill);
+            if (light.HasValue) canvas.Fill(new RectF(r.X + 2, r.Y + 2, r.W - 4, 2), light.Value);
+        }
+
+        /// <summary>A 2 px gold frame just outside <paramref name="r"/> (hovered cards).</summary>
+        private static void Halo2(Canvas canvas, RectF r, Rgba color)
+        {
+            r = r.Inflate(8, 8);
+            canvas.Fill(new RectF(r.X + 4, r.Y, r.W - 8, 2), color); canvas.Fill(new RectF(r.X + 4, r.Bottom - 2, r.W - 8, 2), color);
+            canvas.Fill(new RectF(r.X, r.Y + 4, 2, r.H - 8), color); canvas.Fill(new RectF(r.Right - 2, r.Y + 4, 2, r.H - 8), color);
+            canvas.Fill(new RectF(r.X + 2, r.Y + 2, 2, 2), color); canvas.Fill(new RectF(r.Right - 4, r.Y + 2, 2, 2), color);
+            canvas.Fill(new RectF(r.X + 2, r.Bottom - 4, 2, 2), color); canvas.Fill(new RectF(r.Right - 4, r.Bottom - 4, 2, 2), color);
+        }
+
+        // 9×9 capsule (native px): tier-coloured top, white bottom, ink outline.
+        private static readonly string[] CapsuleMap = { "..kkkkk..", ".kLLTTTk.", "kLTTTTTDk", "kTTTTTTDk", "kSSSSSSSk", "kWWWWWWGk", "kWWWWWGGk", ".kWWWGGk.", "..kkkkk.." };
+
+        private (Rgba main, Rgba light)[] capsuleColors;
+        /// <summary>The colours of the machine's capsules (gacha.json tier_colors / tier_light), read once.</summary>
+        private (Rgba main, Rgba light) CapsuleColors(int rarity)
+        {
+            if (capsuleColors == null)
+            {
+                capsuleColors = new (Rgba, Rgba)[5];
+                var tc = Json.Arr(meta.Get("tier_colors")); var tl = Json.Arr(meta.Get("tier_light"));
+                for (var i = 0; i < 5; i++)
+                {
+                    var c = tc != null && i < tc.Count ? Json.Ints(tc[i]) : null; var l = tl != null && i < tl.Count ? Json.Ints(tl[i]) : null;
+                    var main = c != null ? new Rgba(c[0], c[1], c[2]) : TierColor(i + 1);
+                    capsuleColors[i] = (main, l != null ? new Rgba(l[0], l[1], l[2]) : Glows.Scaled(main, 1.3));
+                }
+            }
+            return capsuleColors[Math.Max(1, Math.Min(5, rarity)) - 1];
+        }
+
+        /// <summary>The small tier capsule that marks a rarity (18×18 px, the colours of the machine's capsules).</summary>
+        private void MiniCapsule(Canvas canvas, float cx, float cy, int rarity, float alpha = 1f)
+        {
+            var (main, light) = CapsuleColors(rarity);
+            Rgba Of(char ch)
+            {
+                switch (ch)
+                {
+                    case 'k': return Ink;
+                    case 'L': return light;
+                    case 'T': return main;
+                    case 'D': return Glows.Scaled(main, 0.72);
+                    case 'S': return Glows.Scaled(main, 0.45);
+                    case 'W': return new Rgba(232, 230, 238);
+                    default: return new Rgba(170, 166, 180);
+                }
+            }
+            var a = (int)(255 * alpha);
+            float x0 = (float)Math.Floor(cx) - 9, y0 = (float)Math.Floor(cy) - 9;
+            for (var y = 0; y < CapsuleMap.Length; y++)
+                for (var x = 0; x < CapsuleMap[y].Length; x++)
+                    if (CapsuleMap[y][x] != '.') canvas.Fill(new RectF(x0 + x * 2, y0 + y * 2, 2, 2), Of(CapsuleMap[y][x]).WithAlpha(a));
+        }
+
+        /// <summary>A 60×8 odds bar: ink frame, dark track in the tier colour, fill with a light top row.</summary>
+        private static void OddsBar(Canvas canvas, float x, float y, double p, Rgba col)
+        {
+            canvas.Fill(new RectF(x, y, 60, 8), Ink);
+            canvas.Fill(new RectF(x + 2, y + 2, 56, 4), Glows.Scaled(col, 0.28));
+            if (p <= 0) return;
+            var w = Math.Max(1, (int)Math.Round(28 * Math.Min(1.0, p))) * 2;
+            canvas.Fill(new RectF(x + 2, y + 2, w, 4), col);
+            canvas.Fill(new RectF(x + 2, y + 2, w, 2), Glows.Scaled(col, 1.3));
+        }
+
+        /// <summary>A rarity / chroma tag: pixel box in the colour, text in a light version of it.</summary>
+        private float Chip(Canvas canvas, string text, float x, float cy, Rgba color, int capsule = 0)
+        {
+            var w = TextWidth(text, 13) + 16 + (capsule > 0 ? 20 : 0);
+            var r = new RectF(x, (float)Math.Floor(cy) - 12, w, 24);
+            PixelBox(canvas, r, Glows.Scaled(color, 0.22).WithAlpha(235), Glows.Scaled(color, 0.85));
+            var tx = x + 8;
+            if (capsule > 0) { MiniCapsule(canvas, tx + 8, cy, capsule); tx += 20; }
+            Text(canvas, text, 13, Anchor.MidLeft, tx, cy - 1, Glows.Scaled(color, 1.35));
+            return w;
+        }
+
+        private float ChipWidth(string text, bool capsule) => TextWidth(text, 13) + 16 + (capsule ? 20 : 0);
+
+        // ------------------------------------------------------------------ reveal panel
+        private const int RevealMaxW = 412, RevealMinW = 348;
+
+        private static readonly (float u, float v, float ph)[] FrameStars = { (0f, 0f, 0f), (1f, 0.3f, 1.7f), (0.32f, 1f, 3.1f), (0f, 0.72f, 4.4f), (0.74f, 0f, 2.3f), (1f, 1f, 5.2f) };
+
+        /// <summary>Four-point stars that come and go on the frame (never over the text).</summary>
+        private static void FrameTwinkles(Canvas canvas, RectF r, Rgba color, float t)
+        {
+            foreach (var (u, v, ph) in FrameStars)
+            {
+                var k = Math.Sin(t * 2.4 + ph); if (k < 0.2) continue;
+                var arm = 2 * (1 + (int)(k * 2.5));
+                var cx = (float)Math.Floor((r.X + 1 + (r.W - 4) * u) / 2) * 2; var cy = (float)Math.Floor((r.Y + 1 + (r.H - 4) * v) / 2) * 2;
+                canvas.Fill(new RectF(cx - arm, cy, 2 * arm + 2, 2), color); canvas.Fill(new RectF(cx, cy - arm, 2, 2 * arm + 2), color);
+                canvas.Fill(new RectF(cx, cy, 2, 2), Rgba.White);
+            }
+        }
+
+        private static string ChromaChip(ChromaKind chroma) => ChromaFx.Style(chroma).ShortNote.Replace(": ", " · ").Replace(" x", " ×");
+
+        /// <summary>The reveal panel and its two buttons; also places <c>btnKeep</c> / <c>btnDecline</c>.</summary>
         private void DrawRevealText(Canvas canvas)
         {
             if (phase != "open" && phase != "reveal" || result?.Relic == null) return;
-            var relic = result.Relic;
+            var relic = result.Relic; var def = relic.Definition; var rarity = Math.Max(1, Math.Min(5, def.Rarity)); var col = TierColor(rarity);
             var k = phase == "reveal" ? 1f : Clamp01((t - 0.45f) / 0.4f);
             if (k <= 0) return;
-            var a = (int)(255 * k); int x = (int)StageX, y = (int)StageY + 92;
-            var lines = RelicViewer.CardWrap(DescText(relic), Fonts.Get(13), 300); if (lines.Count > 4) lines = lines.GetRange(0, 4);
-            var panelH = 72 + 18 * lines.Count; var panel = new IRect(x - 330 / 2, y - 10, 330, panelH);
-            canvas.Fill(panel, new Rgba(14, 10, 22, (int)(215 * k)));
-            var col = TierColor(relic.Definition.Rarity);
-            canvas.Rect(panel, col, 2, 8);
-            if (relic.Chroma != ChromaKind.None) ChromaFx.DrawBox(canvas, Art, panel, relic.Chroma, Game.Time, 8);
-            Label(canvas, ChromaFx.Title(relic.Definition.Name, relic.Chroma), x, y + 10, 20, Colors.TextAccent, a);
-            Label(canvas, RunContent.RarityLabel(relic.Definition.Rarity) + (result.Duplicate ? "  ·  ¡Repetida!" : ""), x, y + 34, 14, col, a);
-            for (var i = 0; i < lines.Count; i++) Label(canvas, lines[i], x, y + 58 + i * 18, 13, Colors.TextPrimary, a);
-            btnKeep = new IRect(x - 88 - 80, panel.Bottom + 12, 160, 44); btnDecline = new IRect(x + 88 - 80, panel.Bottom + 12, 160, 44);
-            if (phase != "reveal") return;
-            foreach (var (rect, label, key, edge, fill) in new[] { (btnKeep, "Quedármela", "keep", col, new Rgba(26, 40, 26)), (btnDecline, "Rechazar", "decline", new Rgba(150, 90, 90), new Rgba(40, 20, 22)) })
+            var layout = RevealLayout(relic, result.Duplicate);
+            var (panel, title, titleSize, chips, rows, lines) = (layout.Panel, layout.Title, layout.TitleSize, layout.Chips, layout.Chips.Count, layout.Lines);
+            canvas.PushAlpha(k);
+            var rise = (int)Math.Round((1 - EaseOutCubic(k)) * 12) * 2;
+            panel = panel.Move(0, rise);
+            if (relic.Chroma != ChromaKind.None) ChromaFx.DrawHalo(canvas, Art, panel.CenterX, panel.CenterY, panel.W, panel.H, relic.Chroma, Game.Time, false, 8);
+            PixelUi.Panel(canvas, Art, panel);
+            // header band in the tier colour (dithered into the iron), then a thin rule
+            var inner = panel.Inflate(-16, -16);
+            var headerH = 14 + Fonts.Get(titleSize).Height + 8 + rows * 30;
+            canvas.Fill(new RectF(inner.X, inner.Y, inner.W, headerH), Glows.Scaled(col, 0.3).WithAlpha(150));
+            for (var x = (int)inner.X; x < inner.Right; x += 4) canvas.Fill(new RectF(x + ((x / 4) % 2) * 2, inner.Y + headerH, 2, 2), Glows.Scaled(col, 0.3).WithAlpha(150));
+            canvas.Fill(new RectF(inner.X + 4, inner.Y + headerH + 4, inner.W - 8, 2), Glows.Scaled(col, 0.75));
+            if (relic.Chroma != ChromaKind.None)
             {
-                var hov = hoveredKey == key;
-                canvas.Rect(rect, hov ? Glows.Scaled(fill, 1.6) : fill, 0, 8);
-                canvas.Rect(rect, hov ? Glows.Scaled(edge, 1.25) : edge, 2, 8);
-                Label(canvas, label, rect.CenterX, rect.CenterY - 6, 16, key == "keep" ? new Rgba(240, 240, 230) : new Rgba(235, 200, 200));
-                Label(canvas, key == "keep" ? "Enter" : "R  ·  no se devuelve el oro", rect.CenterX, rect.CenterY + 12, 10, Colors.TextSecondary);
+                var st = ChromaFx.Style(relic.Chroma); var pulse = 0.5 + 0.5 * Math.Sin(Game.Time * 2.2);
+                Halo2(canvas, panel.Inflate(-8, -8), Glows.Scaled(st.Main, 0.8 + 0.3 * pulse));
+                FrameTwinkles(canvas, panel, st.Bright, Game.Time);
             }
+            var y = inner.Y + 8;
+            Text(canvas, title, titleSize, Anchor.MidTop, panel.CenterX, y, relic.Chroma != ChromaKind.None ? new Rgba(255, 226, 140) : Cream, true);
+            y += Fonts.Get(titleSize).Height + 2 * Fonts.Get(titleSize).Scale + 6;
+            foreach (var row in chips)
+            {
+                var total = row.Sum(c => ChipWidth(c.text, c.capsule > 0)) + 8 * (row.Count - 1);
+                var x = (float)Math.Floor(panel.CenterX - total / 2);
+                foreach (var c in row) x += Chip(canvas, c.text, x, y + 12, c.color, c.capsule) + 8;
+                y += 30;
+            }
+            y = inner.Y + headerH + 14;
+            foreach (var line in lines) { Text(canvas, line, 13, Anchor.MidTop, panel.CenterX, y, Colors.TextPrimary); y += 20; }
+            canvas.PopAlpha();
+            // buttons: keep (gold, Enter) and decline (bronze, R), with what declining costs under it
+            var bottom = panel.Bottom - rise + 14;
+            btnKeep = new IRect((int)panel.CenterX - 8 - 196, (int)bottom, 196, 48);
+            btnDecline = new IRect((int)panel.CenterX + 8, (int)bottom + 6, 172, 36);
+            if (phase != "reveal") return;
+            if (hoveredKey == "keep") Halo2(canvas, ((RectF)btnKeep).Move(0, -1), new Rgba(255, 226, 140));
+            if (hoveredKey == "decline") Halo2(canvas, ((RectF)btnDecline).Move(0, -1), new Rgba(220, 150, 140));
+            PixelUi.Button(canvas, Art, btnKeep, "Quedármela", "gold", hoveredKey == "keep" ? ButtonState.Hover : ButtonState.Idle, null, "Enter", time, 0f, 16);
+            PixelUi.Button(canvas, Art, btnDecline, "Rechazar", "bronze", hoveredKey == "decline" ? ButtonState.Hover : ButtonState.Idle, null, "R", time, 0f, 16);
+            Text(canvas, "No se devuelve el oro", 13, Anchor.MidTop, btnDecline.CenterX, btnDecline.Bottom + 4, hoveredKey == "decline" ? Short : Dim);
         }
 
+        /// <summary>Where the reveal panel goes and what it says (title, tags in one or two rows, description lines).</summary>
+        public sealed class RevealCard
+        {
+            public RectF Panel; public string Title; public int TitleSize;
+            public List<List<(string text, Rgba color, int capsule)>> Chips; public List<string> Lines;
+        }
+
+        /// <summary>Reveal layout of <paramref name="relic"/>: the chunky title when it fits (else the small face, else cut with "…"),
+        /// tags for rarity, chroma and repeat, and the description wrapped to at most four lines.</summary>
+        public RevealCard RevealLayout(RelicOffer relic, bool duplicate)
+        {
+            var def = relic.Definition; var rarity = Math.Max(1, Math.Min(5, def.Rarity));
+            // title: the chunky face when it fits, else the small one, else cut with "…"
+            var titleSize = 20; var name = def.Name;
+            if (TextWidth(name, titleSize) > RevealMaxW - 40) titleSize = 16;
+            name = TextFit.Fit(Fonts.Get(titleSize), name, RevealMaxW - 40 - 4);
+            var tags = new List<(string text, Rgba color, int capsule)> { (RunContent.RarityLabel(rarity), TierColor(rarity), rarity) };
+            if (relic.Chroma != ChromaKind.None) tags.Add((ChromaChip(relic.Chroma), ChromaFx.Style(relic.Chroma).Main, 0));
+            if (duplicate) tags.Add(("¡Repetida!", new Rgba(240, 150, 70), 0));
+            var tagsW = tags.Sum(c => ChipWidth(c.text, c.capsule > 0)) + 8 * (tags.Count - 1);
+            var w = (int)Math.Max(RevealMinW, Math.Max(TextWidth(name, titleSize) + 48, tagsW + 40));
+            w = Math.Min(RevealMaxW, (w + 1) / 2 * 2);
+            var chips = new List<List<(string, Rgba, int)>>();
+            if (tagsW <= w - 40) chips.Add(tags);
+            else { chips.Add(tags.GetRange(0, 1)); chips.Add(tags.GetRange(1, tags.Count - 1)); }
+            var lines = TextFit.WrapLimited(Fonts.Get(13), def.Description, w - 44, 4);
+            var titleFont = Fonts.Get(titleSize);
+            var headerH = 14 + titleFont.Height + 8 + chips.Count * 30;
+            var h = 16 + headerH + 14 + lines.Count * 20 + 22;
+            var panel = new RectF((float)Math.Floor(StageX - w / 2f), StageY + 84, w, h);
+            return new RevealCard { Panel = panel, Title = name, TitleSize = titleSize, Chips = chips, Lines = lines };
+        }
+
+        // ------------------------------------------------------------------ room interface
         private void DrawPanel(Canvas canvas)
         {
             canvas.BlitRect(Band(), new RectF(0, 0, Canvas.Width, 92), Rgba.White);
-            Label(canvas, "Gachapón", 640, 40, 30, new Rgba(255, 190, 225));
-            Label(canvas, "Cada tirada sube el precio de las siguientes", 640, 72, 13, Colors.TextSecondary);
-            Label(canvas, "Reliquias: " + run.OwnedRelics.Count, RelicCounterX, RelicCounterY, 15, Colors.TextAccent);
+            // title: glowing pink outlined letters over a crimson ribbon with the rule of the room
+            Glows.Draw(canvas, Art, 640, 40, 120, new Rgba(70, 20, 60));
+            Text(canvas, "Gachapón", 30, Anchor.Center, 640, 38, Pink, true, true);
+            PixelUi.Ribbon(canvas, Art, 640, 78, "Cada tirada sube el precio de las siguientes", 13);
+            DrawRelicCounter(canvas);
             var busy = phase != "idle";
-            DrawButton(canvas, PullKind.Normal, BtnNormal, hoveredKey == "normal" && !busy, busy);
-            DrawButton(canvas, PullKind.Stellar, BtnStellar, hoveredKey == "stellar" && !busy, busy);
+            DrawPullCard(canvas, PullKind.Normal, BtnNormal, hoveredKey == "normal" && !busy, busy);
+            DrawPullCard(canvas, PullKind.Stellar, BtnStellar, hoveredKey == "stellar" && !busy, busy);
             DrawOdds(canvas);
-            Label(canvas, "Tiradas hechas: " + run.Pulls + "  ·  precio ×1.5 por tirada", PanelX + BtnW / 2, 628, 12, Colors.TextSecondary);
             var hov = hoveredKey == "exit" && !busy;
-            canvas.Rect(Exit, Colors.BgPanel, 0, 6); canvas.Rect(Exit, hov ? Colors.TextAccent : Colors.PanelBorder, 2, 6);
-            Label(canvas, "Salir", Exit.CenterX, Exit.CenterY, 16, busy ? Colors.TextSecondary : Colors.TextPrimary);
-            if (feedbackT > 0) Label(canvas, feedback, 640, 690, 16, new Rgba(245, 140, 120));
+            if (hov) Halo2(canvas, ((RectF)Exit).Move(0, -1), new Rgba(220, 200, 160));
+            PixelUi.Button(canvas, Art, Exit, "Salir", "bronze", busy ? ButtonState.Off : hov ? ButtonState.Hover : ButtonState.Idle, null, null, time, 0f, 16);
+            if (feedbackT > 0)
+            {
+                var a = Math.Min(1f, feedbackT / 0.3f);
+                canvas.PushAlpha(a);
+                var w = TextWidth(feedback, 16) + 40;
+                PixelUi.Panel(canvas, Art, RectF.CenteredInt(640, 684, w, 40));
+                Text(canvas, feedback, 16, Anchor.Center, 640, 683, Short);
+                canvas.PopAlpha();
+            }
         }
 
-        private void DrawButton(Canvas canvas, PullKind kind, IRect rect, bool hovered, bool busy)
+        /// <summary>Where kept relics land: an iron plate with the bag and the number of relics.</summary>
+        private void DrawRelicCounter(Canvas canvas)
+        {
+            var pulseK = Math.Max(0f, counterPulse);
+            var plate = RelicPlate.Move(0, pulseK > 0.5f ? -2 : 0);
+            if (pulseK > 0) Halo2(canvas, plate, Glows.Scaled(TierColor(Tier), 0.6 + 0.6 * pulseK));
+            PixelUi.Panel(canvas, Art, plate);
+            var bag = Art.Icon("bag");
+            if (bag.Valid) canvas.BlitRect(bag, new RectF(plate.X + 10, plate.CenterY - bag.H, bag.W * 2, bag.H * 2), Rgba.White);
+            Text(canvas, "Reliquias", 13, Anchor.MidLeft, plate.X + 44, plate.CenterY - 1, Dim);
+            // the kept relic counts once it lands
+            var count = run.OwnedRelics.Count - (phase == "collect" && result != null && result.Accepted ? 1 : 0);
+            Text(canvas, count.ToString(), 20, Anchor.MidRight, plate.Right - 12, plate.CenterY - 1, Gilt);
+        }
+
+        private void DrawPullCard(Canvas canvas, PullKind kind, IRect rect, bool hovered, bool busy)
         {
             var d = RunState.PullDefinitions[(int)kind]; var price = run.GachaPrice(kind);
-            var ok = run.CanPull(kind) && !busy; var stellar = kind == PullKind.Stellar;
-            var bg = stellar ? new Rgba(46, 20, 54) : new Rgba(24, 26, 40);
-            if (hovered && ok) bg = Glows.Scaled(bg, 1.5);
-            canvas.Rect(rect, bg, 0, 10);
-            var edge = !ok ? new Rgba(80, 76, 90) : stellar ? new Rgba(255, 205, 90) : new Rgba(170, 180, 210);
-            canvas.Rect(rect, edge, 2, 10);
+            var stellar = kind == PullKind.Stellar; var afford = run.CanPull(kind); var ok = afford && !busy;
+            var card = new RectF(rect.X, rect.Y - (hovered && ok ? 2 : 0), rect.W, rect.H);
+            if (hovered && ok) Halo2(canvas, card, stellar ? new Rgba(255, 214, 110) : new Rgba(220, 200, 160));
+            PixelUi.Panel(canvas, Art, card);
+            var inner = card.Inflate(-16, -16);
+            canvas.Fill(inner, stellar ? new Rgba(120, 54, 176, hovered && ok ? 96 : 70) : new Rgba(70, 96, 150, hovered && ok ? 52 : 34));
+            if (stellar)
+                foreach (var (fx, fy, ph) in new[] { (0.30f, 0.20f, 0f), (0.86f, 0.62f, 2.2f), (0.55f, 0.40f, 4.1f), (0.94f, 0.18f, 1.2f), (0.18f, 0.70f, 3.3f) })
+                {
+                    var tw = 0.5 + 0.5 * Math.Sin(time * 2.6 + ph); if (tw < 0.35) continue;
+                    float sx = (float)Math.Floor(inner.X + inner.W * fx / 2) * 2, sy = (float)Math.Floor(inner.Y + inner.H * fy * 0.5f / 2) * 2;
+                    var sc = new Rgba(255, 230, 170, (int)(220 * tw));
+                    canvas.Fill(new RectF(sx, sy - 2, 2, 6), sc); canvas.Fill(new RectF(sx - 2, sy, 6, 2), sc);
+                }
+            // capsule, name, key, note
+            var bob = ok ? (int)Math.Round(Math.Sin(time * 2.4 + (stellar ? 1.7 : 0)) * 1.2) * 2 : 0;
+            Blit2(canvas, DropSprite(stellar ? 4 : 0), card.X + 38, card.Y + 34 + bob, 1f, 0, ok ? (Rgba?)null : new Rgba(170, 170, 170));
+            Text(canvas, d.Name, 16, Anchor.MidLeft, card.X + 68, card.Y + 23, !afford && !busy ? Dim : stellar ? new Rgba(255, 226, 150) : Cream, true);
+            PixelUi.Keycap(canvas, Art, card.Right - 26, card.Y + 23, stellar ? "2" : "1");
+            Text(canvas, d.Note, 13, Anchor.MidLeft, card.X + 68, card.Y + 45, Dim);
+            // the price is the button
+            var style = stellar ? "gold" : "bronze"; var bh = stellar ? 48 : 36;
+            var btn = new RectF(card.X + 12, card.Bottom - 12 - 48 + (48 - bh) / 2, card.W - 24, bh);
+            var state = !ok ? ButtonState.Off : hovered ? ButtonState.Hover : ButtonState.Idle;
+            PixelUi.Button(canvas, Art, btn, "", style, state, null, null, time + (stellar ? 1.3f : 0f));
+            var shown = btn.Move(0, state == ButtonState.Hover ? -1 : 0);
+            var (label, font, shortBy, textW) = PriceLine(price, run.Gold, PriceRoom);
+            var coin = Art.Icon("coin");
+            var x = (float)Math.Floor(shown.CenterX - textW / 2f); var cy = shown.CenterY - 1;
+            if (coin.Valid) { canvas.BlitRect(coin, new RectF(x, (float)Math.Floor(cy) - coin.H, coin.W * 2, coin.H * 2), state == ButtonState.Off ? new Rgba(150, 150, 150) : Rgba.White); x += 32; }
+            var r = Text(canvas, label, font, Anchor.MidLeft, x, cy, state == ButtonState.Off ? new Rgba(196, 190, 184) : Cream);
+            if (shortBy != null) Text(canvas, shortBy, 13, Anchor.MidLeft, r.Right + 10, cy, Short);
             if (stellar && ok)
             {
-                var tt = MathX.PyMod(time * 0.6, 1.0); var pos = tt * 2 * (rect.W + rect.H); double px, py;
-                if (pos < rect.W) { px = rect.X + pos; py = rect.Y; }
-                else if (pos < rect.W + rect.H) { px = rect.Right; py = rect.Y + pos - rect.W; }
-                else if (pos < 2 * rect.W + rect.H) { px = rect.Right - (pos - rect.W - rect.H); py = rect.Bottom; }
-                else { px = rect.X; py = rect.Bottom - (pos - 2 * rect.W - rect.H); }
+                var tt = MathX.PyMod(time * 0.6, 1.0); var pos = tt * 2 * (card.W + card.H); double px, py;
+                if (pos < card.W) { px = card.X + pos; py = card.Y; }
+                else if (pos < card.W + card.H) { px = card.Right; py = card.Y + pos - card.W; }
+                else if (pos < 2 * card.W + card.H) { px = card.Right - (pos - card.W - card.H); py = card.Bottom; }
+                else { px = card.X; py = card.Bottom - (pos - 2 * card.W - card.H); }
                 Glows.Draw(canvas, Art, (int)px, (int)py, 16, new Rgba(255, 200, 90));
             }
-            var titleCol = !ok ? Colors.TextSecondary : stellar ? new Rgba(255, 220, 140) : Colors.TextPrimary;
-            Label(canvas, d.Name + "  [" + (stellar ? "2" : "1") + "]", rect.CenterX, rect.Y + 22, 17, titleCol);
-            Label(canvas, price + " oro", rect.CenterX, rect.Y + 50, 20, run.Gold >= price ? Colors.TextAccent : new Rgba(220, 100, 90));
-            Label(canvas, d.Note, rect.CenterX, rect.Y + 75, 12, Colors.TextSecondary);
+            // while the machine runs the cards stay solid but sink into the dark
+            if (busy) canvas.Fill(card.Inflate(-4, -4), new Rgba(8, 6, 14, 110));
         }
 
-        private static string Pct(double p) => p < 0.1 ? Math.Round(p * 100, 1, MidpointRounding.ToEven).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "%" : MathX.Round(p * 100) + "%";
+        /// <summary>What the price button says: "405 oro" in the chunky face (plus "faltan N" when short), shrinking
+        /// to "405" and then to the small face so it never leaves a button <paramref name="maxW"/> wide.
+        /// <c>width</c> includes the 32 px of the coin.</summary>
+        public (string label, int size, string shortBy, int width) PriceLine(int price, int gold, int maxW)
+        {
+            var amount = price.ToString("#,0", System.Globalization.CultureInfo.InvariantCulture).Replace(",", " ");
+            var shortBy = gold >= price ? null : "faltan " + (price - gold).ToString("#,0", System.Globalization.CultureInfo.InvariantCulture).Replace(",", " ");
+            foreach (var (label, size, extra) in new[] { (amount + " oro", 20, shortBy), (amount, 20, shortBy), (amount, 16, shortBy), (amount, 16, null) })
+            {
+                var text = price == 0 ? "¡Gratis!" : label;
+                var w = 32 + TextWidth(text, size) + (extra != null ? 10 + TextWidth(extra, 13) : 0);
+                if (w <= maxW) return (text, size, extra, w);
+            }
+            var cut = TextFit.Fit(Fonts.Get(16), amount, maxW - 34);
+            return (cut, 16, null, 32 + TextWidth(cut, 16));
+        }
+
+        private static string Pct(double p)
+        {
+            if (p <= 0) return "0%";
+            return p < 0.1 ? Math.Round(p * 100, 1, MidpointRounding.ToEven).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "%" : MathX.Round(p * 100) + "%";
+        }
+
+        private const int OddsTop = 382, OddsH = 264, ColNormal = 172, ColStellar = 242;
 
         private void DrawOdds(Canvas canvas)
         {
-            const int top = 372; const int x0 = PanelX;
-            var box = new IRect(x0, top, BtnW, 236);
-            canvas.Fill(box, new Rgba(12, 10, 20, 200));
-            canvas.Rect(box, Colors.PanelBorder, 1, 8);
-            Label(canvas, "Probabilidades", box.CenterX, top + 16, 15, Colors.TextAccent);
-            Label(canvas, "Normal", x0 + 178, top + 40, 12, Colors.TextSecondary);
-            Label(canvas, "Estelar", x0 + 246, top + 40, 12, new Rgba(255, 220, 140));
+            var box = new RectF(PanelX, OddsTop, BtnW, OddsH);
+            PixelUi.Panel(canvas, Art, box);
+            int x0 = PanelX, top = OddsTop;
+            Text(canvas, "Probabilidades", 16, Anchor.Center, box.CenterX, top + 21, Gilt, true);
+            canvas.Fill(new RectF(x0 + 18, top + 36, BtnW - 36, 2), new Rgba(96, 80, 60));
+            // luck (raises the high tiers) and the two columns
             var report = LuckReport.For(run); var lucky = report.Bonus > 0;
             var clover = Art.Icon("clover");
-            if (clover.Valid) canvas.Blit(clover, x0 + 12, top + 40 - clover.H / 2);
-            LabelLeft(canvas, "Suerte " + report.Luck + (lucky ? " ▲" : ""), x0 + 30, top + 40, 12, lucky ? new Rgba(140, 240, 120) : Colors.TextSecondary);
+            if (clover.Valid) canvas.BlitRect(clover, new RectF(x0 + 14, top + 52 - clover.H, clover.W * 2, clover.H * 2), lucky ? Rgba.White : new Rgba(200, 200, 200));
+            var luck = Text(canvas, "Suerte " + report.Luck, 13, Anchor.MidLeft, x0 + 44, top + 51, lucky ? Lucky : Dim);
+            if (lucky) Text(canvas, "▲", 13, Anchor.MidLeft, luck.Right + 2, top + 51, Lucky);
+            Text(canvas, "Normal", 13, Anchor.Center, x0 + ColNormal, top + 51, Cream);
+            Text(canvas, "Estelar", 13, Anchor.Center, x0 + ColStellar, top + 51, new Rgba(255, 220, 140));
             var normal = run.GachaOdds(PullKind.Normal); var stellar = run.GachaOdds(PullKind.Stellar);
             var baseN = RunState.PullOdds(PullKind.Normal, report.Base); var baseS = RunState.PullOdds(PullKind.Stellar, report.Base);
             for (var r = 1; r <= 5; r++)
             {
-                var y = top + 66 + (r - 1) * 32; var col = TierColor(r);
-                canvas.Rect(new RectF(x0 + 14, y - 6, 12, 12), col, 0, 3);
-                LabelLeft(canvas, RunContent.RarityLabel(r), x0 + 34, y, 14, col);
-                foreach (var (cx, odds, b) in new[] { (x0 + 178, normal, baseN), (x0 + 246, stellar, baseS) })
+                var y = top + 82 + (r - 1) * 32; var col = TierColor(r);
+                if (r % 2 == 0) canvas.Fill(new RectF(x0 + 10, y - 15, BtnW - 20, 32), new Rgba(255, 255, 255, 10));
+                MiniCapsule(canvas, x0 + 24, y + 1, r);
+                Text(canvas, RunContent.RarityLabel(r), 13, Anchor.MidLeft, x0 + 38, y, Glows.Scaled(col, 1.2));
+                foreach (var (cx, odds, b) in new[] { (x0 + ColNormal, normal, baseN), (x0 + ColStellar, stellar, baseS) })
                 {
                     var p = odds.TryGetValue(r, out var v) ? v : 0; var bp = b.TryGetValue(r, out var bv) ? bv : 0;
-                    if (p > bp + 0.0005 && r >= 2) Label(canvas, "▲", cx + 31, y - 2, 10, new Rgba(140, 240, 120));
-                    var bar = (int)(52 * p);
-                    canvas.Fill(new RectF(cx - 26, y + 8, 52, 3), Glows.Scaled(col, 0.35));
-                    if (bar > 0) canvas.Fill(new RectF(cx - 26, y + 8, bar, 3), col);
-                    Label(canvas, Pct(p), cx, y - 2, 13, p > 0 ? Colors.TextPrimary : Colors.TextSecondary);
+                    var label = Text(canvas, Pct(p), 13, Anchor.Center, cx, y - 5, p > 0 ? Cream : new Rgba(120, 114, 108));
+                    if (p > bp + 0.0005 && r >= 2) Text(canvas, "▲", 13, Anchor.MidLeft, label.Right, y - 5, Lucky);
+                    OddsBar(canvas, cx - 30, y + 6, p, col);
                 }
             }
+            canvas.Fill(new RectF(x0 + 18, top + OddsH - 38, BtnW - 36, 2), new Rgba(70, 60, 52));
+            Text(canvas, "Tiradas hechas: " + run.Pulls + "  ·  precio ×1.5", 13, Anchor.Center, box.CenterX, top + OddsH - 22, Dim);
         }
     }
 }

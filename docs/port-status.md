@@ -294,6 +294,38 @@ climb D E G A D'.
 `GachaVoices` = 6 voices for the show (everything else keeps the original limit of 3).
 Pending important cues keep their variant (`gacha_tier`, `gacha_stash` wait for a voice).
 
+## Gachapón interface (beyond the original, 2026-11-03)
+
+User: the relic name spilled out of its box, the buttons did not look like the game, the odds table read poorly and some
+texts got lost over the rays and the room. `GachaScene` now draws its whole interface with the HUD kit and outlined text;
+the machine, capsules, show timing, sounds, rules and hit areas of the pull buttons are unchanged.
+
+* **Every label is outlined** in ink one font pixel thick (`Text`, 2 px on the ×2 faces), so nothing is lost over the
+  rays, the glass or the window.
+* **Top bar:** bold pink "Gachapón" with a drop shadow, the rule on a crimson ribbon, and an iron plate with the bag and
+  the number of relics left of the pause buttons (`RelicCounter`, where kept relics fly; the number ticks up and the plate
+  flashes in the tier colour when the relic lands).
+* **Pull cards** (`PullButton(kind)`, same rects for clicks): iron panel (violet with twinkling stars for the stellar one),
+  the machine's capsule (silver / gold), name + key cap, note, and the price *is* the button: bronze (normal) or gold
+  (stellar) kit button with the coin icon and "405 oro". Short of gold: grey button with "faltan N" in red. Free: "¡Gratis!".
+  Big prices shrink (`PriceLine`: drop "oro", then the small face) and never leave the button (`PriceRoom`). Hover lifts the
+  card and draws a 2 px gold frame; during the show the cards sink into the dark instead of turning see-through.
+* **Odds panel** (`OddsBox`): iron panel, gold title, clover + "Suerte N ▲", one row per rarity with a small code-drawn
+  capsule in the machine's tier colours (`gacha.json` `tier_colors` / `tier_light`), the name in its colour, and per
+  column the percentage over a 60×8 pixel bar (ink frame, dark track, fill with a light top row); 0 shows a dim "0%",
+  luck raises show a green ▲; "Tiradas hechas: N · precio ×1.5" in the footer.
+* **Reveal panel** (`RevealLayout(relic, duplicate)` → `RevealCard`): opaque iron panel sized to the name (348–412 px,
+  always clear of the machine and the right column), tier-tinted header with the name in the chunky face, tags for rarity
+  (with its capsule), chroma ("Dorada · efectos ×2") and "¡Repetida!", then the description wrapped to at most four lines.
+  Golden/diamond relics keep their halo and get a pulsing frame with stars *on the frame* (the old sheen and twinkles
+  crossed the text). Buttons: gold "Quedármela" + Enter, bronze "Rechazar" + R, "No se devuelve el oro" under it.
+* "Haz clic para abrir" + Espacio key cap and the "¡No tienes oro suficiente!" plate are outlined too; `Salir` is a bronze
+  kit button.
+* Tests: `GachaLayoutTests` (EditMode, 14): every relic × chroma × repeat fits its panel (whole name in the chunky face,
+  every word, ≤ 4 lines, clear of the machine, the column and the bottom), the room's boxes never overlap, prices from 0
+  to `int.MaxValue` fit their button, every phase of 24 pulls draws (null renderer) and a hero without gold sees what is
+  missing. Unity: EditMode 348/348. The README capture was re-rendered with the offline renderer.
+
 ## Card design changes (beyond the original)
 
 `Domain/CardDesign.cs` holds the Unity-only design changes; the exported
@@ -361,6 +393,8 @@ Tracks the power of cards, relics and encounters from real runs and stores it in
   its rarity, stop, mute/missing/no backend) and a real `GachaScene` with a null renderer and a
   recording mixer, frame by frame: every beat of 42 pulls (tiers 1–5, golden) at its time,
   keep/decline, skipping, clicking the capsule, hover ticks, no gold, 6000 random steps.
+* `GachaLayoutTests` (14 EditMode cases): the gachapón interface — reveal panel of every relic, non-overlapping boxes,
+  prices that fit their button, every phase drawn, the shortfall shown.
 * `Tools/DomainSmoke` also plays 975 floor-1 fights, 1002 floor-2 fights and 1305 floor-3 fights with the expanded roster
   (summons, splits, trios, cap never above 3).
 * Floor-2 expansion: 41 EditMode cases (`Floor2PatternTests`, `Floor2MechanicTests`, `Floor2PresentationTests`: every
