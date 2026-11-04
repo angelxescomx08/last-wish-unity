@@ -1,0 +1,48 @@
+{
+  "cell": 96,
+  "columns": 1,
+  "scale": 2,
+  "sheet": "Shop/merchant_96",
+  "halo": {
+    "sheet": "Shop/merchant_halo_96",
+    "gain": 0.55
+  },
+  "animations": {
+    "idle": {
+      "row": 0,
+      "frames": 1,
+      "loop": true,
+      "durations_ms": [
+        83
+      ]
+    }
+  },
+  "anchors": {
+    "mouth": [
+      60.52,
+      45
+    ],
+    "lantern": [
+      17.5,
+      61
+    ],
+    "hand": [
+      60,
+      63
+    ],
+    "top": 23
+  },
+  "ground": {
+    "y": 94,
+    "frames": {
+      "idle": [
+        [
+          51.0,
+          18
+        ]
+      ]
+    }
+  },
+  "style": "docs/art-style.md",
+  "generator": "Tools/VfxLab/merchant.html"
+}

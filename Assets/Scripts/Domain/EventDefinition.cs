@@ -101,6 +101,11 @@ namespace LastWish.Domain
         public EventStage Stage => Definition.Stages[StageIndex];
         public bool Completed { get; private set; }
         public string Message { get; private set; } = "";
+        /// <summary>The last choice that was settled (null until one is) and whether its roll succeeded.</summary>
+        public EventChoice LastChoice { get; private set; }
+        public bool LastSucceeded { get; private set; }
+        /// <summary>The effect the last choice applied (its success or its failure).</summary>
+        public EventEffect LastEffect => LastChoice == null ? null : LastSucceeded ? LastChoice.Success : LastChoice.Failure ?? LastChoice.Success;
         internal EventSession(RunState run, string roomId, EventDefinition definition)
         {
             this.run = run; Definition = definition; RoomId = roomId; Floor = run.Floor;
@@ -121,6 +126,7 @@ namespace LastWish.Domain
             var success = choice.SuccessPercent == 100 || random.RandInt(1, 100) <= choice.SuccessPercent;
             var effect = success ? choice.Success : choice.Failure;
             Message = run.ApplyEventChoice(this, choice, effect, success);
+            LastChoice = choice; LastSucceeded = success;
             if (choice.NextStage >= 0 && success) StageIndex = choice.NextStage;
             else Completed = true;
             return true;

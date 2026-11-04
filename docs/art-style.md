@@ -527,7 +527,9 @@ dibujos a mano ni piezas montadas.
    `MageHeroArtTests`.
 
 **Estado (31-10-2026):** El Mago y la Guerrera, hechos con este método y en el juego (`mage_hero.html`,
-`warrior_hero.html`). Pendientes de rehacer con él: la Pícara (su hoja actual es por piezas) y los enemigos, cuando el
+`warrior_hero.html`). **El Mercader** (vendedor de la tienda, 04-11-2026): `Tools/VfxLab/merchant.html` +
+`export_merchant_art.py` → `Resources/Game/Shop/merchant*`; de momento solo la **pose de prueba** (reposo con las manos
+juntas), a la espera del visto bueno para hacer el reposo animado, hablar, dar las gracias y negar con la cabeza. Pendientes de rehacer con él: la Pícara (su hoja actual es por piezas) y los enemigos, cuando el
 usuario lo pida.
 
 **Cara cubierta (regla del usuario, 31-10-2026):** la cara en sombra con ojos que brillan solo tiene sentido si algo la

@@ -326,6 +326,98 @@ the machine, capsules, show timing, sounds, rules and hit areas of the pull butt
   to `int.MaxValue` fit their button, every phase of 24 pulls draws (null renderer) and a hero without gold sees what is
   missing. Unity: EditMode 348/348. The README capture was re-rendered with the offline renderer.
 
+## Event interface (beyond the original, 2026-11-04)
+
+User: the event screen looked odd and out of place, its buttons had no real design and some texts could not be read
+(flat background, plain rectangles, dim 12-px lines and a story that could run into the result line). `EventScene`
+now draws the room with the game's look; the event rules, the domain session and the scene manager are unchanged
+(only `EventSession.LastChoice` / `LastSucceeded` / `LastEffect`, read-only, were added so the result can say how it went).
+
+* **Room:** the dungeon backdrop (torches, rain) under a dark violet focus and vignette; a title band with the event's
+  name in the bold face (lilac, drop shadow, violet glow) and a crimson ribbon "Suceso épico · Piso N". Every label is
+  outlined in ink like the gachapón.
+* **Plate (left):** iron panel with a code-drawn arch (`EventPortal`, native pixels ×2, `docs/art-style.md` rules: stone
+  ramps lit from the upper left, bevelled voussoirs and courses, one ink outline, Bayer-dithered violet opening, rim light
+  on the inner edge and the steps, keystone gem in the event's rarity colour; paint + light layers). The "?" rune of the
+  map's event room floats in the opening; motes rise and four-point stars twinkle. Under it: the rarity tag and, for
+  multi-stage events / story chapters, "Parte N de M" / "Continúa una historia". Épico and Legendario plates get a pulsing
+  frame. It stands in until each event has its own illustration (still pending in `docs/events.md`).
+* **Story (right):** iron panel, 16-px cream text wrapped to the column; after a step of a multi-stage event, what that
+  step settled is shown above the story in gold with the scroll icon.
+* **Choice cards** (`Layout().Choices`, `ChoiceRect(i)`): iron panel per choice with its key cap, the label in the bold
+  face and the price on the right as a red chip (coin / blood drop + "−20 oro", "−5 vida", "−3 vida máx."). Under it,
+  chips with icons for what it gives (green: oro, vida, vida máx., suerte, carta nueva; blue "Mejora Espadazo"; orange
+  "Pierdes Puñalada"; gold "Reliquia: …"; violet "Continúa" / "Sigue la historia"), and for risky choices an amber
+  "65 % de éxito" chip plus "Si falla:" and its chips. Exits are a short card with gold chevrons. Hover / focus lifts the
+  card, tints it violet with a violet edge and a 2-px gold frame; the focus starts on the first choice you can take.
+  Blocked choices are dimmed and say why in red ("Te faltan 55 de oro."); trying one shakes the card, plays the error
+  sound and shows the reason in a plate. Hovering a card chip shows the card (and its upgrade, before → after); hovering
+  a relic chip shows the relic tooltip (without the owned-relic "Estado" line).
+* **Result:** a panel with the chosen option as title, "¡Éxito!" / "Ha fallado" for risky choices, the outcome text and
+  chips for what actually changed (gold, life, max life, luck from a before/after snapshot, so interest and healing caps
+  show the real numbers; "Mejorada: …", "Eliminada: …", "Nueva carta: …", "Reliquia: …" with hover previews; "La historia
+  continuará"), sparks in the colours of what changed, and a gold "Continuar" button + Enter.
+* **Footer:** hero plate with the life bar (the focused choice's life price blinks on it, "−7") and luck; key caps
+  "1-3 Elegir · Enter Confirmar". Panels appear with a short rise and fade, choice cards one after another.
+* Layout: plate and column are centred between the title band and the footer; a column shorter than the plate sits in its
+  middle. Everything comes from `Layout()` (cached per state), shared by drawing, clicks and tests.
+* Tests: `EventLayoutTests` (EditMode, 13): every stage of the 150 events (166, reached through their real choices) fits
+  its boxes (whole title clear of the pause buttons and the gold counter, every word of the story, cards in the column
+  and in order, label clear of the price, chips inside their card and not overlapping); a poor, hurt hero sees why each
+  blocked choice is blocked and can always leave; every result fits its panel, keeps every word and lists the real gold /
+  life change; every phase draws with hover and previews; clicks, Continue, keys, a blocked choice that changes nothing,
+  multi-stage "previous" text, chip texts, huge amounts. `EventFlowTests` (PlayMode) clicks the cards through
+  `ChoiceRect`. The README capture was rendered with the offline renderer.
+
+## Shop interface (beyond the original, 2026-11-04)
+
+User: improve the shop's interface (after the event room). `ShopScene` now draws the room with the game's look; stock,
+prices (Máscara del Ladrón, Tarjeta de Socio, Vale de Descuento), purchases, telemetry and the scene manager's pack flow
+are unchanged, except that a bought pack first rises for `PackRiseT` (0.5 s) before `SelectedPack` is set and the pack
+opens (the shop takes no clicks meanwhile, `Busy`).
+
+* **Room:** the dungeon backdrop under a warm focus and vignette; title band with "Tienda del Viajero" in the bold face
+  (gold, drop shadow, warm glow) and the crimson ribbon "Cada objeto se vende una sola vez"; the relic counter plate left of
+  the pause buttons (`RelicCounter`, as in the gachapón).
+* **Stall** (`ShopStall`, code-drawn in native pixels ×2 with the `docs/art-style.md` rules): a crimson and bone striped
+  awning on a wooden rod with scallops and a gold hem, two oak shelves (lit top face, grain, nails, iron brackets) the
+  offer cards stand on, and the velvet cushion the relics rest on.
+* **Offer cards** (`RelicRect(i)` / `PackRect(i)`, `RelicView(i)` / `PackView(i)` → `OfferView`): iron panel; the relic
+  floats on its cushion in a niche lit in its rarity colour (golden relics: sheen inside the niche only), or the pack art;
+  the name in the bold face; tags with a gem for the rarity, the pack theme (Ataque / Defensa / Magia / Épico) and the
+  chroma ("Dorada ×2", "Dorado"); the price *is* the kit button (bronze, gold for golden offers) with the coin and "150 oro"
+  in the chunky face; under a dotted rule the rule text colour-coded with the glossary (`RichText`), or for packs "Abre 5
+  cartas de ataque y te quedas con N." (`PackPicks`: golden 2, Bolsa sin Fondo 3). Short of gold: grey button with "faltan
+  N" in red; discounts show the old price struck through; free: "¡Gratis!" (`PriceLine`, never leaves the button). Hover
+  lifts the card with a 2-px gold frame; golden offers keep their halo and get a pulsing frame with stars on the frame.
+* **Buying:** coins burst from the button; a relic flies from its niche to the relic counter (`FlyT`, the number ticks up and
+  the plate flashes); a pack rises to the middle of the screen, growing in its theme's light, then opens. Sold offers dim
+  with a crimson "¡Vendido!" ribbon where the price was; refusals shake the card and show the reason in a plate.
+* Footer: the luck badge (unchanged) and a bronze "Salir" kit button.
+* **El Mercader** (user, same day: "agrégale un vendedor que diga cosas aleatoriamente al comprar o al hacer cosas"):
+  the shopkeeper stands left of the stall (`MerchantX`, `MerchantGround`; the stall moved right: cards 312 px from x 272).
+  Drawn by code with the mandatory character method in `Tools/VfxLab/merchant.html` (one silhouette per frame: huge
+  backpack with bedroll and a lantern that glows warm, long patched teal coat, belt and coin pouch, amber scarf over the
+  mouth, eyes glowing amber under a wide pilgrim hat with a feather, clasped hands) and exported by
+  `Tools/VfxLab/export_merchant_art.py` (Node) to `Resources/Game/Shop/merchant_96.png`, `merchant_halo_96.png`,
+  `merchant.json` (rows, anchors: mouth, lantern, top, ground). **Only the test pose so far** (the art rules ask for the
+  user's approval before the full sheet); `MerchantSheet` plays any animation the JSON has ("talk", "thanks", "no") and
+  falls back to idle. Warm floor light and contact shadow, the lantern's glow flickers.
+* **He talks** (`MerchantSpeech`, `MerchantLines`, `Presentation/Scenes/ShopMerchant.cs`): a cream paper speech bubble
+  with an ink edge and a tail towards his face, typed out at 40 letters/s, held 4.2 s, faded. He greets you, thanks you for
+  each purchase (golden offers, the voucher and emptying the shop have their own lines), refuses when you are short ("Te
+  faltan N de oro…"), answers clicks on sold offers, sometimes comments on the offer under the mouse (45 %, never within
+  5 s of another line, never twice for the same offer in a row) and chats after 12–19 quiet seconds. No line comes back
+  while it is one of the last three; lines never name the item with a gendered word. `Mood` ("talk"/"thanks"/"no"/"idle")
+  is what the future animations will play.
+* Shared helpers moved to `PixelUi`: `InkText` / `InkTextWidth` (outlined labels), `PixelBox`, `Frame2`.
+* Tests: `ShopLayoutTests` (EditMode, 19): every relic (156) × chroma fits its card (whole name, tags in one row over the
+  price, every word of its rule text, ≤ 4 lines inside the card), every pack × chroma (with and without Bolsa sin Fondo)
+  fits and says how many cards you keep, the room's boxes never overlap and the cards stand on the shelves, prices from 0 to
+  `int.MaxValue` fit their button (shortfall, old price, "¡Gratis!"), a relic is charged once and flies, a pack rises
+  before it opens and blocks other clicks, the scene manager opens it, no gold buys nothing, discounts and the voucher,
+  every state draws, and the stall art keeps the style rules. The README capture was re-rendered with the offline renderer.
+
 ## Card design changes (beyond the original)
 
 `Domain/CardDesign.cs` holds the Unity-only design changes; the exported
@@ -395,6 +487,13 @@ Tracks the power of cards, relics and encounters from real runs and stores it in
   keep/decline, skipping, clicking the capsule, hover ticks, no gold, 6000 random steps.
 * `GachaLayoutTests` (14 EditMode cases): the gachapón interface — reveal panel of every relic, non-overlapping boxes,
   prices that fit their button, every phase drawn, the shortfall shown.
+* `EventLayoutTests` (13 EditMode cases): the event room — every stage and result of the 150 events fits its boxes,
+  blocked choices explain themselves, every phase draws with hover previews, mouse and keys.
+* `ShopLayoutTests` (19 EditMode cases): the shop — every relic and pack fits its card, prices fit their button, boxes and
+  shelves, purchases (charged once, relic flight, pack rise and opening), discounts, every state drawn, stall art.
+* `MerchantTests` (9 EditMode cases): the shopkeeper's sheet and place, every line fits its bubble with the longest names,
+  his reactions (greeting, sale, golden, voucher, refusal, sold, sold out), occasional hover comments, idle chatter without
+  repeats, typing/holding/fading, every state drawn.
 * `Tools/DomainSmoke` also plays 975 floor-1 fights, 1002 floor-2 fights and 1305 floor-3 fights with the expanded roster
   (summons, splits, trios, cap never above 3).
 * Floor-2 expansion: 41 EditMode cases (`Floor2PatternTests`, `Floor2MechanicTests`, `Floor2PresentationTests`: every

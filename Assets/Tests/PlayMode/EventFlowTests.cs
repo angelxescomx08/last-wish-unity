@@ -42,11 +42,13 @@ namespace LastWish.Tests
             run.OpenEvent("bazaar", "masked_bazaar");
             var scene = new EventScene(GameDriver.Game.Context, run, "bazaar");
             scene.Draw(GameDriver.Game.Context.Canvas);
-            scene.HandleEvent(new InputEvent(EventType.MouseDown, 150, 330, 1));
+            var first = scene.ChoiceRect(0);
+            scene.HandleEvent(new InputEvent(EventType.MouseDown, first.CenterX, first.CenterY, 1));
             Assert.That(scene.Session.StageIndex, Is.EqualTo(1));
             var afterEntry = run.Gold;
             scene.Draw(GameDriver.Game.Context.Canvas);
-            scene.HandleEvent(new InputEvent(EventType.MouseDown, 150, 330, 1));
+            first = scene.ChoiceRect(0);
+            scene.HandleEvent(new InputEvent(EventType.MouseDown, first.CenterX, first.CenterY, 1));
             Assert.That(scene.Session.Completed, Is.True);
             Assert.That(run.Gold, Is.EqualTo(afterEntry - 30));
             yield return GameDriver.Frames(1);

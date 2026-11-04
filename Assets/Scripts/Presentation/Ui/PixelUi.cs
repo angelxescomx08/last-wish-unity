@@ -141,6 +141,46 @@ namespace LastWish.Presentation
         public static Rgba Cream => Colors.Cream;
         public static Rgba Ink => Colors.Ink;
 
+        private static readonly (int dx, int dy)[] InkRing = { (-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1) };
+
+        /// <summary>Text with an ink outline one font pixel thick (and an optional drop shadow), placed like
+        /// pygame get_rect(anchor=...): it reads over any background (the room interfaces use it for every label).</summary>
+        public static RectF InkText(Canvas canvas, Art art, string text, int size, Anchor anchor, float x, float y, Rgba color, bool shadow = false, bool bold = false)
+        {
+            if (string.IsNullOrEmpty(text)) return new RectF(x, y, 0, 0);
+            var font = bold ? art.Fonts.Bold(size) : art.Fonts.Get(size); var k = font.Scale;
+            var r = Txt.Place(font.Width(text) + 2 * k, font.Height + 2 * k, anchor, x, y);
+            float ox = (float)Math.Floor(r.X) + k, oy = (float)Math.Floor(r.Y) + k;
+            if (shadow) foreach (var dx in new[] { -1, 0, 1 }) font.Draw(canvas, text, ox + dx * k, oy + 2 * k, Colors.Ink);
+            foreach (var (dx, dy) in InkRing) font.Draw(canvas, text, ox + dx * k, oy + dy * k, Colors.Ink);
+            font.Draw(canvas, text, ox, oy, color);
+            return r;
+        }
+
+        /// <summary>Width of <see cref="InkText"/> (outline included).</summary>
+        public static int InkTextWidth(Art art, string text, int size, bool bold = false)
+        { var f = bold ? art.Fonts.Bold(size) : art.Fonts.Get(size); return f.Width(text ?? "") + 2 * f.Scale; }
+
+        /// <summary>A box with notched 2 px corners, a 2 px edge and an optional light top row (chips, tags, niches).</summary>
+        public static void PixelBox(Canvas canvas, RectF r, Rgba fill, Rgba edge, Rgba? light = null)
+        {
+            r = new RectF((float)Math.Floor(r.X), (float)Math.Floor(r.Y), (float)Math.Floor(r.W), (float)Math.Floor(r.H));
+            canvas.Fill(new RectF(r.X + 2, r.Y, r.W - 4, 2), edge); canvas.Fill(new RectF(r.X + 2, r.Bottom - 2, r.W - 4, 2), edge);
+            canvas.Fill(new RectF(r.X, r.Y + 2, 2, r.H - 4), edge); canvas.Fill(new RectF(r.Right - 2, r.Y + 2, 2, r.H - 4), edge);
+            canvas.Fill(new RectF(r.X + 2, r.Y + 2, r.W - 4, r.H - 4), fill);
+            if (light.HasValue) canvas.Fill(new RectF(r.X + 2, r.Y + 2, r.W - 4, 2), light.Value);
+        }
+
+        /// <summary>A 2 px frame with notched corners 4 px outside <paramref name="r"/> (hover and focus).</summary>
+        public static void Frame2(Canvas canvas, RectF r, Rgba color)
+        {
+            r = r.Inflate(8, 8);
+            canvas.Fill(new RectF(r.X + 4, r.Y, r.W - 8, 2), color); canvas.Fill(new RectF(r.X + 4, r.Bottom - 2, r.W - 8, 2), color);
+            canvas.Fill(new RectF(r.X, r.Y + 4, 2, r.H - 8), color); canvas.Fill(new RectF(r.Right - 2, r.Y + 4, 2, r.H - 8), color);
+            canvas.Fill(new RectF(r.X + 2, r.Y + 2, 2, 2), color); canvas.Fill(new RectF(r.Right - 4, r.Y + 2, 2, 2), color);
+            canvas.Fill(new RectF(r.X + 2, r.Bottom - 4, 2, 2), color); canvas.Fill(new RectF(r.Right - 4, r.Bottom - 4, 2, 2), color);
+        }
+
         public static void Panel(Canvas canvas, Art art, RectF rect, int alpha = 255)
         {
             if (!art.HasKitPiece("panel"))
