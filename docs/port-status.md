@@ -400,16 +400,24 @@ opens (the shop takes no clicks meanwhile, `Busy`).
   backpack with bedroll and a lantern that glows warm, long patched teal coat, belt and coin pouch, amber scarf over the
   mouth, eyes glowing amber under a wide pilgrim hat with a feather, clasped hands) and exported by
   `Tools/VfxLab/export_merchant_art.py` (Node) to `Resources/Game/Shop/merchant_96.png`, `merchant_halo_96.png`,
-  `merchant.json` (rows, anchors: mouth, lantern, top, ground). **Only the test pose so far** (the art rules ask for the
-  user's approval before the full sheet); `MerchantSheet` plays any animation the JSON has ("talk", "thanks", "no") and
-  falls back to idle. Warm floor light and contact shadow, the lantern's glow flickers.
+  `merchant.json` (rows, anchors: mouth, lantern, top, ground). Warm floor light and contact shadow, the lantern's glow
+  flickers.
+* **He moves** (user, same day: "anima al vendedor que como que está muy estático"): six animations at 12 fps, one complete
+  pose per frame — `idle` (24, loop: breathing, the lantern swinging on its hook, scarf tail, feather and hem in the draught,
+  a blink), `talk` (12, loop: the hand opens towards you and beats twice, nods, the scarf moves over the mouth), `greet`
+  (14: tips his hat), `thanks` (14: hand on the chest and a bow, the lantern swinging behind), `no` (14: eyes closed,
+  shakes his head, wags a finger) and `coins` (24: flips a coin, follows it with his eyes and catches it). Every reaction
+  starts and ends on idle frame 0 (the approved pose; the exporter checks it pixel by pixel and also fails when a part of
+  the drawing comes loose from the figure). `MerchantPose` decides what plays: each new line starts its reaction once
+  (`MerchantSpeech.ReactionOf`: entering → greet, sales and sold out → thanks, refusals and sold offers → no), reactions
+  play to their end unless another reaction interrupts, he talks while the line is typed and the talk loop finishes its
+  cycle before idle, and after 7–12 idle seconds he flips a coin (a new line interrupts it).
 * **He talks** (`MerchantSpeech`, `MerchantLines`, `Presentation/Scenes/ShopMerchant.cs`): a cream paper speech bubble
   with an ink edge and a tail towards his face, typed out at 40 letters/s, held 4.2 s, faded. He greets you, thanks you for
   each purchase (golden offers, the voucher and emptying the shop have their own lines), refuses when you are short ("Te
   faltan N de oro…"), answers clicks on sold offers, sometimes comments on the offer under the mouse (45 %, never within
   5 s of another line, never twice for the same offer in a row) and chats after 12–19 quiet seconds. No line comes back
-  while it is one of the last three; lines never name the item with a gendered word. `Mood` ("talk"/"thanks"/"no"/"idle")
-  is what the future animations will play.
+  while it is one of the last three; lines never name the item with a gendered word.
 * Shared helpers moved to `PixelUi`: `InkText` / `InkTextWidth` (outlined labels), `PixelBox`, `Frame2`.
 * Tests: `ShopLayoutTests` (EditMode, 19): every relic (156) × chroma fits its card (whole name, tags in one row over the
   price, every word of its rule text, ≤ 4 lines inside the card), every pack × chroma (with and without Bolsa sin Fondo)
@@ -491,9 +499,11 @@ Tracks the power of cards, relics and encounters from real runs and stores it in
   blocked choices explain themselves, every phase draws with hover previews, mouse and keys.
 * `ShopLayoutTests` (19 EditMode cases): the shop — every relic and pack fits its card, prices fit their button, boxes and
   shelves, purchases (charged once, relic flight, pack rise and opening), discounts, every state drawn, stall art.
-* `MerchantTests` (9 EditMode cases): the shopkeeper's sheet and place, every line fits its bubble with the longest names,
-  his reactions (greeting, sale, golden, voucher, refusal, sold, sold out), occasional hover comments, idle chatter without
-  repeats, typing/holding/fading, every state drawn.
+* `MerchantTests` (13 EditMode cases): the shopkeeper's sheet (six animations, frames, loops, 12 fps) and place (every pose
+  left of the stall), every line fits its bubble with the longest names, his reactions (greeting, sale, golden, voucher,
+  refusal, sold, sold out), occasional hover comments, idle chatter without repeats, typing/holding/fading, the animation
+  of every cue, hat tip / bow / head shake in the shop (interrupting each other), talking that ends only at the end of a
+  cycle and goes back to idle frame 0, the coin flip now and then and lines interrupting it, every state drawn.
 * `Tools/DomainSmoke` also plays 975 floor-1 fights, 1002 floor-2 fights and 1305 floor-3 fights with the expanded roster
   (summons, splits, trios, cap never above 3).
 * Floor-2 expansion: 41 EditMode cases (`Floor2PatternTests`, `Floor2MechanicTests`, `Floor2PresentationTests`: every

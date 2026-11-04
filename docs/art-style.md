@@ -528,8 +528,12 @@ dibujos a mano ni piezas montadas.
 
 **Estado (31-10-2026):** El Mago y la Guerrera, hechos con este método y en el juego (`mage_hero.html`,
 `warrior_hero.html`). **El Mercader** (vendedor de la tienda, 04-11-2026): `Tools/VfxLab/merchant.html` +
-`export_merchant_art.py` → `Resources/Game/Shop/merchant*`; de momento solo la **pose de prueba** (reposo con las manos
-juntas), a la espera del visto bueno para hacer el reposo animado, hablar, dar las gracias y negar con la cabeza. Pendientes de rehacer con él: la Pícara (su hoja actual es por piezas) y los enemigos, cuando el
+`export_merchant_art.py` → `Resources/Game/Shop/merchant*`; animado el mismo día («anima al vendedor, está muy
+estático»): reposo de 24 fotogramas (respira, el farol se balancea, bufanda y pluma con la corriente, parpadeo), hablar
+(12, en bucle), saludar quitándose el sombrero, dar las gracias con una reverencia, negar con el dedo y moneda (lanza y
+atrapa una moneda cuando la tienda está tranquila). Cada fotograma es una pose completa; todas las reacciones empiezan y
+terminan en el fotograma 1 del reposo (la pose aprobada) y el exportador lo comprueba píxel a píxel. El farol cuelga
+recto y se mueve en píxeles enteros aunque el cuerpo se incline. Pendientes de rehacer con él: la Pícara (su hoja actual es por piezas) y los enemigos, cuando el
 usuario lo pida.
 
 **Cara cubierta (regla del usuario, 31-10-2026):** la cara en sombra con ojos que brillan solo tiene sentido si algo la

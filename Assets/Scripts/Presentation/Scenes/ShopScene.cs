@@ -66,7 +66,7 @@ namespace LastWish.Presentation
         private readonly DungeonBackdrop backdrop;
         private readonly MerchantSheet merchant;
         private readonly MerchantSpeech speech;
-        private string mood = "idle"; private float moodTime;
+        private readonly MerchantPose pose;
         private readonly BurstParticles fx = new BurstParticles(500, 29);
         private (string kind, int i)? hovered;
         private bool exitHovered;
@@ -91,12 +91,14 @@ namespace LastWish.Presentation
             relicChoice = game.Track(p => p.OfferRelics(run, "shop", relics.Select(r => r.Definition)));
             backdrop = new DungeonBackdrop(Art, 41, 0.6f);
             merchant = MerchantSheet.Load(Art);
-            speech = new MerchantSpeech((int)(run.Seed % 100003) * 31 + run.Floor * 7 + (run.CurrentRoomId ?? "").Length);
+            var seed = (int)(run.Seed % 100003) * 31 + run.Floor * 7 + (run.CurrentRoomId ?? "").Length;
+            speech = new MerchantSpeech(seed); pose = new MerchantPose(seed + 1);
             speech.Say(MerchantCue.Enter);
         }
 
         public MerchantSpeech Speech => speech;
         public MerchantSheet Merchant => merchant;
+        public MerchantPose Pose => pose;
 
         public IReadOnlyList<RelicOffer> Relics => relics;
         public IReadOnlyList<PackOffer> Packs => packs;
@@ -198,8 +200,7 @@ namespace LastWish.Presentation
             if (shakeAt.HasValue) { var s = shakeAt.Value; s.t -= dt; shakeAt = s.t > 0 ? s : ((float, float, float)?)null; }
             backdrop.Update(dt);
             speech.Update(dt);
-            var m = speech.Mood; moodTime += dt;
-            if (m != mood) { mood = m; moodTime = 0; }
+            pose.Update(dt, speech, merchant);
             if (flyingRelic >= 0)
             {
                 flyT += dt;
@@ -396,7 +397,7 @@ namespace LastWish.Presentation
             var (lx, ly) = merchant.ToScreen(r, merchant.Lantern);
             Glows.Draw(canvas, Art, lx, ly, 70, Glows.Scaled(new Rgba(90, 52, 18), flick));
             GroundShadow.Draw(canvas, Art, r.X + merchant.Feet.x * merchant.Scale, MerchantGround, merchant.Feet.w * merchant.Scale * 2.4f, merchant.Scale, 1f, new Rgba(52, 34, 16));
-            merchant.Draw(canvas, mood, moodTime, r, flick);
+            merchant.Draw(canvas, pose.Anim, pose.Elapsed, r, flick);
             Glows.Draw(canvas, Art, lx, ly, 26, Glows.Scaled(new Rgba(255, 170, 70), 0.35f * flick));
         }
 

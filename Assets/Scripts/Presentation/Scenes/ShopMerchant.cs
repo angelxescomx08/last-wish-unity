@@ -61,7 +61,7 @@ namespace LastWish.Presentation
     /// </summary>
     public sealed class MerchantSpeech
     {
-        public const float CharsPerSecond = 40f, Hold = 4.2f, Fade = 0.3f, HoverGap = 5f, HoverChance = 0.45f, MoodTime = 1.2f;
+        public const float CharsPerSecond = 40f, Hold = 4.2f, Fade = 0.3f, HoverGap = 5f, HoverChance = 0.45f;
         private readonly Rng rng;
         private readonly List<string> recent = new List<string>();
         private string hoverKey;
@@ -82,11 +82,18 @@ namespace LastWish.Presentation
         /// <summary>Letters shown so far (the line is typed out).</summary>
         public int Shown => Text == null ? 0 : Math.Min(Text.Length, (int)(Age * CharsPerSecond));
         public bool Talking => Text != null && Shown < Text.Length;
-        /// <summary>How he stands right now: "talk" while typing, "thanks" after a sale, "no" after a refusal.</summary>
-        public string Mood => Text == null || Age > MoodTime && !Talking ? "idle"
-            : Cue == MerchantCue.BuyRelic || Cue == MerchantCue.BuyPack || Cue == MerchantCue.BuyGolden || Cue == MerchantCue.BuyFree || Cue == MerchantCue.SoldOut ? (Age < MoodTime ? "thanks" : "talk")
-            : Cue == MerchantCue.Poor || Cue == MerchantCue.Sold ? (Age < MoodTime ? "no" : "talk")
-            : Talking ? "talk" : "idle";
+        /// <summary>The animation a line starts with: he tips his hat when you walk in, bows after a sale (and when you empty
+        /// the shop), shakes his head at a refusal; other lines have none (he just talks).</summary>
+        public static string ReactionOf(MerchantCue cue)
+        {
+            switch (cue)
+            {
+                case MerchantCue.Enter: return "greet";
+                case MerchantCue.BuyRelic: case MerchantCue.BuyPack: case MerchantCue.BuyGolden: case MerchantCue.BuyFree: case MerchantCue.SoldOut: return "thanks";
+                case MerchantCue.Poor: case MerchantCue.Sold: return "no";
+                default: return null;
+            }
+        }
 
         /// <summary>Say a line of <paramref name="cue"/> (always, replacing what he was saying).</summary>
         public string Say(MerchantCue cue, string item = null, int shortBy = 0)
@@ -116,6 +123,60 @@ namespace LastWish.Presentation
             dt = Math.Max(0f, Math.Min(0.1f, dt));
             Age += dt; Quiet += dt;
             if (!Visible && Quiet >= idleAfter) Say(MerchantCue.Idle);
+        }
+    }
+
+    /// <summary>
+    /// Which animation of El Mercader plays (pure state, ticked by the shop with his speech). Each new line starts its
+    /// reaction once (greet, thanks, no), which plays to its end unless another line interrupts it; while a line is being
+    /// typed he talks, and the talk loop finishes its cycle before he goes back to idle; when he has been idle a while he
+    /// flips a coin. Every clip starts and ends on the idle's first frame, so switching never jumps.
+    /// </summary>
+    public sealed class MerchantPose
+    {
+        public const float FidgetMin = 7f, FidgetMax = 12f;
+        private readonly Rng rng;
+        private int line = -1;
+        private float idleFor, fidgetAfter;
+        public string Anim { get; private set; } = "idle";
+        public float Elapsed { get; private set; }
+
+        public MerchantPose(int seed) { rng = new Rng(seed); fidgetAfter = NextFidget(); }
+
+        private float NextFidget() => (float)rng.Uniform(FidgetMin, FidgetMax);
+
+        private void Play(string anim) { Anim = anim; Elapsed = 0; idleFor = 0; }
+
+        public void Update(float dt, MerchantSpeech speech, MerchantSheet sheet)
+        {
+            dt = Math.Max(0f, Math.Min(0.1f, dt));
+            Elapsed += dt;
+            var want = speech.Talking && sheet.Clips.ContainsKey("talk") ? "talk" : "idle";
+            if (speech.Lines != line)
+            {
+                line = speech.Lines;
+                var reaction = MerchantSpeech.ReactionOf(speech.Cue);
+                if (reaction != null && sheet.Clips.ContainsKey(reaction)) { Play(reaction); return; }
+                if (Anim == "coins") { Play(want); return; }       // a new line ends the fidget
+            }
+            if (!sheet.Clips.TryGetValue(Anim, out var clip)) { Play("idle"); return; }
+            if (!clip.Loop)
+            {
+                if (Elapsed < clip.Total) return;                   // reactions and the coin play to their end
+                Play(want); return;
+            }
+            if (Anim == want)
+            {
+                if (Anim == "idle" && sheet.Clips.ContainsKey("coins") && (idleFor += dt) >= fidgetAfter) { Play("coins"); fidgetAfter = NextFidget(); }
+                return;
+            }
+            if (Anim == "talk")
+            {
+                // finish the talking cycle (it ends where the idle begins)
+                if (Math.Floor(Elapsed / clip.Total) > Math.Floor((Elapsed - dt) / clip.Total) || clip.Total <= 0) { var over = clip.Total > 0 ? (float)MathX.PyMod(Elapsed, clip.Total) : 0f; Play(want); Elapsed = Math.Min(over, dt); }
+                return;
+            }
+            Play(want);
         }
     }
 

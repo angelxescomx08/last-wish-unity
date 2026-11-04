@@ -10,7 +10,10 @@ Writes Assets/Resources/Game/Shop/:
   merchant.json         rows, 12 fps frame durations, the anchors the shop uses (mouth for the speech bubble, lantern,
                         ground: the line under the soles and the width of the feet)
 
-Validation (exit 1 when broken): feet on row 93, nothing touches the cell border, every frame is ONE 4-connected mass.
+Validation (exit 1 when broken): feet on row 93, nothing touches the cell border, every frame is ONE 4-connected mass and
+no part of the drawing came loose from the figure (the drawing drops loose parts; more than a few specks is a lost piece,
+like the lantern when its hook slants), and every other animation starts (and, if it does not loop, ends) on the idle's
+first frame, pixel for pixel, so the shop switches between them without a jump.
 
 Usage (needs Node.js on PATH):
   python Tools/VfxLab/export_merchant_art.py            # write the files
@@ -36,6 +39,7 @@ ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 HTML = os.path.join(HERE, 'merchant.html')
 OUT = os.path.join(ROOT, 'Assets', 'Resources', 'Game', 'Shop')
 EMISSIVE_GAIN, HALO_GAIN = 0.6, 0.55
+MAX_LOST = 6  # specks the connectivity pass may drop from a frame (a stray feather-tip pixel); more is a lost piece
 
 _DUMP = r"""
 const A = require(process.argv[2]); const fs = require('fs');
@@ -45,6 +49,7 @@ for (const [name, n, loop] of A.ANIMATIONS) {
   for (let f = 0; f < n; f++) {
     const [c, g] = A.FRAME[name](f);
     bufs.push(Buffer.from(c.px.buffer), Buffer.from(g.px.buffer), Buffer.from(A.silhouetteOf(name, f).buffer));
+    meta.lost = meta.lost || {}; (meta.lost[name] = meta.lost[name] || []).push(A.lostOf ? A.lostOf(name, f) : 0);
   }
 }
 fs.writeFileSync(process.argv[3] + '.bin', Buffer.concat(bufs)); fs.writeFileSync(process.argv[3] + '.json', JSON.stringify(meta));
@@ -133,6 +138,9 @@ def build():
             if xs.min() == 0 or ys.min() == 0 or xs.max() == cell - 1 or ys.max() == cell - 1:
                 problems.append(f'{name} {i}: touches the cell border')
             k = components(sil)
+            lost = meta.get('lost', {}).get(name, [0] * n)[i]
+            if lost > MAX_LOST:
+                problems.append(f'{name} {i}: {lost} pixels came loose from the figure and were dropped')
             if k != 1:
                 problems.append(f'{name} {i}: the figure is {k} separate regions, not one mass')
             if int(ys.max()) != ground:
@@ -142,6 +150,13 @@ def build():
             feet[name].append([round((int(fx.min()) + int(fx.max()) + 1) / 2, 1), int(fx.max()) + 1 - int(fx.min())])
             sheet[r * cell:(r + 1) * cell, i * cell:(i + 1) * cell] = rgba
             light[r * cell:(r + 1) * cell, i * cell:(i + 1) * cell] = halo(g)
+    rest = sheet[:cell, :cell]
+    for r, (name, n, loop) in enumerate(meta['animations']):
+        if name == 'idle':
+            continue
+        for i in ([0] if loop else [0, n - 1]):
+            if not np.array_equal(sheet[r * cell:(r + 1) * cell, i * cell:(i + 1) * cell], rest):
+                problems.append(f'{name} {i}: does not match the rest pose (idle frame 0), the shop would jump')
     fps = meta['fps']
     top = int(np.where(np.asarray(sheet[:cell, :cell, 3]) > 0)[0].min())
     data = {

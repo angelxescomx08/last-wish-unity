@@ -53,7 +53,7 @@
 <div class="page">
   <header>
     <h1>El <span>Mercader</span></h1>
-    <p class="lede">El vendedor de la Tienda del Viajero, dibujado con código como los héroes: la mochila con su manta y su farol, el abrigo remendado, la bufanda que le tapa la boca, el sombrero de peregrino con su pluma, la manga y las manos son una sola silueta con un único contorno. Celdas de 96 px, mira hacia el puesto.</p>
+    <p class="lede">El vendedor de la Tienda del Viajero, dibujado con código como los héroes: la mochila con su manta y su farol, el abrigo remendado, la bufanda que le tapa la boca, el sombrero de peregrino con su pluma, la manga y las manos son una sola silueta con un único contorno. Celdas de 96 px, mira hacia el puesto. Cada fotograma es una pose completa; todas las reacciones empiezan y terminan en el primer fotograma del reposo.</p>
   </header>
   <div class="work">
     <div class="stage"><canvas id="stage" width="384" height="384" aria-label="El Mercader"></canvas></div>
@@ -71,7 +71,7 @@
     </div>
   </div>
   <div class="strip-wrap">
-    <div class="label">Fotogramas a tamaño de combate</div>
+    <div class="label">Fotogramas a tamaño de juego</div>
     <div class="strip" id="strip"></div>
   </div>
 </div>
@@ -83,12 +83,16 @@
    of a wide pilgrim hat with its feather, the sleeve hanging from the shoulder and the clasped hands are zones of the
    same label map, with one outline around everything. Nothing is drawn as a separate piece on top and nothing is rotated
    between frames: each frame has its own complete pose. Two layers per frame: paint (readable alone) and emissive light
-   (only the lantern, the eyes and the coin glints). 96x96 cells, soles on row 93, facing right (towards the stall). */
+   (only the lantern, the eyes and the coin glints). 96x96 cells, soles on row 93, facing right (towards the stall).
+   Animations: idle (breathing, the lantern swinging, scarf and feather in the draught, a blink), talk (the hand explains,
+   the head nods, the scarf moves over the mouth), greet (he tips his hat), thanks (a bow with the hand on his chest),
+   no (eyes closed, shaking his head, wagging a finger) and coins (now and then he flips a coin and catches it). Every
+   reaction starts and ends on the idle's first frame, so the shop can switch between them without a jump. */
 (function (root) {
   'use strict';
   const CELL = 96, N = CELL * CELL, GROUND = 93, ROOT_X = 50, FPS = 12, LOOP = 24;
-  const H_HIP = 24, D_TOP = 70;
-  const ANIMATIONS = [['idle', 1, true]];
+  const H_HIP = 24, D_TOP = 70, LAN_FRAC = 0.883;
+  const ANIMATIONS = [['idle', 24, true], ['talk', 12, true], ['greet', 14, false], ['thanks', 14, false], ['no', 14, false], ['coins', 24, false]];
 
   // ---------------------------------------------------------------------------------------------- palette
   const hex = h => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
@@ -179,15 +183,29 @@
     'TAIL', 'HEAD', 'FACE', 'BRIM', 'CROWN', 'BAND', 'FEATHER', 'SLEEVE', 'CUFF', 'HAND'].forEach((k, i) => { L_[k] = i; });
 
   // ---------------------------------------------------------------------------------------------- the pose
+  // hand/elbow: [u, d] in body coordinates (u from the body's centre line at height d); without them the hand is at
+  // (hx, hh) from the root and the sleeve hangs straight. hs turns the head, lift raises the hat, puff moves the scarf
+  // over the mouth, clasp joins the two hands, armOver lets the hand pass in front of the face, finger raises the index.
   const IDLE = { x: 0, y: 0, sink: 1, lean: 2.5, nod: 1.5, ff: 6, bf: -5, phase: 0, wind: 1, pack: 0, swing: 0,
-    hx: 10, hh: 30, tip: 0, eyes: 1, blink: 0, lamp: 1, flash: 0 };
+    hx: 10, hh: 30, tip: 0, eyes: 1, blink: 0, lamp: 1, flash: 0,
+    hs: 0, lift: 0, puff: 0, clasp: 1, armOver: 0, finger: 0, fang: 0, gaze: [0, 0] };
+
+  /** Where the body's centre line is at each height of a pose (the same maths the figure uses). */
+  function geometry(p) {
+    const gx = ROOT_X + p.x, base = GROUND + p.y, hip = H_HIP - p.sink;
+    const cxAt = dd => gx + p.lean * Math.pow(clamp01((dd - H_HIP) / (D_TOP - H_HIP)), 1.15) + p.nod * clamp01((dd - 44) / (D_TOP - 44)) +
+      (p.hs || 0) * clamp01((dd - 43) / 5);
+    const yAt = dd => base - (dd >= H_HIP ? hip + (dd - H_HIP) : dd * hip / H_HIP);
+    return { gx, base, hip, cxAt, yAt };
+  }
+  const toBody = (G, x, y) => { const hl = G.base - y, d = hl >= G.hip ? H_HIP + (hl - G.hip) : hl * H_HIP / G.hip; return [x - G.cxAt(d), d]; };
 
   /** The whole figure of a pose as ONE label map. */
   function figure(p) {
     const lab = new Int8Array(N), D = new Float32Array(N), U = new Float32Array(N);
-    const gx = ROOT_X + p.x, base = GROUND + p.y, hip = H_HIP - p.sink, ph = p.phase, wind = p.wind;
-    const cxAt = dd => gx + p.lean * Math.pow(clamp01((dd - H_HIP) / (D_TOP - H_HIP)), 1.15) + p.nod * clamp01((dd - 44) / (D_TOP - 44));
-    const yAt = dd => base - (dd >= H_HIP ? hip + (dd - H_HIP) : dd * hip / H_HIP);
+    const { gx, base, hip, cxAt, yAt } = geometry(p), ph = p.phase, wind = p.wind;
+    const sway41 = p.pack * smooth(18, 66, 41.6), barX = cxAt(42.2) + sway41 - 32.5;
+    const lanX = Math.floor(cxAt(33) + sway41 - 32.5 + p.swing + 0.5 - LAN_FRAC) + LAN_FRAC;
     const hc = 52.4, hr = 8.0, fcx = cxAt(52.4) + 3.6;
     for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
       const i = y * CELL + x, px = x + 0.5, py = y + 0.5, hl = base - py;
@@ -206,11 +224,12 @@
         const ends = Math.min(ru + 30.5, -6.5 - ru);
         if (ends > 3.4 || Math.hypot(Math.min(ends, 3.4) - 3.4, rd) <= 3.6) L = L_.ROLL;
       }
-      // lantern: a hook from the pack's back corner, the lantern swinging under it
-      const sw = p.swing, lx = -32.5 + sw, ld = 33;
-      if (d >= 41 && d <= 42.2 && pu >= -32.6 + Math.min(0, sw) && pu <= -27.5) L = L_.HOOK;
-      if (Math.abs(pu - (lx + sw * 0.15 * (d - 38))) <= 0.6 && d >= 38 && d <= 42.2) L = L_.HOOK;
-      const lu = pu - lx, ldd = d - ld;
+      // lantern: a hook from the pack's back corner, the lantern hanging straight under it (it does not lean with him,
+      // and it swings in whole pixels, so the cage keeps its shape)
+      const ld = 33, hookX = lanX + (barX - lanX) * clamp01((d - 38) / 4.2);
+      if (d >= 41 && d <= 42.2 && px >= Math.min(barX, lanX) - 0.1 && pu <= -27.5) L = L_.HOOK;
+      if (Math.abs(px - hookX) <= 0.6 + 0.5 * Math.abs(barX - lanX) / 4.2 && d >= 38 && d <= 42.2) L = L_.HOOK;
+      const lu = px - lanX, ldd = d - ld;
       const lw = ldd > 3.4 ? 3.6 - (ldd - 3.4) * 1.3 : ldd < -4.4 ? 3.0 : 3.6;
       if (ldd >= -5.4 && ldd <= 5.2 && Math.abs(lu) <= lw) L = Math.abs(lu) <= 2.4 && ldd > -4.0 && ldd < 3.0 ? L_.GLASS : L_.LANTERN;
       // boots under the coat
@@ -231,42 +250,55 @@
       const hemT = 4.2 + 0.8 * (1 + Math.sin(u * 0.6 + ph)) * 0.5;
       if (z && u <= fe && u >= -be && !(z === L_.COAT && d < hemT)) L = z;
       // the scarf wraps up over the mouth and its tail falls behind, over the pack strap
-      if (d >= 46.6 && d < 49.2 && u > -2.6 && u <= 1.3 + half + 0.6) L = L_.SCARF;
+      if (d >= 46.6 && d < 49.2 && u > -2.6 && u <= 1.3 + half + 0.6 + p.puff * smooth(46.6, 47.8, d)) L = L_.SCARF;
       const tw = wind * 1.1 * Math.sin(ph + (44 - d) * 0.35);
       if (d >= 33 && d <= 44 && u <= -4.8 + tw * 0.6 && u >= -6.8 + tw && (L === 0 || L === L_.PACK || L === L_.COAT)) L = L_.TAIL;
       // hat: wide drooping brim, low round crown, band and feather
-      const tip = p.tip, bu = u - 0.8, droop = 0.24 * Math.max(Math.abs(bu) - 6, 0) - tip * bu * 0.08;
-      if ((bu / 16.5) ** 2 + ((d - (57.4 - droop)) / 2.4) ** 2 <= 1) L = L_.BRIM;
-      const cu = u + 0.3 - tip * 0.6 * smooth(57, 66, d);
-      const crownW = 7.4 - 0.1 * (d - 58) - (d > 64.5 ? (d - 64.5) * 1.2 : 0);
-      if (d >= 57.2 && d <= 67.4 && Math.abs(cu) <= crownW) L = d < 60.4 ? L_.BAND : L_.CROWN;
-      const fq = clamp01((d - 60) / 10.5), fu = u + 6.0 + 7.0 * fq * fq + 0.5 * Math.sin(ph + d * 0.4) * wind * fq, fw = 1.6 - 1.1 * fq * fq;
-      if (d >= 60 && d <= 70.8 && Math.abs(fu) <= fw && L !== L_.CROWN) L = L_.FEATHER;
+      const tip = p.tip, bu = u - 0.8, droop = 0.24 * Math.max(Math.abs(bu) - 6, 0) - tip * bu * 0.08, dh = d - p.lift;
+      if ((bu / 16.5) ** 2 + ((dh - (57.4 - droop)) / 2.4) ** 2 <= 1) L = L_.BRIM;
+      const cu = u + 0.3 - tip * 0.6 * smooth(57, 66, dh);
+      const crownW = 7.4 - 0.1 * (dh - 58) - (dh > 64.5 ? (dh - 64.5) * 1.2 : 0);
+      if (dh >= 57.2 && dh <= 67.4 && Math.abs(cu) <= crownW) L = dh < 60.4 ? L_.BAND : L_.CROWN;
+      const fq = clamp01((dh - 60) / 10.5), fu = u + 6.0 - tip * 0.6 * smooth(57, 66, dh) + 7.0 * fq * fq + 0.5 * Math.sin(ph + d * 0.4) * wind * fq, fw = 1.6 - 1.1 * fq * fq;
+      if (dh >= 60 && dh <= 70.8 && Math.abs(fu) <= fw && L !== L_.CROWN) L = L_.FEATHER;
       // face: the shadow between the brim and the scarf
       if (L === L_.HEAD && u > -0.8 && ((px - fcx) / 5.2) ** 2 + ((d - 52.8) / 4.4) ** 2 <= 1) L = L_.FACE;
       lab[i] = L;
     }
     // ---- the front arm, part of the same figure: the sleeve hangs from the shoulder like cloth, widening into a cuff,
-    //      the gloved hands clasped in front of the belly (an innkeeper's patient pose)
-    const S = [cxAt(41.0) + 2.0, yAt(41.0)], Hd = [gx + p.hx, base - p.hh];
-    let ax = Hd[0] - S[0], ay = Hd[1] - S[1]; const alen = Math.max(1e-6, Math.hypot(ax, ay)); ax /= alen; ay /= alen;
-    const wlen = Math.max(1, alen - 2.0);
-    let nx = -ay, ny = ax; if (ny < 0) { nx = -nx; ny = -ny; }
+    //      the gloved hands clasped in front of the belly (an innkeeper's patient pose). When the hand moves (to tip the
+    //      hat, to his chest, to explain) the sleeve bends at the elbow: upper arm and forearm are the same cloth tube,
+    //      its width following the length from the shoulder, so a straight sleeve is exactly the approved one.
+    const S = [cxAt(41.0) + 2.0, yAt(41.0)];
+    const Hd = p.hand ? [cxAt(p.hand[1]) + p.hand[0], yAt(p.hand[1])] : [gx + p.hx, base - p.hh];
+    const E = p.elbow ? [cxAt(p.elbow[1]) + p.elbow[0], yAt(p.elbow[1])] : [(S[0] + Hd[0]) / 2, (S[1] + Hd[1]) / 2];
+    const segment = (A0, B0) => {
+      let ax = B0[0] - A0[0], ay = B0[1] - A0[1]; const len = Math.max(1e-6, Math.hypot(ax, ay)); ax /= len; ay /= len;
+      let nx = -ay, ny = ax; if (ny < 0) { nx = -nx; ny = -ny; }
+      return { o: A0, ax, ay, nx, ny, len };
+    };
+    const up1 = segment(S, E), fore = segment(E, Hd), l1 = up1.len, l2 = Math.max(1, fore.len - 2.0), total = l1 + l2;
+    const behind = L => p.armOver < 0.5 && (L === L_.FACE || L === L_.BRIM || L === L_.CROWN || L === L_.BAND || L === L_.HEAD);
     const T = new Float32Array(N);
     for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
-      const i = y * CELL + x, vx = x + 0.5 - S[0], vy = y + 0.5 - S[1];
-      const t = (vx * ax + vy * ay) / wlen, s = vx * nx + vy * ny;
-      if (t < -0.15 || t > 1.0) continue;
-      const tt = clamp01(t);
-      const top = -(2.2 + 0.7 * tt), bottom = 2.0 + 0.8 * tt + 2.2 * tt * tt;
-      if (s < top || s > bottom) continue;
-      const L = lab[i];
-      if (L === L_.FACE || L === L_.BRIM || L === L_.CROWN || L === L_.BAND || L === L_.HEAD) continue;
-      lab[i] = t > 0.84 ? L_.CUFF : L_.SLEEVE; T[i] = tt;
+      const i = y * CELL + x;
+      let best = -1;
+      for (const [sg, from, span, lo] of [[up1, 0, l1, -0.15 * total], [fore, l1, l2, 0]]) {
+        const vx = x + 0.5 - sg.o[0], vy = y + 0.5 - sg.o[1], along = vx * sg.ax + vy * sg.ay, s = vx * sg.nx + vy * sg.ny;
+        if (along < lo || along > span) continue;
+        const tt = clamp01((from + along) / total);
+        if (s < -(2.2 + 0.7 * tt) || s > 2.0 + 0.8 * tt + 2.2 * tt * tt) continue;
+        best = Math.max(best, (from + along) / total);
+      }
+      if (best < -1 + 1e-9 && (x + 0.5 - E[0]) ** 2 + (y + 0.5 - E[1]) ** 2 <= 2.3 * 2.3) best = l1 / total;
+      if (best <= -1 || behind(lab[i])) continue;
+      lab[i] = best > 0.84 ? L_.CUFF : L_.SLEEVE; T[i] = clamp01(best);
     }
+    const fing = p.finger >= 0.5;
     for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
       const a = (x + 0.5 - Hd[0]) ** 2 + (y + 0.5 - Hd[1]) ** 2, b = (x + 0.5 - (Hd[0] + 1.6)) ** 2 + (y + 0.5 - (Hd[1] + 1.4)) ** 2;
-      if (a <= 2.3 * 2.3 || b <= 2.1 * 2.1) lab[y * CELL + x] = L_.HAND;
+      const k = Hd[1] - 1.2 - (y + 0.5), fx = Hd[0] + 0.6 + p.fang * Math.max(0, k) * 0.35;
+      if (a <= 2.3 * 2.3 || (p.clasp >= 0.5 && b <= 2.1 * 2.1) || (fing && k >= 0 && k <= 4.2 && Math.abs(x + 0.5 - fx) <= 0.85)) lab[y * CELL + x] = L_.HAND;
     }
     // the coin pouch hanging from the belt, in front of the coat
     const P = [cxAt(19) + 5.6, yAt(18.5)];
@@ -275,19 +307,23 @@
       if ((dx / 3.0) ** 2 + (dy / 3.4) ** 2 <= 1 && lab[i] !== L_.HAND && lab[i] !== L_.CUFF) lab[i] = L_.POUCH;
       if (Math.abs(dx + 0.4) <= 0.6 && dy < -2.4 && dy > -5.2 && lab[i] === L_.COAT) lab[i] = L_.POUCH;
     }
-    // one figure: anything not 4-connected to the coat is dropped
+    // one figure: anything not 4-connected to the middle of the coat is dropped
     const reach = new Uint8Array(N), stack = [];
-    for (let i = 0; i < N; i++) if (lab[i] === L_.COAT) { reach[i] = 1; stack.push(i); }
+    const seed = idx(cxAt(30), yAt(30));  // the middle of the coat: specks cut off at the hem do not count as the figure
+    if (seed >= 0 && lab[seed]) { reach[seed] = 1; stack.push(seed); }
+    else for (let i = 0; i < N; i++) if (lab[i] === L_.COAT) { reach[i] = 1; stack.push(i); }
     while (stack.length) {
       const i = stack.pop(), x = i % CELL, y = (i / CELL) | 0;
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const j = idx(x + dx, y + dy); if (j >= 0 && !reach[j] && lab[j]) { reach[j] = 1; stack.push(j); }
       }
     }
-    for (let i = 0; i < N; i++) if (!reach[i]) lab[i] = 0;
+    let lost = 0;
+    for (let i = 0; i < N; i++) if (!reach[i]) { if (lab[i]) lost++; lab[i] = 0; }
     return {
-      p, lab, D, U, T, gx, base, hand: Hd, shoulder: S, pouch: P, cxAt, yAt,
-      eyes: [[fcx - 1.4, yAt(53.0)], [fcx + 2.8, yAt(53.0)]], lantern: [gx + (p.swing - 32.5) + p.pack, yAt(33)],
+      lost,
+      p, lab, D, U, T, gx, base, hand: Hd, elbow: E, shoulder: S, pouch: P, cxAt, yAt,
+      eyes: [[fcx - 1.4 + p.gaze[0], yAt(53.0) + p.gaze[1]], [fcx + 2.8 + p.gaze[0], yAt(53.0) + p.gaze[1]]], lantern: [lanX, yAt(33)], lanX,
       mouth: [fcx + 5, yAt(49)]
     };
   }
@@ -324,8 +360,8 @@
     paintZone(c, lant, RAMP.iron, i => 0.6 - 0.04 * U[i]);
     put(c, and(lant, not(up(lant))), RAMP.iron[3]);
     const lk = p.lamp;
-    paintZone(c, glass, RAMP.glass, i => clamp01(0.5 * lk + 0.3 - 0.12 * Math.abs(U[i] - (F.p.swing - 32.5 + F.p.pack)) - 0.05 * Math.abs(D[i] - 32)), 0.6);
-    put(c, and(glass, mask((x, y, i) => Math.abs(U[i] - (F.p.swing - 32.5 + F.p.pack)) < 0.5 && D[i] > 29 && D[i] < 35.5)), RAMP.iron[1]);
+    paintZone(c, glass, RAMP.glass, i => clamp01(0.5 * lk + 0.3 - 0.12 * Math.abs(i % CELL + 0.5 - F.lanX) - 0.05 * Math.abs(D[i] - 32)), 0.6);
+    put(c, and(glass, mask((x, y, i) => Math.abs(x - F.lanX) < 0.5 && D[i] > 29 && D[i] < 35.5)), RAMP.iron[1]);
     add(g, glass, LIGHT.warm, i => 0.55 * lk * clamp01(1 - 0.18 * Math.abs(D[i] - 32)));
     // boots
     for (const lb of [L_.BOOT_B, L_.BOOT_F]) {
@@ -439,33 +475,128 @@
 
   // ---------------------------------------------------------------------------------------------- the frames
   const withP = (p, o) => Object.assign({}, p, o);
-  function idlePose(t) { return withP(IDLE, { phase: t * 2 * Math.PI }); }
-  function idleFrame(f) {
-    const t = f / LOOP, p = idlePose(t);
+  /** Idle: he breathes (the body settles one pixel and the hands rise with the breath), the lantern swings on its hook,
+   *  the pack sways a little, the scarf's tail, the feather and the coat's hem move in the draught, a blink. Frame 0 is
+   *  the approved pose and the rest pose every other animation starts and ends on. */
+  function idlePose(t) {
+    const w = t * 2 * Math.PI, s = Math.sin(w);
+    return withP(IDLE, { phase: w, sink: IDLE.sink + Math.round(0.5 - 0.5 * Math.cos(w)), hh: IDLE.hh + (s > 0.35 ? 1 : 0),
+      swing: 1.1 * s, lamp: 1 + 0.07 * Math.sin(2 * w) });
+  }
+  // the rest pose with the hand and elbow written in body coordinates, so a reaction can move them and come back exactly
+  const NEUTRAL = (() => {
+    const p = idlePose(0), G = geometry(p), S = [G.cxAt(41) + 2, G.yAt(41)], H = [G.gx + p.hx, G.base - p.hh];
+    return withP(p, { hand: toBody(G, H[0], H[1]), elbow: toBody(G, (S[0] + H[0]) / 2, (S[1] + H[1]) / 2) });
+  })();
+  const ease = k => k * k * (3 - 2 * k);
+  /** The pose at frame f of a list of key poses [[frame, changes from the rest pose], ...], eased between keys. The result
+   *  is one complete pose per frame, computed when the sheet is made (nothing is tweened while the game plays). */
+  function keyed(keys, f) {
+    let i = 0; while (i < keys.length - 1 && keys[i + 1][0] <= f) i++;
+    const [fa, A] = keys[i], [fb, Bk] = keys[Math.min(i + 1, keys.length - 1)], k = fb === fa ? 0 : ease(clamp01((f - fa) / (fb - fa)));
+    const out = {};
+    for (const key of new Set([...Object.keys(A), ...Object.keys(Bk)])) {
+      const a = key in A ? A[key] : NEUTRAL[key], b = key in Bk ? Bk[key] : NEUTRAL[key];
+      out[key] = Array.isArray(a) ? a.map((v, j) => v + (b[j] - v) * k) : a + (b - a) * k;
+    }
+    return withP(NEUTRAL, out);
+  }
+  // talk (loops, 1 s): the hand opens towards the customer and makes two beats, the head nods with them, the scarf moves
+  const TALK = [[0, {}],
+    [2, { hand: [12.5, 35.5], elbow: [4.2, 30.4], clasp: 0, nod: 2.4, puff: 1, sink: 1 }],
+    [4, { hand: [14, 33.5], elbow: [3.8, 30], clasp: 0, nod: 1.6, puff: 0 }],
+    [6, { hand: [13.5, 36], elbow: [3.9, 30.4], clasp: 0, nod: 2.6, puff: 1 }],
+    [8, { hand: [14, 34], elbow: [3.8, 30], clasp: 0, nod: 1.8, puff: 0 }],
+    [10, { hand: [11.5, 32.5], elbow: [4.8, 32.5], clasp: 0, nod: 1.6, puff: 0.6 }],
+    [12, {}]];
+  // greet (when you walk in): he takes the brim, lifts and tips his hat with a small nod, and lets it settle
+  const GREET = [[0, {}],
+    [3, { hand: [12.4, 54.2], elbow: [12.2, 44], clasp: 0, armOver: 1, nod: 2.2, lean: 3 }],
+    [5, { hand: [12.6, 56.4], elbow: [12.4, 44.6], clasp: 0, armOver: 1, lift: 1.6, tip: -1.1, nod: 3, lean: 4.5, sink: 2, blink: 1, swing: -0.8 }],
+    [8, { hand: [12.6, 56.6], elbow: [12.4, 44.6], clasp: 0, armOver: 1, lift: 1.8, tip: -1.2, nod: 3.2, lean: 5, sink: 2, blink: 1, swing: 0.6 }],
+    [10, { hand: [12.4, 54], elbow: [12.2, 43.8], clasp: 0, armOver: 1, lift: 0, tip: 0, nod: 2, lean: 3, swing: 0.9 }],
+    [13, { swing: 0 }]];
+  // thanks (after a sale): the hand to his chest and a slow bow, the lantern swinging behind as he comes back up
+  const THANKS = [[0, {}],
+    [3, { hand: [7.2, 38.6], elbow: [3.4, 29.6], clasp: 0, lean: 6.5, nod: 2.6, sink: 2, tip: -0.5, blink: 1, swing: -0.9, pack: -0.4 }],
+    [5, { hand: [7.2, 38.6], elbow: [3.4, 29.6], clasp: 0, lean: 10.5, nod: 4, sink: 3, tip: -1.1, blink: 1, swing: -1.6, pack: -0.8 }],
+    [8, { hand: [7.2, 38.6], elbow: [3.4, 29.6], clasp: 0, lean: 11, nod: 4.2, sink: 3, tip: -1.2, blink: 1, swing: 0.4, pack: 0.2 }],
+    [10, { hand: [8.6, 35.5], elbow: [4.4, 31.5], clasp: 0, lean: 4.5, nod: 2.2, sink: 2, tip: -0.3, swing: 1.4, pack: 0.5 }],
+    [12, { clasp: 1, swing: -0.4 }],
+    [13, {}]];
+  // no (when you cannot pay, or click something sold): eyes closed, he shakes his head and wags a raised finger
+  const NO = [[0, {}],
+    [2, { hand: [12, 42], elbow: [4.6, 31.2], clasp: 0, finger: 1, fang: 0, lean: 1.2, nod: 1, blink: 1 }],
+    [4, { hand: [11.2, 42], elbow: [4.4, 31.2], clasp: 0, finger: 1, fang: -1.2, lean: 1.2, nod: 1, hs: -1, blink: 1 }],
+    [6, { hand: [12.8, 42], elbow: [4.8, 31.2], clasp: 0, finger: 1, fang: 1.2, lean: 1.2, nod: 1, hs: 1, blink: 1 }],
+    [8, { hand: [11.2, 42], elbow: [4.4, 31.2], clasp: 0, finger: 1, fang: -1.2, lean: 1.2, nod: 1, hs: -1, blink: 1 }],
+    [10, { hand: [12.4, 41.5], elbow: [4.6, 31.2], clasp: 0, finger: 1, fang: 0.6, lean: 1.2, nod: 1, hs: 0.5, blink: 1 }],
+    [13, {}]];
+  // coins (now and then, when the shop is quiet): he opens his hand, flips a coin, follows it with his eyes and catches it
+  const FLIP = 6, FLIGHT = 8, COIN_UP = 12;
+  const COINS = [[0, {}],
+    [3, { hand: [13.4, 35.6], elbow: [4.2, 30.6], clasp: 0, nod: 2 }],
+    [5, { hand: [13.4, 34.2], elbow: [4.2, 30.2], clasp: 0, nod: 2.2, sink: 2 }],
+    [6, { hand: [13.8, 37.2], elbow: [4.4, 31], clasp: 0, nod: 1.6, sink: 1, gaze: [0.6, -1] }],
+    [9, { hand: [13.6, 35.8], elbow: [4.2, 30.6], clasp: 0, nod: 0.8, lean: 1.8, gaze: [0.8, -1] }],
+    [13, { hand: [13.6, 36], elbow: [4.2, 30.6], clasp: 0, nod: 1.4, lean: 2.2, gaze: [0.6, 0] }],
+    [14, { hand: [13.6, 34.4], elbow: [4.2, 30.2], clasp: 0, nod: 2, sink: 2, gaze: [0.4, 1] }],
+    [17, { hand: [12.6, 35.2], elbow: [4.1, 30.4], clasp: 0, nod: 2, blink: 1 }],
+    [19, { hand: [12, 35.2], elbow: [4, 30.4], clasp: 0, nod: 1.8 }],
+    [23, {}]];
+  const CLIPS = { talk: TALK, greet: GREET, thanks: THANKS, no: NO, coins: COINS };
+  const lengthOf = name => ANIMATIONS.find(a => a[0] === name)[1];
+  /** The draught's clock: the idle loops once in 2 s; a reaction runs one full cycle, so it ends where the idle begins. */
+  const clipT = (name, f) => name === 'idle' ? f / LOOP : name === 'talk' ? f / lengthOf('talk') : f / (lengthOf(name) - 1);
+  function poseOf(name, f) {
+    const t = clipT(name, f);
+    if (name === 'idle') return withP(idlePose(t), { blink: f === 17 || f === 18 ? 1 : 0 });
+    const p = keyed(CLIPS[name], f);
+    return withP(p, { phase: t * 2 * Math.PI, lamp: 1 + 0.07 * Math.sin(4 * Math.PI * t) });
+  }
+  /** The flipped coin: gold that turns in the air (face, tilted, edge), glinting at the top and when caught. */
+  function flippedCoin(c, g, F, f) {
+    const k = f - FLIP;
+    if (k < 0 || k > FLIGHT) return;
+    const tau = k / FLIGHT, x = Math.floor(F.hand[0] + 0.8 + 2.4 * Math.sin(Math.PI * tau)), y = Math.floor(F.hand[1] - 3.4 - 4 * COIN_UP * tau * (1 - tau));
+    if (k === FLIGHT) { star4(c, g, F.hand[0] + 0.5, F.hand[1] - 3, 2, { col: GOLD[3], edge: GOLD[2], light: LIGHT.amber, gain: 0.8 }); return; }
+    const shapes = [[[0, 0, 3], [1, 0, 2], [0, 1, 2], [1, 1, 1]], [[0, 0, 3], [1, 0, 2], [0, 1, 1]], [[0, 0, 3], [0, 1, 2]], [[0, 0, 2], [1, 0, 3], [1, 1, 1]]];
+    for (const [dx, dy, tone] of shapes[k % 4]) { putPx(c, x + dx + 0.5, y + dy + 0.5, GOLD[tone]); addPx(g, x + dx + 0.5, y + dy + 0.5, LIGHT.amber, tone === 3 ? 0.55 : 0.25); }
+    if (Math.abs(tau - 0.5) < 0.07) star4(c, g, x + 0.5, y - 0.5, 2, { col: GOLD[3], edge: GOLD[2], light: LIGHT.amber, gain: 0.7 });
+  }
+  function frameOf(name, f) {
+    const p = poseOf(name, f), t = clipT(name, f);
     const c = new Cv(), g = new Cv(), F = figure(p);
     paint(c, g, F, t);
     embers(c, g, t, F);
+    if (name === 'coins') flippedCoin(c, g, F, f);
     return [c, g];
   }
   const silhouette = p => { const F = figure(p); const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = F.lab[i] ? 1 : 0; return m; };
-  const FRAME = { idle: idleFrame };
+  const FRAME = {}; for (const [name] of ANIMATIONS) FRAME[name] = f => frameOf(name, f);
   const durationsMs = n => Array.from({ length: n }, (_, i) => Math.round((i + 1) * 1000 / FPS) - Math.round(i * 1000 / FPS));
-  const silhouetteOf = (name, f) => silhouette(idlePose(f / LOOP));
-  const anchors = () => { const F = figure(idlePose(0)); return { mouth: F.mouth, lantern: F.lantern, hand: F.hand }; };
-  const api = { CELL, GROUND, FPS, LOOP, ANIMATIONS, FRAME, durationsMs, silhouetteOf, anchors };
+  const silhouetteOf = (name, f) => silhouette(poseOf(name, f));
+  /** Pixels of the drawing that did not touch the figure and were dropped (a part that came loose): must be 0. */
+  const lostOf = (name, f) => figure(poseOf(name, f)).lost;
+  const anchors = () => { const F = figure(idlePose(0)); return { mouth: F.mouth, lantern: F.lantern, hand: F.hand, top: 96 - 72 }; };
+  const api = { CELL, GROUND, FPS, LOOP, ANIMATIONS, FRAME, durationsMs, silhouetteOf, lostOf, anchors, poseOf };
   root.MerchantArt = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
-
 </script>
 <script>
 (function () {
   'use strict';
   const A = window.MerchantArt;
   const INFO = {
-    idle: ['Pose de prueba', 'Reposo con las manos juntas delante del cinturón, el farol encendido colgando de la mochila y los ojos ámbar bajo el ala del sombrero. Cuando el diseño esté aprobado: reposo de 24 fotogramas, hablar, dar las gracias y negar con la cabeza.']
+    idle: ['Reposo', 'Respira (el cuerpo baja un píxel y las manos suben con el aire), el farol se balancea en su gancho, la cola de la bufanda, la pluma y el bajo del abrigo se mueven con la corriente, y parpadea. El fotograma 1 es la pose aprobada y la pose de la que parten y a la que vuelven todas las demás.'],
+    talk: ['Hablar', 'Mientras se escribe su frase: abre la mano hacia el cliente y marca dos golpes, la cabeza asiente con ellos y la bufanda se mueve sobre la boca. Se repite y siempre termina la vuelta antes de volver al reposo.'],
+    greet: ['Saludar', 'Al entrar a la tienda: toma el ala, levanta e inclina el sombrero con una pequeña reverencia de cabeza, y lo deja caer en su sitio.'],
+    thanks: ['Dar las gracias', 'Después de cada compra: la mano al pecho y una reverencia lenta; el farol se queda atrás y se balancea cuando se endereza.'],
+    no: ['Negar', 'Cuando no te alcanza o pulsas algo ya vendido: cierra los ojos, niega con la cabeza y mueve el dedo índice levantado.'],
+    coins: ['Moneda', 'De vez en cuando, si la tienda está tranquila: abre la mano, lanza una moneda que gira en el aire, la sigue con la mirada y la atrapa.']
   };
-  const EVENTS = {};
+  const EVENTS = { coins: { 6: 'lanza', 10: 'arriba', 14: 'atrapa' } };
   const cache = {};
   function toCanvases(c, g) {
     const lit = document.createElement('canvas'), glow = document.createElement('canvas');
