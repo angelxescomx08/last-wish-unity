@@ -21,6 +21,9 @@ Referencias aprobadas (mirarlas antes de dibujar):
 | Partículas: proyectil arcano cian (anticipación → vuelo → impacto → disipación) | `docs/screenshots/estilo-referencia-particulas.png` |
 | Código del arte aprobado | `Tools/VfxLab/rogue_art.py`, `Tools/VfxLab/pixelkit.py` |
 | Cartas básicas del Mago (hechizos sin personaje, rampa de fuego) | `Tools/VfxLab/mage_art.py` |
+| Cartas básicas de la Guerrera (su espada y su escudo, sin personaje) | `Tools/VfxLab/warrior_art.py` |
+| Cartas del botín de la Pícara (sus dagas, cartas, venenos, humo, capa, botas y dados, sin personaje) | `Tools/VfxLab/rogue_pool_art.py`, `_2.py` … `_6.py` |
+| Qué cartas tienen ya ilustración animada (lista generada) | `docs/card-art.md` (`Tools/VfxLab/card_art_status.py`) |
 | Hojas del juego | `Assets/Resources/Game/Cards/Anim/` |
 | **Personajes y enemigos: método y diseño obligatorios (§3.1)** — ábrelo en el navegador | `Tools/VfxLab/mage_hero.html` → `Assets/Resources/Game/Heroes/mage*` |
 | La Guerrera en combate: mismo método (yelmo con visera en T, escudo, sin capa) | `Tools/VfxLab/warrior_hero.html` → `Assets/Resources/Game/Heroes/warrior*` |
@@ -286,6 +289,160 @@ bola de fuego en parábola con brasas y humo → aterriza (abanico de lenguas, c
 (las 2 de Fuego) que arden durante el bucle y se apagan; la llama de casa se reaviva. La llama se pinta por capas
 escaladas (rojo, naranja, amarillo, núcleo blanco) con lenguas laterales y trozos que se desprenden de la punta.
 
+**Cartas de la Guerrera sin personaje** (`warrior_art.py`, 31-10-2026: Espadazo, Bloqueo, Guardia Férrea). El sujeto es
+su equipo, el de su sprite (`warrior_hero.html`): la espada larga con runas cian (carmesí con Fuerza/Furia), guarda y
+pomo dorados con gema cian y empuñadura carmesí, y el escudo heater carmesí con borde de acero, ribete dorado, espada
+dorada y gema cian. Rampas propias en `warrior_art.KW` (carmesí `#25070f`→`#ff7464`, oro `#5e4626`→`#f4dc9c`, placas
+de luz `#1e2b48`→`#a9c8f2`); el golpe de metal da chispas cálidas, la magia sigue en cian. Espadazo = espada en guardia
+ante una muralla con un estandarte carmesí que ondea → se echa atrás (motas que convergen, destello en la punta) →
+tajo de arriba abajo con media luna cian gruesa → golpe en el suelo (destello, grietas con luz cian, anillo de choque,
+esquirlas de piedra, chispas que rebotan, polvo, temblor de 1 px) → sube de nuevo. Bloqueo = escudo clavado en el suelo
+de una cripta con haz de luz; un hacha enemiga (filo con brillo violeta) asoma por la derecha, se echa atrás (destello)
+y baja (imágenes residuales); el escudo se prepara (contorno azul acero), recibe el golpe (cara encendida, se encoge y
+retrocede 3 px arañando el suelo), dos contornos de escudo se expanden (gana escudo) y las chispas rebotan en el suelo.
+Guardia Férrea = espada clavada tras el escudo sobre un estrado con círculo de runas; 8 placas de luz orbitan, se
+alejan cargándose, se cierran de golpe en un baluarte en arco (juntas que destellan, anillo, polvo, temblor) y, con la
+guardia en pie (Aguante), un pulso dorado sube del escudo a la empuñadura: las runas se vuelven carmesí, estrella roja
+y chevrones que suben (Fuerza); las placas se deshacen en motas y vuelven a orbitar.
+
+**Diez cartas del botín de la Pícara sin personaje** (`rogue_pool_art.py`, 3-11-2026: las comunes que se leen sin
+figura). El sujeto son sus dagas con runas (las de Puñalada y Finta, `rogue_art.dagger_labels`) y lo que tocan; cada
+una tiene un escenario propio para que la mano no se vea repetida, y lo que la carta hace se ve en la escena (los 2
+enemigos al azar, el Combo, el escudo que se pierde). Pinchazo = estilete fino que prende al vuelo una hoja de otoño
+delante de la luna llena (la hoja se queda ensartada y luego cae). Tajo Veloz = sobre los tejados con viento, la daga se
+echa atrás y cruza en media luna cian con imágenes residuales violetas; del corte sube una gota de maná azul (Combo: +1
+de maná). Lanzar la Daga = callejón de ladrillos con farol: la daga gira en el aire, se clava en un cartel de «se
+busca», tiembla, se deshace en humo violeta que vuelve a casa y allí se rehace (la Daga Oculta). Lluvia de Dagas =
+grieta violeta en el cielo; dos andanadas caen sobre dos sigilos del empedrado (2 enemigos), se quedan clavadas
+(anillo de choque, chispas, polvo) y se funden en motas. Cuchillada Errante = cripta con tres sigilos flotantes: una
+ruleta elige uno, la daga va hasta él por un camino ondulado con estela punteada, lo rompe, la ruleta elige otro y
+repite (Combo), y vuelve. Marcar Objetivo = mira carmesí (anillo, cuatro marcas que se cierran con un pulso, ojo en
+rombo) sobre una ciudad en ruinas; tres dagas lanzadas le dan y cada golpe suelta «+» carmesí (el daño extra).
+Abrir la Guardia = el escudo redondo de un enemigo con una barrera azul (su escudo); la estocada le da en el umbo, se
+agrieta, estalla en cuatro trozos con astillas y la barrera se hace añicos azules; luego vuelve a aparecer. Corte y
+Guardia = dos dagas cruzadas ante un ventanal con luz de luna; una corta en media luna por encima, vuelve y el choque
+levanta un rombo de luz azul (gana escudo). Afilar = la punta raspa una piedra de afilar en tres pasadas con chispas
+cálidas, las runas se cargan más en cada una y la hoja alzada destella (el +6 del siguiente golpe). Carterista = puesto
+de mercado de noche: la daga corta el cordel de una bolsa, cae, revienta y las monedas giran y salen volando hacia
+arriba; bajan una bolsa nueva. Colores nuevos en `rogue_pool_art.KR` (hojas, ladrillo, papel, maná `#4b93ff`, tejas);
+el azul del escudo (barrera enemiga, rombo de Corte y Guardia) es la rampa `blue` de `card_frame.py` (`#0f2550`→`#c2e4ff`).
+
+**Otras diez del botín de la Pícara** (`rogue_pool_art_2.py`, 3-11-2026, mismo planteamiento; importa las ayudas de
+`rogue_pool_art.py`). Las cartas que se juegan o se tiran aparecen como cartas pequeñas: dorso violeta con borde dorado
+y runa cian, o cara clara si es la carta que se descarta (`paint_card`, que se estrecha al girar); al cortarlas o
+quemarlas se consumen desde el corte con borde de brasas (`burn_away`). Chatarra = una carta descartada cae sobre un
+montón de chatarra (broquel roto, espada clavada con el puño arriba, engranaje, botella, cadena, trapo carmesí), el
+montón tiembla, sale una carta que sube a la mano (roba 1) y sube una gota de maná (Despojo). Deshacerse = una carta
+flota sobre un puente de noche; la daga la parte en media luna, las mitades arden en brasas violetas que giran hacia
+el centro y forman un rombo azul con cuatro puntos (4 de escudo). Finta Doble = dos dagas fantasma violetas llegan desde
+los lados y se cruzan delante de la de verdad (rombo azul, 3 de escudo); con el Combo, una se vuelve cian y va a uno de
+dos sigilos elegido al azar. Quiebro = en el adarve, una flecha llega hacia la daga, un giro de la hoja la desvía entre
+chispas y un rombo azul (6 de escudo) y, con el Combo, sube una carta (roba 1). Tirar y Cortar = una carta lanzada al
+aire se corta y arde en naranja; la hoja toma la luz naranja de Despojo y raja un poste de entrenamiento con una X
+(naranja y cian), astillas y la marca del corte. Hoja Envenenada = estantes de boticario; la punta se hunde en un
+cuenco de veneno que burbujea, sale verde con tres cargas que se encienden en las runas y tres gotas que caen; la capa
+se va con un destello. Veneno = pantano de noche; un frasco vuela, estalla sobre el sigilo del enemigo (charco y nube
+verde que sube) y, con el Combo, un segundo frasco. Muro de Humo = una bomba con la mecha encendida estalla en un muro
+de humo; dos flechas se quedan dentro con chispas azules (14 de escudo) y rueda otra bomba. Contraataque = en la arena
+con antorchas, el hacha del atacante baja contra la daga, que la para del todo (rombo azul) y responde con una media
+luna que sube por el mango hasta su mano (estrella carmesí: 3 de daño). Golpe de Gracia = campo de batalla bajo una luna
+con bruma roja; la daga se clava en un yelmo caído con ojos rojos, se parte en dos, el alma sale como humo rojo y sube
+la gota de maná (si lo matas, +1 de maná). Rampas nuevas en `rogue_pool_art_2.K2`: naranja de Despojo `#4a1a06`→`#ffd08a`,
+veneno `#0c2410`→`#e2ffb0`, humo `#16121f`→`#8a809e`, vidrio. Quedan por hacer Paso Atrás y Rodar (necesitan su figura).
+
+**Tercera tanda del botín de la Pícara** (`rogue_pool_art_3.py`, 3-11-2026, todas poco comunes). Corte Rápido = en un
+dojo con biombos, dos cortes en X atraviesan un fardo de paja colgado; cae la parte de abajo, suben una carta (roba 1)
+y otra con el Combo, y bajan un fardo nuevo. Tajo = en un muelle de noche, una media luna raja en diagonal una caja; la
+tapa resbala al agua (salpicadura), sube una carta y salen «+» carmesí (Combo: +5). Puñalada Trapera = un desgarro de
+sombra se abre en un callejón por detrás del sigilo de un enemigo; la daga sale de él (solo se ve lo que asoma), apuñala
+y vuelve a apuñalar con luz carmesí (Combo). Golpe Desesperado = templo en ruinas; una carta se quema como precio y sus
+brasas entran en la hoja, que tiembla con un aura carmesí y runas rojas, y un golpe enorme agrieta una columna y le
+arranca un trozo (temblor, escombros, polvo); la piedra se recompone al final. Instinto = bosque de noche con ojos
+rojos; un abanico de cinco cartas (su mano) se enciende carta a carta y cada una manda su luz a la hoja, que gira y
+golpea al sigilo. Juego de Manos = mesa de juego con tapete granate y vela; la carta de arriba del descarte se levanta,
+desaparece en humo violeta, cruza como estela de estrellas y reaparece al otro lado como carta de su mano. Manto Raído =
+en un campanario con viento, su capa cuelga sola de una clavija (cuello recogido, capucha caída a la espalda, broche
+dorado, bajo en jirones, agujeros); para una flecha tras un rombo azul y, con Despojo, sus desgarros brillan en naranja
+y sube un segundo rombo. Reflejos = cueva con estalactitas y cristales; el tiempo se ralentiza (todo más azul) y la daga
+parte en el aire tres gotas que caen; queda un círculo de runas azul con chevrones que suben (el poder: +1 de
+destreza). Escudo Reactivo = una trampa con cara tallada dispara un virote; justo antes, un broquel de luz con anillo de
+runas y red de hexágonos se abre en la punta de la daga, ondea con el golpe y el virote se astilla; suben una carta y una
+gota de maná (Combo). Guardia Evasiva = claro con niebla; dos dagas cruzadas levantan un rombo grande que para dos
+flechas de los sigilos enemigos y, con el Combo, una bruma pálida los apaga y aparecen chevrones azules hacia abajo
+(pegan menos). Ayudas nuevas: `card_rot` (carta girada, para el abanico y el descarte), `plus_marks`, `rising_card`,
+`ward_rings`, `slash_line`, `straw_bundle`, `crate`, `rift`, `pillar`, `cloak_mask`, `drop_mask`, `rune_buckler`; rampas
+`K3` (paja, agua, tapete, tela de la capa, piedra del templo).
+
+**Cuarta tanda del botín de la Pícara** (`rogue_pool_art_4.py`, 3-11-2026: las tres poco comunes que quedaban y siete
+raras). Agilidad = sus botas solas (cuero oscuro, vuelta violeta con una runa cosida, hebilla) en una cuerda floja entre
+dos torres; llega una flecha, se agachan (la cuerda se comba), saltan por encima con imágenes residuales y al caer sube
+un rombo azul (7 de escudo); con el Combo, otra flecha, otro salto más alto y un rombo mayor. Señuelo = un espantapájaros
+de paja con su capucha y su bufanda violeta en un campo (destello violeta que atrae la mirada); rombo azul (5 de
+escudo), el sigilo de un enemigo dispara un rayo carmesí, revienta la paja y el rayo, ya violeta, se curva hasta el
+sigilo del otro enemigo, que se agrieta. Sombra Esquiva = un farol en un poste proyecta la sombra de la daga en el muro
+(cada sillar toma un tono por su distancia a la luz: nada de luz tramada); llega una flecha, la daga se hunde en su
+sombra (contorno violeta), la flecha se clava en el poste y la daga vuelve a salir con un rombo (7 de escudo); con el
+Combo la sombra se despega del muro como carta y entra en la pila de robo (Daga Oculta). Capa de Sombras = su capa de
+noche flota sola (capucha caída, broche dorado, forro de estrellas, ribete dorado); se abre en alas, dentro se forma un
+rombo azul (8 de escudo) y se cierra; el reloj de arena gira (empieza tu turno), su onda fría rompe contra la capa (no
+pasa más allá de su sombra) y, al abrirse otra vez, el rombo sigue ahí. Corte Afortunado = plaza con pozo de los deseos
+(tejadillo, cubo); salta una moneda que gira y, de cara, enseña un trébol de cuatro hojas verde (la Suerte); su oro entra
+en las runas, que se vuelven doradas, y la estocada es un crítico: estrella dorada enorme, aspa dorada y «+» dorados.
+Hoja Única = sala de espejos; los dos espejos laterales reflejan la daga (la copia en los tonos fríos del vidrio), se
+agrietan y estallan en esquirlas; lo que había en ellos entra en la única hoja, que se enciende en violeta (Singular,
+el color del aviso del juego), cae de punta sobre el sigilo del suelo (anillos de choque, «+» violetas) y los espejos se
+vuelven a platear de arriba abajo. Ráfaga de Cortes = patio con un gong de bronce; arriba, las tres cartas jugadas este
+turno se encienden una a una y cada una manda su luz a un corte que raja el gong; la cuarta es esta carta, que se suma a
+la fila, y su corte es carmesí; el gong se balancea con las marcas brillando. Tirar los Dados = garito con lámpara; el
+cubilete tiembla y vuelca un dado que rueda y cae en 1; un trébol de cuatro hojas (la tirada extra de la Suerte) lo
+hace rodar otra vez y cae en 3: los puntos se vuelven azules y suben tres gotas de maná; el dado vuelve al cubilete en
+humo violeta. Es la primera carta cuyo fotograma fijo no es el 0 (`still` 16: el dado con el 3 y el maná). Torbellino =
+páramo con menhires; la daga gira hasta levantar un embudo de viento (franjas en espiral que giran, sin tramado) y
+cabalga a su alrededor, por detrás y por delante; el embudo avanza hasta el sigilo, lo corta y su viento se vuelve un
+rombo (8 de daño, 5 de escudo); con el Combo crece, lo acompaña una segunda hoja carmesí, otro golpe con «+» y un rombo
+mayor. Dagas Ocultas = desván con ventana redonda y luz de luna; dos copias de sombra se despegan de la daga, se pliegan
+en cartas con una daga dibujada y entran en la pila de robo de la caja; con el Combo, una tercera en cian. Ayudas nuevas:
+`comet` (rayo con estela que se afila), `draw_pile`, `boot_mask`/`paint_boot`/`boots`, `decoy_masks`/`paint_decoy`,
+`shadow_of`, `warm_wall`, `lantern`, `starry_cloak`, `hourglass`, `lucky_coin`, `gold_runes`, `well`, `mirror_frame`,
+`reflection`, `gong`, `die_in_air`/`die_landed`, `dice_cup`, `funnel`, `hidden_card`; rampas `K4` (cuero de las botas,
+saco, hueso de los dados, vidrio, bronce, forro de la capa, brezo) y la luz verde `LUCK` del trébol.
+
+**Quinta y sexta tanda: el resto de la Pícara** (`rogue_pool_art_5.py` y `rogue_pool_art_6.py`, 3-11-2026; con ellas
+están animadas sus 66 cartas). Paso Atrás y Rodar, que se habían dejado por necesitar su figura, se hacen con sus botas
+(como Agilidad): no hace falta dibujarla. Las cartas que se descartan o se roban por tipo se pintan con el color de su
+tipo (`type_card`, `kind_card_rot`: carmesí con espada = ataque, azul con escudo = habilidad, violeta con estrella =
+poder); las caras claras de papel giradas parecían papeles o una mano. Los poderes dejan un círculo de runas en el suelo
+(`power_ring`) y el Combo es el signo de dos cheurones en el verde del aviso del juego (`combo_sign`, `K5['combo*']`,
+`LC`). Paso Atrás = bosque de bambú; sus botas saltan un paso atrás y el tajo carmesí de un enemigo raja el suelo donde
+estaban (rombo de 3). Rodar = pasillo con antorchas; rueda (una bola de su capa con una franja dorada que gira) bajo una
+flecha; al caer se le escapa una carta (descarte al azar), sube otra y un rombo pequeño. Rebuscar = sótano con un cofre;
+la daga hurga y saca una carta de cada tipo. Vaciar Bolsillos = desván; su zurrón se vuelca, las cuatro cartas de su mano
+caen al descarte con las monedas, cuatro dorsos suben de la pila de robo al mismo sitio y se dan la vuelta. Abanico de
+Cuchillas = la daga se abre en un abanico de siete hojas que vuelan a los tres sigilos; con Singular, rombo violeta y
+carta. Astucia = un zorro dibujado en estrellas sobre el bosque guiña un ojo y caen dos estrellas que son cartas.
+Danza de Sombras = su daga y dos sombras bailan en un salón bajo el signo del Combo, que se enciende para siempre.
+Estilo Propio = su gorro de bufón en un escenario para un rayo tras un rombo grande (12); con Singular suenan sus
+cascabeles en violeta y salen dos cartas. Estocada Oportuna = placas de hierro giran alrededor de un enemigo; la daga
+espera el hueco y entra por él; con Combo, una carta. Fortuna Audaz = moneda de la fortuna en un templo; en cada turno
+cae del lado de la carta (sube una carta) o del escudo (rombo de 4). Maestra de Dagas = mandala de ocho dagas; una Daga
+Oculta robada pasa por su núcleo y salen dos (una a la mano, otra a la pila). Preparación = mesa de mapas; la punta toca
+la gema de maná de la siguiente carta y se le cae un maná. Rapiña = cada carta que cae al montón de descartes sale como
+una hoja de sombra hacia uno de dos sigilos al azar. Sombra Gemela = la daga y su gemela de sombra cortan la misma media
+luna una tras otra y el signo del Combo sale dos veces. Asesina = un corte baja la barra de vida del enemigo por debajo
+de la marca de la calavera y un tajo carmesí de ejecución rompe su sigilo. Cadena Perfecta = cinco eslabones se encienden
+con cinco cartas; el quinto es de oro y su carta sale dos veces. Lluvia de Golpes = tres ataques del descarte llaman, uno
+por uno, una lluvia de dagas sobre los tres enemigos. Mazo Impecable = las cuatro cartas de su mano enseñan gemas baratas,
+se encienden en oro y cae una hoja dorada enorme (temblor); con Combo, un tajo carmesí y «+». Mil Cortes = bajo una luna
+de sangre las cartas del descarte destellan una tras otra y cada una es un corte en uno de dos enemigos. Nada que Perder
+= una ruleta elige una carta de su mano, arde en un brasero (`mage_art.flame`) y salen dos cartas del humo. Ritmo Letal =
+un metrónomo en una torre del reloj; en el primer golpe del turno a la carta se le cae un maná. Tormenta de Acero = una
+nube de tormenta llueve dagas sobre los tres enemigos; con Singular la segunda lluvia es violeta y más fuerte. Tormenta
+de Veneno = una nube verde sobre un pantano llueve veneno y los sigilos se vuelven verdes y burbujean. Cuatro de ellas
+usan un fotograma fijo distinto del 0 (`still`): Astucia 8, Lluvia de Golpes 5, Tormenta de Acero 6, Tormenta de Veneno
+12. Ayudas nuevas: `enemy_sigil`, `type_card`/`type_glyph`, `kind_card_rot`, `power_ring`, `falling_card`, `combo_sign`,
+`tube` y `jester_cap`, `cloak_ball`, `chest`, `satchel`, `fortune_coin`, `big_card`, `ghost_blade`, `hp_bar`, `skull`,
+`chain_link`, `ground_sigil`, `metronome`, `brazier`; rampas `K5` (Combo, bambú, cofre) y `K6` (cadena, sangre, tormenta).
+
 ---
 
 ### 3.1 Personajes, enemigos y sus animaciones: método y diseño obligatorios
@@ -421,7 +578,7 @@ El juego dibuja en su lienzo de 1280×720 (`Presentation`), sin bloom. La luz se
    - `Blend.Add` ignora el alfa del lienzo: se multiplica a mano por `Canvas.Alpha` y se apaga a 0,35 en cartas
      injugables.
    - Pocas: ≤ 12 quads por carta.
-4. **Reloj**: `GameContext.Time` + una fase sacada del id (FNV-1a), para que las copias vayan juntas y lo que se
+4. **Reloj**: `GameContext.Time` + una fase sacada del id (FNV-1a, en 1000003 pasos: cada carta del juego tiene la suya), para que las copias vayan juntas y lo que se
    reconstruye cada fotograma no salte.
 
 Enemigos y personajes nuevos siguen el mismo esquema: hoja iluminada + hoja de halo (`Blend.Add`) + partículas del
@@ -469,6 +626,7 @@ sistema de efectos del juego (`Presentation/Fx`, con *pooling*), con la paleta y
 python Tools/VfxLab/generate_vfxlab_art.py --preview TestResults/vfxlab-art    # arte + GIF por carta (laboratorio)
 python Tools/VfxLab/export_game_card_art.py --preview TestResults/card-anim    # hojas del juego + GIF de la ventana
 python Tools/VfxLab/export_game_card_art.py --check                            # el repositorio coincide con el generador
+python Tools/VfxLab/card_art_status.py                                          # rehace docs/card-art.md (qué cartas están animadas)
 python Tools/VfxLab/export_hero_art.py --preview TestResults/hero-preview       # hojas de la Pícara y el Mago + GIFs
 python Tools/VfxLab/export_hero_art.py --hero mage                               # solo uno (el Mago necesita Node)
 # Tools/VfxLab/mage_hero.html: ábrelo en el navegador para ver el Mago animado; es la fuente de su hoja
@@ -477,8 +635,9 @@ python Tools/VfxLab/map_icons.py --check                                       #
 ```
 
 1. Dibujar/ajustar en el módulo de arte, mirar el GIF fotograma a fotograma.
-2. Exportar al juego y mirar las capturas reales: pruebas PlayMode `RogueCardArtTests` → `TestResults/rogue-hand-*.png`
-   y `MageCardArtTests` → `TestResults/mage-hand-*.png` (mano, carta sostenida, mazo). Para una pieza nueva, una prueba
+2. Exportar al juego y mirar las capturas reales: pruebas PlayMode `RogueCardArtTests` → `TestResults/rogue-hand-*.png`,
+   `MageCardArtTests` → `TestResults/mage-hand-*.png`, `WarriorCardArtTests` → `TestResults/warrior-hand-*.png` y
+   `RogueLootCardArtTests` → `TestResults/rogue-loot-*.png` (mano, carta sostenida, mazo). Para una pieza nueva, una prueba
    igual con capturas.
 3. Pruebas EditMode y PlayMode completas (AGENTS.md).
 

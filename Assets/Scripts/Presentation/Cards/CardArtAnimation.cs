@@ -45,7 +45,7 @@ namespace LastWish.Presentation
             (cellW, cellH) = Pair(meta.Get("cell")); (frameW, frameH) = Pair(meta.Get("frame"));
             (haloCellW, haloCellH) = Pair(meta.Get("halo_cell")); (haloW, haloH) = Pair(meta.Get("halo_frame"));
             seed = StableHash(id);
-            Phase = seed % 997 / 997f * Duration;
+            Phase = seed % 1000003u / 1000003f * Duration;   // ~10^6 steps: every card of the game gets its own phase
             Sheet = load(CardArtAnimations.Folder + id);
             HaloSheet = load(CardArtAnimations.Folder + id + "_halo");
         }

@@ -136,23 +136,41 @@ python Tools/GenerateCardArt.py --only a_tajo --preview TestResults/card-art   #
 
 Lee los tiles del repositorio Python (`--source-dir`, por defecto `../../python/last-wish`).
 
-### Ilustraciones animadas (cartas básicas de la Pícara y del Mago)
+### Ilustraciones animadas (cartas básicas de los tres héroes y todas las de la Pícara)
 
-Puñalada, Esquiva y Finta (Pícara) y Proyectil Arcano, Égida y Chispa Ígnea (Mago) tienen ilustración animada en el
-juego (88×64, 24 fotogramas a 12 fps; las de la Pícara son las del VFX Lab, `Tools/VfxLab/rogue_art.py`; las del Mago,
-`Tools/VfxLab/mage_art.py`, son el hechizo en sí, sin personaje) en la ventana de arte de la carta normal, con un
+Puñalada, Esquiva y Finta (Pícara), Proyectil Arcano, Égida y Chispa Ígnea (Mago) y Espadazo, Bloqueo y Guardia Férrea
+(Guerrera) tienen ilustración animada en el juego (88×64, 24 fotogramas a 12 fps; las de la Pícara son las del VFX Lab,
+`Tools/VfxLab/rogue_art.py`; las del Mago, `Tools/VfxLab/mage_art.py`, son el hechizo en sí, y las de la Guerrera,
+`Tools/VfxLab/warrior_art.py`, su espada y su escudo, sin personaje) en la ventana de arte de la carta normal, con un
 halo de luz aditivo y destellos y motas en vivo. Se ven en la mano (también inclinadas y al sostenerlas), el mazo,
 recompensas y tienda; donde la carta es una imagen fija (vuelo al robar, apertura de sobres) se ve su fotograma fijo.
 El marco, el texto y los números no cambian.
 
+Todo el botín de la Pícara también la tiene (3-11-2026: sus 66 cartas están animadas; sin personaje: sus dagas, sus
+cartas, sus venenos, su humo, su capa, sus botas y sus dados). `Tools/VfxLab/rogue_pool_art.py`: Pinchazo, Tajo Veloz, Lanzar la Daga, Lluvia de Dagas, Cuchillada Errante,
+Marcar Objetivo, Abrir la Guardia, Corte y Guardia, Afilar y Carterista. `Tools/VfxLab/rogue_pool_art_2.py`: Chatarra,
+Deshacerse, Finta Doble, Quiebro, Tirar y Cortar, Hoja Envenenada, Veneno, Muro de Humo, Contraataque y Golpe de
+Gracia. `Tools/VfxLab/rogue_pool_art_3.py`: Corte Rápido, Tajo, Puñalada Trapera, Golpe Desesperado, Instinto, Juego de
+Manos, Manto Raído, Reflejos, Escudo Reactivo y Guardia Evasiva. `Tools/VfxLab/rogue_pool_art_4.py`: Agilidad, Señuelo,
+Sombra Esquiva, Capa de Sombras, Corte Afortunado, Hoja Única, Ráfaga de Cortes, Tirar los Dados, Torbellino y Dagas
+Ocultas (las tres poco comunes que quedaban y siete raras). `Tools/VfxLab/rogue_pool_art_5.py`: Paso Atrás, Rodar,
+Rebuscar, Vaciar Bolsillos, Abanico de Cuchillas, Astucia, Danza de Sombras, Estilo Propio, Estocada Oportuna, Fortuna
+Audaz, Maestra de Dagas y Preparación. `Tools/VfxLab/rogue_pool_art_6.py`: Rapiña, Sombra Gemela, Asesina, Cadena
+Perfecta, Lluvia de Golpes, Mazo Impecable, Mil Cortes, Nada que Perder, Ritmo Letal, Tormenta de Acero y Tormenta de
+Veneno. Con eso la Pícara tiene sus 66 cartas animadas (72 de 178 en todo el juego).
+
 ```powershell
 python Tools/VfxLab/export_game_card_art.py           # escribe Cards/Anim (hojas, halos y anim.json)
 python Tools/VfxLab/export_game_card_art.py --check   # comprueba que coinciden con el generador
+python Tools/VfxLab/card_art_status.py                # rehace docs/card-art.md (qué cartas ya están animadas)
 ```
 
-Código: `Presentation/Cards/CardArtAnimation.cs`. Pruebas: `CardArtAnimationTests` (EditMode), `RogueCardArtTests` y
-`MageCardArtTests` (PlayMode, capturas `TestResults/rogue-*.png` y `TestResults/mage-*.png`). Una carta nueva con animación solo
-necesita su entrada en el exportador.
+La lista de todas las cartas con su estado (animada o no) está en `docs/card-art.md`, generada a partir de
+`Data/cards.json` y `Cards/Anim/anim.json`.
+
+Código: `Presentation/Cards/CardArtAnimation.cs`. Pruebas: `CardArtAnimationTests` (EditMode), `RogueCardArtTests`,
+`RogueLootCardArtTests`, `MageCardArtTests` y `WarriorCardArtTests` (PlayMode, capturas `TestResults/rogue-*.png`,
+`TestResults/rogue-loot-*.png`, `TestResults/mage-*.png` y `TestResults/warrior-*.png`). Una carta nueva con animación solo necesita su entrada en el exportador.
 
 ### La Pícara en combate (sprite en el estilo de sus cartas)
 

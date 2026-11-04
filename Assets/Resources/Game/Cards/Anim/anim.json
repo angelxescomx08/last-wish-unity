@@ -86,6 +86,930 @@
         140,
         60
       ]
+    },
+    "espadazo_base": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        244,
+        220,
+        156
+      ]
+    },
+    "bloqueo_base": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        224,
+        176
+      ],
+      "mote": [
+        120,
+        220,
+        255
+      ]
+    },
+    "guardia_ferrea_base": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        169,
+        200,
+        242
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "r_pinchazo": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        205,
+        213,
+        236
+      ]
+    },
+    "r_tajo_veloz": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        75,
+        147,
+        255
+      ]
+    },
+    "r_lanzar_la_daga": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "r_lluvia_de_dagas": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        199,
+        155,
+        255
+      ],
+      "mote": [
+        150,
+        240,
+        255
+      ]
+    },
+    "r_cuchillada_errante": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        199,
+        155,
+        255
+      ],
+      "mote": [
+        150,
+        240,
+        255
+      ]
+    },
+    "r_marcar_objetivo": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "r_abrir_la_guardia": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        242,
+        179,
+        94
+      ]
+    },
+    "r_corte_y_guardia": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        124,
+        196,
+        255
+      ]
+    },
+    "r_afilar": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        224,
+        176
+      ],
+      "mote": [
+        150,
+        240,
+        255
+      ]
+    },
+    "r_carterista": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        244,
+        220,
+        156
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "r_chatarra": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        199,
+        155,
+        255
+      ],
+      "mote": [
+        75,
+        147,
+        255
+      ]
+    },
+    "r_deshacerse": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        199,
+        155,
+        255
+      ],
+      "mote": [
+        124,
+        196,
+        255
+      ]
+    },
+    "r_finta_doble": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        199,
+        155,
+        255
+      ],
+      "mote": [
+        150,
+        240,
+        255
+      ]
+    },
+    "r_quiebro": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        224,
+        176
+      ],
+      "mote": [
+        124,
+        196,
+        255
+      ]
+    },
+    "r_tirar_y_cortar": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        208,
+        138
+      ],
+      "mote": [
+        150,
+        240,
+        255
+      ]
+    },
+    "r_hoja_envenenada": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        226,
+        255,
+        176
+      ],
+      "mote": [
+        143,
+        224,
+        74
+      ]
+    },
+    "m_veneno": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        226,
+        255,
+        176
+      ],
+      "mote": [
+        143,
+        224,
+        74
+      ]
+    },
+    "r_muro_de_humo": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        138,
+        128,
+        158
+      ]
+    },
+    "r_contraataque": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "r_golpe_de_gracia": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        75,
+        147,
+        255
+      ]
+    },
+    "a_corte_rapido": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        176,
+        144,
+        76
+      ]
+    },
+    "a_tajo": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "r_punalada_trapera": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        199,
+        155,
+        255
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "r_golpe_desesperado": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        255,
+        208,
+        138
+      ]
+    },
+    "a_instinto": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        244,
+        220,
+        156
+      ]
+    },
+    "r_juego_de_manos": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        199,
+        155,
+        255
+      ],
+      "mote": [
+        244,
+        220,
+        156
+      ]
+    },
+    "r_manto_raido": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        240,
+        130,
+        42
+      ]
+    },
+    "r_reflejos": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        194,
+        228,
+        255
+      ]
+    },
+    "e_escudo_reactivo": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        75,
+        147,
+        255
+      ]
+    },
+    "r_guardia_evasiva": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        150,
+        240,
+        255
+      ]
+    },
+    "e_agilidad": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "r_senuelo": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        199,
+        155,
+        255
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "r_sombra_esquiva": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        199,
+        155,
+        255
+      ],
+      "mote": [
+        242,
+        179,
+        94
+      ]
+    },
+    "r_capa_de_sombras": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "r_corte_afortunado": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        244,
+        220,
+        156
+      ],
+      "mote": [
+        143,
+        224,
+        74
+      ]
+    },
+    "r_hoja_unica": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        240,
+        224,
+        255
+      ],
+      "mote": [
+        140,
+        196,
+        230
+      ]
+    },
+    "r_rafaga_de_cortes": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        244,
+        220,
+        156
+      ]
+    },
+    "r_tirar_los_dados": {
+      "frames": 24,
+      "still": 16,
+      "spark": [
+        195,
+        231,
+        255
+      ],
+      "mote": [
+        143,
+        224,
+        74
+      ]
+    },
+    "m_torbellino": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "r_dagas_ocultas": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        199,
+        155,
+        255
+      ],
+      "mote": [
+        150,
+        240,
+        255
+      ]
+    },
+    "r_paso_atras": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        150,
+        240,
+        255
+      ]
+    },
+    "r_rodar": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        199,
+        155,
+        255
+      ],
+      "mote": [
+        242,
+        179,
+        94
+      ]
+    },
+    "r_rebuscar": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        244,
+        220,
+        156
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "r_vaciar_bolsillos": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        199,
+        155,
+        255
+      ],
+      "mote": [
+        244,
+        220,
+        156
+      ]
+    },
+    "r_abanico_de_cuchillas": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "r_astucia": {
+      "frames": 24,
+      "still": 8,
+      "spark": [
+        240,
+        224,
+        255
+      ],
+      "mote": [
+        166,
+        155,
+        230
+      ]
+    },
+    "r_danza_de_sombras": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        200,
+        255,
+        232
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "r_estilo_propio": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        244,
+        220,
+        156
+      ]
+    },
+    "r_estocada_oportuna": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        60,
+        230,
+        170
+      ]
+    },
+    "r_fortuna_audaz": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        244,
+        220,
+        156
+      ],
+      "mote": [
+        79,
+        149,
+        230
+      ]
+    },
+    "r_maestra_de_dagas": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        240,
+        224,
+        255
+      ],
+      "mote": [
+        150,
+        240,
+        255
+      ]
+    },
+    "r_preparacion": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        195,
+        231,
+        255
+      ],
+      "mote": [
+        242,
+        179,
+        94
+      ]
+    },
+    "r_rapina": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        240,
+        224,
+        255
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "r_sombra_gemela": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        60,
+        230,
+        170
+      ]
+    },
+    "r_asesina": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "r_cadena_perfecta": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        244,
+        220,
+        156
+      ],
+      "mote": [
+        150,
+        240,
+        255
+      ]
+    },
+    "ep_lluvia_de_golpes": {
+      "frames": 24,
+      "still": 5,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "ep_mazo_impecable": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        244,
+        220,
+        156
+      ],
+      "mote": [
+        75,
+        147,
+        255
+      ]
+    },
+    "r_mil_cortes": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        200,
+        58,
+        64
+      ]
+    },
+    "r_nada_que_perder": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        224,
+        176
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "r_ritmo_letal": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        244,
+        220,
+        156
+      ],
+      "mote": [
+        79,
+        149,
+        230
+      ]
+    },
+    "r_tormenta_de_acero": {
+      "frames": 24,
+      "still": 6,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "ep_tormenta_veneno": {
+      "frames": 24,
+      "still": 12,
+      "spark": [
+        226,
+        255,
+        176
+      ],
+      "mote": [
+        143,
+        224,
+        74
+      ]
     }
   },
   "cell": [
