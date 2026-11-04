@@ -20,6 +20,12 @@ namespace LastWish.Domain
         public readonly List<int[]> CastEnemyHp = new List<int[]>();
         public readonly List<int[]> CastEnemyBlock = new List<int[]>();
         public readonly List<int> CastPlayerBlock = new List<int>();
+        /// <summary>Each enemy's statuses after each cast (Veneno, Marcado, elements…), so a golden replay shows every cast
+        /// adding its stacks instead of the final value at once.</summary>
+        public readonly List<StatusSet[]> CastEnemyStatuses = new List<StatusSet[]>();
+        /// <summary>The hero's statuses (Fuerza…) and mana after each cast.</summary>
+        public readonly List<StatusSet> CastHeroStatuses = new List<StatusSet>();
+        public readonly List<int> CastMana = new List<int>();
         /// <summary>Hits the hero took after the card, HP lost each: Pinchos ("thorns"), Réplica ("riposte"), Reflejo ("reflect")
         /// and Sangrado ("bleed", no enemy id).</summary>
         public readonly List<(string enemyId, int amount, string kind)> HeroHits = new List<(string, int, string)>();
@@ -131,7 +137,11 @@ namespace LastWish.Domain
             for (var i = 0; i < hp.Length; i++) hits[i] = Math.Max(0, (i < hpBefore.Length ? hpBefore[i] : hp[i]) - hp[i]);
             result.CastHits.Add(hits); result.CastEnemyHp.Add(hp); result.CastEnemyBlock.Add(enemies.Select(e => e.Block).ToArray());
             result.CastPlayerBlock.Add(Block); result.CastDrawn.Add(drawnToHand - drawnBefore);
+            result.CastEnemyStatuses.Add(enemies.Select(e => CopyOf(e.Statuses)).ToArray());
+            result.CastHeroStatuses.Add(CopyOf(HeroStatuses)); result.CastMana.Add(Mana);
         }
+
+        private static StatusSet CopyOf(StatusSet set) { var copy = new StatusSet(); copy.CopyFrom(set); return copy; }
 
         /// <summary>Relics that trigger after the play (Combo relics, Garfio…) belong to the last cast.</summary>
         private void MergeTail(PlayResult result, int[] hpBefore, int drawnBefore)
@@ -141,6 +151,8 @@ namespace LastWish.Domain
             for (var i = 0; i < hp.Length && i < result.CastHits[last].Length; i++) result.CastHits[last][i] += Math.Max(0, hpBefore[i] - hp[i]);
             result.CastEnemyHp[last] = hp; result.CastEnemyBlock[last] = enemies.Select(e => e.Block).ToArray();
             result.CastPlayerBlock[last] = Block; result.CastDrawn[last] += drawnToHand - drawnBefore;
+            result.CastEnemyStatuses[last] = enemies.Select(e => CopyOf(e.Statuses)).ToArray();
+            result.CastHeroStatuses[last] = CopyOf(HeroStatuses); result.CastMana[last] = Mana;
         }
 
         /// <summary>An independent copy for previews: playing a card on it never touches this combat (same random stream, copied).</summary>

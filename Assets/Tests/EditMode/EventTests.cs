@@ -146,6 +146,55 @@ namespace LastWish.Tests
             Assert.That(combat.Hero.Luck, Is.EqualTo(run.Luck));
         }
 
+        [Test] public void AnOpenStoryNamesItsNextChapterAndWaitsForItsFloor()
+        {
+            var run = Run();
+            Assert.That(run.PendingStories, Is.Empty); Assert.That(run.NextStory, Is.Null);
+            run.OpenEvent("start", "lost_lantern").Choose(0);
+            var story = run.PendingStories.Single();
+            Assert.That(story.EventId, Is.EqualTo("lantern_ferryman"));
+            Assert.That(story.StoryName, Is.EqualTo("La linterna extraviada"));
+            Assert.That(story.FromName, Is.EqualTo("La linterna extraviada"));
+            Assert.That((story.Chapter, story.Chapters, story.MinFloor), Is.EqualTo((2, 3, 2)));
+            Assert.That(story.Ready, Is.False); Assert.That(run.NextStory, Is.Null);
+            run.AdvanceFloor();
+            Assert.That(run.NextStory.EventId, Is.EqualTo("lantern_ferryman"));
+            var next = run.OpenEvent("river");
+            Assert.That(next.Definition.Id, Is.EqualTo("lantern_ferryman"));
+            Assert.That(run.PendingStories, Is.Empty, "the chapter opened: nothing waits any more");
+        }
+
+        [Test] public void DecliningAStoryLeavesNothingPendingAndTheFirstReadyChapterComesFirst()
+        {
+            var run = Run();
+            var lantern = run.OpenEvent("lantern", "lost_lantern");
+            lantern.Choose(lantern.Stage.Choices.Count - 1);
+            Assert.That(run.PendingStories, Is.Empty);
+            run.AdvanceFloor();
+            StoryKit.Follow(run, "violin", "hollow_violin");
+            StoryKit.Follow(run, "ember", "caged_ember");
+            Assert.That(run.PendingStories.Select(s => s.EventId), Is.EqualTo(new[] { "string_mender", "ember_nursery" }));
+            Assert.That(run.PendingStories.Select(s => s.Ready), Is.EqualTo(new[] { true, false }));
+            Assert.That(run.NextStory.EventId, Is.EqualTo("string_mender"));
+            Assert.That(run.OpenEvent("next").Definition.Id, Is.EqualTo("string_mender"), "the map's marker tells the truth");
+        }
+
+        [Test] public void EveryLinkedEventIsALaterChapterOfAStoryThatCanOpen()
+        {
+            foreach (var e in EventCatalog.All)
+            {
+                var first = EventCatalog.Find(EventStories.FirstChapter(e.Id));
+                Assert.That(first.RequiredFlag, Is.Empty, e.Id + ": a story starts with an event anyone can meet");
+                Assert.That(EventStories.Chapters(e.Id), Is.GreaterThanOrEqualTo(EventStories.Chapter(e.Id)), e.Id);
+                Assert.That(EventStories.Chapter(e.Id) > 1, Is.EqualTo(e.RequiredFlag.Length > 0), e.Id + ": chapters 2+ are the flagged events");
+                foreach (var c in e.Stages.SelectMany(s => s.Choices).Where(c => c.NextEventId.Length > 0))
+                    Assert.That(c.SetFlag, Is.EqualTo(EventCatalog.Find(c.NextEventId).RequiredFlag), e.Id + " -> " + c.NextEventId + ": the choice must unlock the chapter it promises");
+            }
+            Assert.That(EventStories.Chapter("lantern_ferryman"), Is.EqualTo(2));
+            Assert.That(EventStories.Chapters("lost_lantern"), Is.EqualTo(3));
+            Assert.That(EventStories.Chapter("glass_sanctum"), Is.EqualTo(4));
+        }
+
         [Test] public void DecliningChainDoesNotUnlockAndOldFloorSessionsCannotCharge()
         {
             var run = Run(); var lantern = run.OpenEvent("lantern", "lost_lantern");

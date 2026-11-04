@@ -9,7 +9,8 @@ namespace LastWish.Presentation
     /// the bottom, the boss waits in its hall at the top. The plan (<see cref="MapPlan"/>, <see cref="MapArt"/>) is one
     /// cached texture per floor; over it go, per room, its fog (rooms you cannot reach yet) or its rune circle (rooms you can
     /// enter), then the lights (a cyan pulse where you can go, the crimson hall, the torches of the rooms you went through),
-    /// the room icons (<see cref="MapIcons"/>), the marker over the room you are in, and the legend.
+    /// the room icons (<see cref="MapIcons"/>), the marker over the room you are in, and the legend. Open stories (a choice
+    /// that "continuará") get a panel left of the plan and a scroll over every event room where their next chapter can appear.
     /// </summary>
     public sealed class MapScene : Scene
     {
@@ -40,6 +41,9 @@ namespace LastWish.Presentation
             LegendTitle = new Rgba(252, 214, 112), LegendText = new Rgba(232, 220, 196),
             FoggedIcon = new Rgba(97, 97, 97), VisitedIcon = new Rgba(146, 144, 152);
         private static readonly Rgba[] Flame = { new Rgba(255, 230, 150), new Rgba(255, 160, 60), new Rgba(200, 70, 30) };
+        private static readonly Rgba StoryInk = new Rgba(252, 214, 112), StoryDim = new Rgba(168, 158, 180), StoryLight = new Rgba(210, 150, 40);
+        /// <summary>The scroll the event screen uses for the story ("La historia continuará").</summary>
+        public const string StoryIcon = "spoil";
         /// <summary>The area under the header the plan is fitted in (screen px), and the kit frame around it.</summary>
         public const int AreaTop = 76, AreaW = 680, AreaH = 614, FramePad = 12;
         public const int LegendW = 236, LegendRow = 38, LegendRight = 36;
@@ -92,10 +96,11 @@ namespace LastWish.Presentation
         public override void Draw(Canvas canvas)
         {
             canvas.Fill(new RectF(0, 0, Canvas.Width, Canvas.Height), Bg);
+            storyKnown = false; storyNow = run.NextStory; storyKnown = true;
             EnsurePlan();
             if (Plan != null) DrawFloor(canvas);
             DrawHeader(canvas);
-            if (Plan != null) { DrawLegend(canvas); DrawHoverTip(canvas); }
+            if (Plan != null) { DrawLegend(canvas); DrawStories(canvas); DrawHoverTip(canvas); }
             Fonts.Get(11).DrawCentered(canvas, "Haz clic en una sala iluminada para avanzar", 640, 710, Colors.TextSecondary);
             overlay?.Draw(canvas);
         }
@@ -217,6 +222,11 @@ namespace LastWish.Presentation
                 }
             }
 
+            // open stories: a scroll over every event room where the next chapter can appear
+            if (NextStory() != null)
+                foreach (var r in plan.Rooms)
+                    if (ShowsStory(r.Node)) DrawStoryMarker(canvas, r, atlas, pulse, t);
+
             // you are here
             if (run.CurrentRoomId != null && plan.ById.TryGetValue(run.CurrentRoomId, out var cur))
             {
@@ -227,6 +237,35 @@ namespace LastWish.Presentation
                 if (marker.Valid) canvas.BlitRect(marker, new RectF(mx - marker.W, my - marker.H, marker.W * Px, marker.H * Px), Rgba.White);
                 else canvas.Fill(new RectF(mx - 4, my - 6, 8, 8), MapArt.CyanR[2]);
             }
+        }
+
+        /// <summary>An event room the next chapter of an open story can appear in (any unvisited one: the first you enter).</summary>
+        public bool ShowsStory(MapRoom n) => n != null && n.Kind == RoomKind.Event && !n.Visited && NextStory() != null;
+
+        /// <summary>The run's next story, read once per frame (the map asks for it per room).</summary>
+        private PendingStory NextStory() => storyKnown ? storyNow : run.NextStory;
+        private PendingStory storyNow;
+        private bool storyKnown;
+
+        /// <summary>Screen centre of a room's story scroll: on the top-right corner of its icon.</summary>
+        public (float x, float y) StoryMarkerAt(MapPlan.Room r)
+        {
+            var (cx, cy) = CentreOf(r);
+            var icon = Icons()?.Icon(MapIcons.NameOf(r.Node, r.Boss)) ?? default;
+            var lift = hoveredId == r.Node.Id && Reachable(r.Node) ? 2 : 0;
+            return icon.Valid ? (cx + icon.W, cy - icon.H - lift) : (cx + 14, cy - 14);
+        }
+
+        private void DrawStoryMarker(Canvas canvas, MapPlan.Room r, MapIcons atlas, float pulse, float t)
+        {
+            var (x, y) = StoryMarkerAt(r);
+            var reach = Reachable(r.Node);
+            if (reach) y += (float)Math.Round(Math.Sin(t * Math.PI * 1.5));
+            Light(canvas, x, y, 22, 20, StoryLight, reach ? 0.45f + 0.3f * pulse : r.Node.Available ? 0.3f : 0.12f);
+            var scroll = Art.Icon(StoryIcon);
+            var tint = r.Node.Available ? Rgba.White : FoggedIcon;
+            if (scroll.Valid) canvas.BlitRect(scroll, new RectF(x - scroll.W, y - scroll.H, scroll.W * 2, scroll.H * 2), tint);
+            else canvas.Fill(new RectF(x - 4, y - 4, 8, 8), StoryInk);
         }
 
         /// <summary>A lit sconce: a two-pixel flame that flickers over the unlit one in the plan, and its warm light.</summary>
@@ -285,6 +324,83 @@ namespace LastWish.Presentation
             }
         }
 
+        /// <summary>One open story in the panel: its rect and the lines it shows.</summary>
+        public sealed class StoryRow
+        {
+            public PendingStory Story; public IRect Rect; public List<string> Name = new List<string>(); public string Chapter = "";
+            public List<string> Where = new List<string>(); public bool Next;
+        }
+
+        public const int StoryTextX = 52, StoryLine = 18, StorySmallLine = 12, StoryGap = 12;
+
+        /// <summary>
+        /// The panel of open stories left of the plan (mirror of the legend), one row per story in the order they come; rows
+        /// that would leave the plan area are summed up as "… y N más". Empty without open stories.
+        /// </summary>
+        public const int StoryTextW = LegendW - StoryTextX - 10;
+
+        /// <summary>Where a story's next chapter waits: the next event room, after the one before it, or a later floor.</summary>
+        public static string WhereText(PendingStory s, bool next) =>
+            !s.Ready ? "Desde el piso " + s.MinFloor : next ? "En el próximo evento" : "Tras la historia anterior";
+
+        public List<StoryRow> StoryRows(out IRect panel, out int hidden)
+        {
+            var rows = new List<StoryRow>(); hidden = 0;
+            var stories = run.PendingStories;
+            panel = default;
+            if (stories.Count == 0 || Plan == null) return rows;
+            int x = LegendRight, top = (int)Origin.y, inner = StoryTextW;
+            var bottom = AreaTop + AreaH - 4;
+            var name = Fonts.Get(16); var small = Fonts.Get(11);
+            var next = run.NextStory;
+            var y = top + 46;
+            for (var i = 0; i < stories.Count; i++)
+            {
+                var s = stories[i];
+                var row = new StoryRow { Story = s, Next = next != null && s.EventId == next.EventId };
+                row.Name = TextFit.WrapLimited(name, s.StoryName, inner, 2);
+                row.Chapter = "Capítulo " + s.Chapter + " de " + s.Chapters;
+                row.Where = TextFit.WrapLimited(small, WhereText(s, row.Next), inner, 2);
+                var h = row.Name.Count * StoryLine + StorySmallLine * (1 + row.Where.Count) + 4;
+                if (y + h + 10 > bottom - (i < stories.Count - 1 ? StoryLine : 0)) { hidden = stories.Count - i; break; }
+                row.Rect = new IRect(x + 8, y - 4, LegendW - 16, h + 6);
+                rows.Add(row);
+                y += h + StoryGap;
+            }
+            if (hidden > 0) y += StoryLine;
+            panel = new IRect(x, top, LegendW, y - top + 4);
+            return rows;
+        }
+
+        private void DrawStories(Canvas canvas)
+        {
+            var rows = StoryRows(out var panel, out var hidden);
+            if (rows.Count == 0 && hidden == 0) return;
+            var t = Game.Time; var pulse = 0.5f + 0.5f * (float)Math.Sin(t * Math.PI);
+            PixelUi.Panel(canvas, Art, new RectF(panel.X, panel.Y, panel.W, panel.H));
+            Txt.OutlinedAt(canvas, Fonts.Get(16), "Historias", Anchor.TopLeft, panel.X + 20, panel.Y + 14, LegendTitle);
+            var scroll = Art.Icon(StoryIcon);
+            var name = Fonts.Get(16); var small = Fonts.Get(11);
+            foreach (var row in rows)
+            {
+                var ready = row.Story.Ready;
+                int ix = panel.X + 32, iy = row.Rect.Y + 16;
+                if (row.Next)
+                {
+                    // the chapter the next event room opens: a warm plate and a breathing light behind its scroll
+                    PixelUi.PixelBox(canvas, new RectF(row.Rect.X, row.Rect.Y, row.Rect.W, row.Rect.H), new Rgba(210, 150, 40, 26), new Rgba(252, 214, 112, 90));
+                    Light(canvas, ix, iy, 26, 22, StoryLight, 0.35f + 0.25f * pulse);
+                }
+                if (scroll.Valid) canvas.BlitRect(scroll, new RectF(ix - scroll.W, iy - scroll.H, scroll.W * 2, scroll.H * 2), ready ? Rgba.White : FoggedIcon);
+                var x = panel.X + StoryTextX; var y = row.Rect.Y + 4;
+                foreach (var line in row.Name) { Txt.OutlinedAt(canvas, name, line, Anchor.TopLeft, x, y, LegendText); y += StoryLine; }
+                Txt.OutlinedAt(canvas, small, row.Chapter, Anchor.TopLeft, x, y + 1, StoryDim); y += StorySmallLine;
+                foreach (var line in row.Where) { Txt.OutlinedAt(canvas, small, line, Anchor.TopLeft, x, y + 1, ready ? StoryInk : StoryDim); y += StorySmallLine; }
+            }
+            if (hidden > 0)
+                Txt.OutlinedAt(canvas, small, "… y " + hidden + (hidden == 1 ? " historia más" : " historias más"), Anchor.BottomLeft, panel.X + StoryTextX, panel.Bottom - 10, StoryDim);
+        }
+
         private void DrawHoverTip(Canvas canvas)
         {
             if (hoveredId == null || overlay != null) return;
@@ -294,6 +410,11 @@ namespace LastWish.Presentation
             var kind = boss ? RoomKind.Boss : node.Kind;
             var content = new TooltipContent(Labels.TryGetValue(kind, out var l) ? l : "?") { Accent = Icons()?.Glow(MapIcons.NameOf(node, boss)) };
             if (Descriptions.TryGetValue(kind, out var d)) content.Lines.Add(d);
+            if (ShowsStory(node))
+            {
+                var story = NextStory();
+                content.Lines.Add("[[" + StoryIcon + "]]Aquí sigue tu historia: " + story.StoryName + " (capítulo " + story.Chapter + " de " + story.Chapters + ").");
+            }
             content.Lines.Add(node.Visited ? "Ya pasaste por aquí." : node.Available ? "Haz clic para entrar." : "Aún no puedes llegar.");
             Tooltip.Draw(canvas, Game, content, mouse);
         }

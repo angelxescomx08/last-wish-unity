@@ -206,6 +206,7 @@ namespace LastWish.Presentation
             var oldHp = HpView();
             var oldBlk = new int[EnemyCount]; for (var i = 0; i < oldBlk.Length; i++) oldBlk[i] = E(i).Block;
             var oldStatus = new List<int[]>(); for (var i = 0; i < EnemyCount; i++) oldStatus.Add(CombatLog.Snapshot(E(i)));
+            var oldSets = StatusesNow(); var oldHero = CopyOf(state.HeroStatuses); var oldMana = state.Mana;
             var oldBlock = state.Block;
             var played = cardIdx >= 0 && cardIdx < state.Hand.Count ? state.Hand[cardIdx] : null;
             var isAttack = played != null && ReadyDamage(played) > 0;
@@ -245,9 +246,12 @@ namespace LastWish.Presentation
             if (result.Casts > 1 && played != null)
             {
                 var start = playedPose != null ? new CardPose(playedPose.X, playedPose.Y, playedPose.Scale, playedPose.Angle) : new CardPose(640f, 600f, 1f, 0f);
-                sequence = new Sequence { Card = played, Dmg = bonuses.Item1, Blk = bonuses.Item2, Result = result, Attack = isAttack, Action = action, Start = start, PrevBlock = oldBlock, PrevHp = (int[])oldHp.Clone() };
+                sequence = new Sequence { Card = played, Dmg = bonuses.Item1, Blk = bonuses.Item2, Result = result, Attack = isAttack, Action = action, Start = start, PrevBlock = oldBlock, PrevHp = (int[])oldHp.Clone(),
+                    PrevStatuses = oldSets, PrevHero = oldHero };
                 shownEnemies = new List<(int, int)>(); for (var i = 0; i < oldHp.Length; i++) shownEnemies.Add((oldHp[i], oldBlk[i]));
                 shownPlayerBlock = oldBlock;
+                // statuses and mana also wait for their cast (a golden Tormenta de Veneno: 5, then 10)
+                shownStatuses = oldSets; shownHeroStatuses = oldHero; shownMana = Math.Max(0, oldMana - cost);
                 return;
             }
             if (played != null && playedPose != null)
@@ -260,7 +264,76 @@ namespace LastWish.Presentation
                 var dmg = oldHp[i] - E(i).Hp;
                 if (dmg > 0 && i < enemyRects.Count) EnemyHit(i, dmg, !E(i).Alive, true, delay);
             }
+            AnnounceStatusGains(oldSets, StatusesNow(), delay);
+            AnnounceHeroGains(oldHero, state.HeroStatuses, delay);
         }
+
+        // ------------------------------------------------------------------ statuses a card adds
+        private static StatusSet CopyOf(StatusSet set) { var copy = new StatusSet(); copy.CopyFrom(set); return copy; }
+        /// <summary>Copies of every shown enemy's statuses (display order).</summary>
+        private StatusSet[] StatusesNow() { var a = new StatusSet[EnemyCount]; for (var i = 0; i < a.Length; i++) a[i] = CopyOf(E(i).Statuses); return a; }
+        /// <summary>A cast's per-enemy statuses (engine order) in display order.</summary>
+        private StatusSet[] StatusView(StatusSet[] domain)
+        {
+            var a = new StatusSet[EnemyCount];
+            for (var i = 0; i < a.Length; i++) a[i] = domain != null && view[i] < domain.Length ? domain[view[i]] : CopyOf(E(i).Statuses);
+            return a;
+        }
+
+        private static Rgba StatusInk(Glossary g, StatusKind kind)
+        {
+            switch (kind)
+            {
+                case StatusKind.Poison: return Toxic;
+                case StatusKind.Fire: return g.FireInk;
+                case StatusKind.Water: return g.WaterInk;
+                case StatusKind.Earth: return g.EarthInk;
+                case StatusKind.Air: return g.AirInk;
+                default: return DebuffText;
+            }
+        }
+
+        /// <summary>
+        /// "+5 Veneno" over every enemy a card (or one cast of a golden card) gave a status or an element, under the damage
+        /// number. Enemy buffs (Vigilancia, Cólera…) and Congelado (the reaction show says it) have their own labels.
+        /// </summary>
+        private void AnnounceStatusGains(StatusSet[] before, StatusSet[] after, float delay)
+        {
+            if (after == null) return;
+            var g = Game.Data.Glossary;
+            for (var i = 0; i < after.Length && i < enemyRects.Count && i < EnemyCount; i++)
+            {
+                var now = after[i]; if (now == null) continue;
+                var was = before != null && i < before.Length ? before[i] : null;
+                var rect = enemyRects[i]; var row = 0;
+                foreach (var kind in now.Active)
+                {
+                    var gain = (long)now[kind] - (was != null ? was[kind] : 0);
+                    if (gain <= 0 || kind == StatusKind.Frozen) continue;
+                    var name = g.StatusName.TryGetValue(kind, out var n) ? n : kind.ToString();
+                    if (g.IsBuffStatus(name)) continue;
+                    fx.AddText(rect.CenterX, rect.Y + 50 + StatusLabelStep * row, "+" + gain + " " + name, StatusInk(g, kind), 1.1f, delay + 0.08f * row, g.StatusIconOf(name));
+                    row++;
+                }
+            }
+        }
+
+        /// <summary>"+1 Fuerza" over the hero for what a card (or one cast) gave her.</summary>
+        private void AnnounceHeroGains(StatusSet before, StatusSet after, float delay)
+        {
+            if (after == null || !playerRect.HasValue) return;
+            var g = Game.Data.Glossary; var r = playerRect.Value; var row = 0;
+            foreach (var kind in after.Active)
+            {
+                var gain = (long)after[kind] - (before != null ? before[kind] : 0);
+                if (gain <= 0) continue;
+                var name = g.StatusName.TryGetValue(kind, out var n) ? n : kind.ToString();
+                var buff = g.IsBuffStatus(name);
+                fx.AddText(r.CenterX, r.Y + 40 + StatusLabelStep * row, "+" + gain + " " + name, buff ? StrengthText : DebuffText, 1.1f, delay + 0.08f * row, g.StatusIconOf(name, buff));
+                row++;
+            }
+        }
+        private const int StatusLabelStep = 22;
 
         private static readonly Rgba ThornText = new Rgba(255, 150, 110), ParryText = new Rgba(120, 240, 220), StrengthText = new Rgba(255, 190, 90),
             BleedText = new Rgba(235, 70, 80), VanishText = new Rgba(200, 170, 255), FrostText = new Rgba(150, 215, 255), ClockText = new Rgba(235, 205, 120);
@@ -426,7 +499,7 @@ namespace LastWish.Presentation
             if (seq.T >= CastTime(result.Casts - 1) + outro)
             {
                 leaving.Add(new Leaving { Card = seq.Card, Pose = new CardPose(CastStage.x, CastStage.y, 0.95f, 0f, 0.95f + 0.14f), Dmg = seq.Dmg, Blk = seq.Blk });
-                sequence = null; shownEnemies = null; shownPlayerBlock = null;
+                sequence = null; shownEnemies = null; shownPlayerBlock = null; shownStatuses = null; shownHeroStatuses = null; shownMana = null;
             }
         }
 
@@ -465,6 +538,19 @@ namespace LastWish.Presentation
                     EnemyHit(i, hits[i], killed, false, delay);
                 }
             if (hpAfter.Length > 0) seq.PrevHp = hpAfter;
+            if (k < result.CastEnemyStatuses.Count)
+            {
+                var statuses = StatusView(result.CastEnemyStatuses[k]);
+                AnnounceStatusGains(seq.PrevStatuses, statuses, delay);
+                seq.PrevStatuses = statuses; shownStatuses = statuses;
+            }
+            if (k < result.CastHeroStatuses.Count)
+            {
+                var hero = result.CastHeroStatuses[k];
+                AnnounceHeroGains(seq.PrevHero, hero, delay);
+                seq.PrevHero = hero; shownHeroStatuses = hero;
+            }
+            if (k < result.CastMana.Count) shownMana = result.CastMana[k];
         }
 
         // ------------------------------------------------------------------ hero animation

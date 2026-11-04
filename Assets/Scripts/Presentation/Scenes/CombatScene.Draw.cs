@@ -124,6 +124,7 @@ namespace LastWish.Presentation
                 if (place.Large) { ex = place.X - EntityWidget.EnemyW / 2; ey = EnemyY; }
                 DrawEnemyFloor(canvas, i, enemy, place);
                 (int, int)? shown = shownEnemies != null && i < shownEnemies.Count ? shownEnemies[i] : ((int, int)?)null;
+                var statuses = shownStatuses != null && i < shownStatuses.Length ? shownStatuses[i] : null;   // golden replay: cast by cast
                 var aliveShown = shown.HasValue ? shown.Value.Item1 > 0 : enemy.Alive;
                 enemyAnims.TryGetValue(i, out var anim);
                 if (anim != null && anim.Hidden) aliveShown = false;   // a summon that has not arrived yet
@@ -136,15 +137,15 @@ namespace LastWish.Presentation
                 {
                     rect = BossRect(anim, place);
                     anim.Draw(canvas, Art, (place.X, place.Y));
-                    if (aliveShown) rect = EntityWidget.DrawEnemy(canvas, Art, g, enemy, rect.X, rect.Y, false, false, null, false, (rect.W, rect.H), hit, attacking, t, boxes, shown, EntityWidget.EnemyHudDrop);
+                    if (aliveShown) rect = EntityWidget.DrawEnemy(canvas, Art, g, enemy, rect.X, rect.Y, false, false, null, false, (rect.W, rect.H), hit, attacking, t, boxes, shown, EntityWidget.EnemyHudDrop, statuses);
                 }
                 else if (anim != null)
                 {
                     rect = new IRect(ex, ey, EntityWidget.EnemyW, EntityWidget.EnemyH);
                     anim.Draw(canvas, Art, (rect.CenterX, rect.Bottom + 6));
-                    if (aliveShown) rect = EntityWidget.DrawEnemy(canvas, Art, g, enemy, ex, ey, false, false, null, false, null, hit, attacking, t, boxes, shown, EntityWidget.EnemyHudDrop);
+                    if (aliveShown) rect = EntityWidget.DrawEnemy(canvas, Art, g, enemy, ex, ey, false, false, null, false, null, hit, attacking, t, boxes, shown, EntityWidget.EnemyHudDrop, statuses);
                 }
-                else rect = EntityWidget.DrawEnemy(canvas, Art, g, enemy, ex, ey, false, false, null, true, null, hit, attacking, t, boxes, shown, EntityWidget.EnemyHudDrop);
+                else rect = EntityWidget.DrawEnemy(canvas, Art, g, enemy, ex, ey, false, false, null, true, null, hit, attacking, t, boxes, shown, EntityWidget.EnemyHudDrop, statuses);
                 enemyRects.Add(rect);
                 if (reactHints.TryGetValue(i, out var hint) && boxes.Element.HasValue && enemy.Alive)
                     ElementPreview.DrawReactHint(canvas, Art, g, boxes.Element.Value, hint, fxTime);
@@ -169,7 +170,7 @@ namespace LastWish.Presentation
                 canvas.Blit(frame, r.X, r.Y, scale);
                 heroSheets.DrawHalo(canvas, heroAction ?? "idle", heroAction != null ? heroActionTime : heroIdleTime, new RectF(r.X, r.Y, w, h));
             }
-            playerRect = EntityWidget.DrawPlayer(canvas, Art, Game.Data.Glossary, state, PlayerX, PlayerY, null, !hasHeroSprites, loss, idleTime, playerHitboxes, shownPlayerBlock);
+            playerRect = EntityWidget.DrawPlayer(canvas, Art, Game.Data.Glossary, state, PlayerX, PlayerY, null, !hasHeroSprites, loss, idleTime, playerHitboxes, shownPlayerBlock, shownHeroStatuses);
             heroFx?.Draw(canvas, Art, center);
         }
 
@@ -215,7 +216,7 @@ namespace LastWish.Presentation
             canvas.Fill(bg, Colors.BgCardArea);
             canvas.BlitRect(HandShade(bg.H), bg, Rgba.White);
             PixelUi.Trim(canvas, Art, HandAreaY);
-            orb.Draw(canvas, Art, ManaCx, ManaCy, state.Mana, state.ManaMaximum);
+            orb.Draw(canvas, Art, ManaCx, ManaCy, ShownMana, state.ManaMaximum);
 
             var hand = state.Hand;
             var poses = TargetPoses();
@@ -349,7 +350,7 @@ namespace LastWish.Presentation
                     Lines = new List<string> { "5 cartas base", "+" + (state.CardsPerTurn - 5) + " por reliquias", "El robo se limita al espacio libre en la mano", "y a las cartas disponibles en robo y descarte." },
                 };
             if (hoveredPlayer) return Tooltip.PlayerQuick(Game, state, IncomingDamage());
-            if (hoveredMana) return Tooltip.Mana(state.Mana, state.ManaMaximum);
+            if (hoveredMana) return Tooltip.Mana(ShownMana, state.ManaMaximum);
             if (hoveredDrawPile) return Tooltip.Pile("ROBO", state.DrawPile.Count, true, state.SpyglassCards());
             if (hoveredDiscPile) return Tooltip.Pile("DESCARTE", state.DiscardPile.Count, false);
             return null;

@@ -318,6 +318,8 @@ dibujo que ejecuta Unity:
 
 Hay 150 eventos con decisiones, rarezas, restricciones por piso, vendedores extraños, sacrificios de vida y vida máxima, riesgos y 16 historias enlazadas; cuatro tienen finales alternativos. Algunos tienen varias decisiones en la misma sala. Se manejan con clic o ↑/↓, 1–3 y Enter. La lista completa, recompensas, enlaces y seguimiento de imágenes está en [docs/events.md](docs/events.md). La sala tiene su interfaz propia (04-11-2026): placa con un arco mágico dibujado por código, la historia en un panel, una tarjeta por opción con iconos de coste, recompensa y riesgo (al pasar el ratón se ve la carta o la reliquia en juego), opciones bloqueadas que dicen por qué y un resultado con lo que cambió. La ilustración propia de cada evento sigue pendiente en los 150.
 
+Las historias que quedan abiertas se ven en el mapa (04-11-2026): un panel «Historias» a la izquierda del plano con cada historia pendiente, su capítulo y dónde sigue («En el próximo evento», «Tras la historia anterior» o «Desde el piso N»), y un pergamino sobre cada sala de evento donde puede aparecer el capítulo siguiente. Al elegir una opción que continúa, el resultado dice en qué piso sigue.
+
 ![Evento](docs/screenshots/event.png)
 
 `python Tools/GenerateEvents.py --check` verifica que lista y programación coinciden con el catálogo editable.

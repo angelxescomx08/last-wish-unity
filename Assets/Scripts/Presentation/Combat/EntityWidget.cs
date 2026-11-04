@@ -247,17 +247,19 @@ namespace LastWish.Presentation
 
         // ------------------------------------------------------------------ enemy
         /// <summary>The element status an enemy holds (first in status order), or null.</summary>
-        public static StatusKind? ElementOf(EnemyState enemy)
+        public static StatusKind? ElementOf(EnemyState enemy) => ElementOf(enemy.Statuses);
+        public static StatusKind? ElementOf(StatusSet statuses)
         {
-            foreach (var k in enemy.Statuses.Active)
+            foreach (var k in statuses.Active)
                 if (k == StatusKind.Fire || k == StatusKind.Water || k == StatusKind.Earth || k == StatusKind.Air) return k;
             return null;
         }
 
         public static IRect DrawEnemy(Canvas canvas, Art art, Glossary g, EnemyState enemy, int x, int y, bool targeted = false, bool highlighted = false,
             Sprite? sprite = null, bool framed = true, (int w, int h)? size = null, int? intentDamage = null, bool lethal = false, float t = 0f, EntityHitboxes hitboxes = null,
-            (int hp, int block)? shown = null, int hudDrop = 0)
+            (int hp, int block)? shown = null, int hudDrop = 0, StatusSet statuses = null)
         {
+            statuses = statuses ?? enemy.Statuses;   // a golden replay draws the statuses cast by cast
             var (w, h) = size ?? (EnemyW, EnemyH);
             var rect = new IRect(x, y, w, h);
             // shown: HP / block drawn during a golden replay (the original swaps them in for the draw)
@@ -296,15 +298,15 @@ namespace LastWish.Presentation
             HpBar(canvas, art, hp, hpNow, enemy.MaxHp, blockNow);
             BlockBadge(canvas, art, hp.X, hp.CenterY, blockNow);
 
-            var element = ElementOf(enemy);
+            var element = ElementOf(statuses);
             hitboxes?.Clear();
             if (element.HasValue)
             {
-                var name = g.StatusName[element.Value]; var stacks = enemy.Statuses[element.Value];
+                var name = g.StatusName[element.Value]; var stacks = statuses[element.Value];
                 var badge = DrawElementBadge(canvas, art, g, name, stacks, hp.Right + 4, hp.CenterY, t);
                 if (hitboxes != null) { hitboxes.Statuses.Add(new StatusBadge(name, stacks, badge)); hitboxes.Element = badge; }
             }
-            StatusEffects(canvas, art, g, enemy.Statuses, element, x, rect.Bottom + 21 + hudDrop, Math.Max(w, 124), hitboxes?.Statuses);
+            StatusEffects(canvas, art, g, statuses, element, x, rect.Bottom + 21 + hudDrop, Math.Max(w, 124), hitboxes?.Statuses);
             if (hitboxes != null) hitboxes.Intent = intentRect;
             return rect;
         }
@@ -350,7 +352,7 @@ namespace LastWish.Presentation
 
         // ------------------------------------------------------------------ player
         public static IRect DrawPlayer(Canvas canvas, Art art, Glossary g, CombatState state, int x, int y, Sprite? sprite = null, bool framed = true,
-            int incomingLoss = 0, float t = 0f, EntityHitboxes hitboxes = null, int? blockShown = null)
+            int incomingLoss = 0, float t = 0f, EntityHitboxes hitboxes = null, int? blockShown = null, StatusSet statusesShown = null)
         {
             var block = blockShown ?? state.Block;
             var rect = new IRect(x, y, PlayerW, PlayerH);
@@ -367,7 +369,7 @@ namespace LastWish.Presentation
             BlockBadge(canvas, art, hp.X, hp.CenterY, block);
             if (incomingLoss > 0) Outlined(canvas, art.Fonts.Get(14), "-" + incomingLoss, Anchor.MidLeft, hp.Right + 5, hp.CenterY, new Rgba(255, 110, 96));
             hitboxes?.Clear();
-            StatusEffects(canvas, art, g, state.HeroStatuses, null, x, rect.Bottom + 23, PlayerW + 40, hitboxes?.Statuses);
+            StatusEffects(canvas, art, g, statusesShown ?? state.HeroStatuses, null, x, rect.Bottom + 23, PlayerW + 40, hitboxes?.Statuses);
             return rect;
         }
     }

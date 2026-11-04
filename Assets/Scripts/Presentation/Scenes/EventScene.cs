@@ -409,7 +409,13 @@ namespace LastWish.Presentation
                 else Add("draw", "Nueva carta: " + name, Gain, run.Deck.LastOrDefault(c => c.Name == name));
             }
             if (choice != null && Session.LastSucceeded && (choice.NextEventId.Length > 0 || choice.SetFlag.Length > 0))
-                Add("spoil", "La historia continuará", Story);
+            {
+                // where the next chapter waits (the map marks it too)
+                PendingStory next = null;
+                foreach (var story in run.PendingStories) if (story.EventId == choice.NextEventId) next = story;
+                Add("spoil", next == null ? "La historia continuará"
+                    : next.Ready ? "La historia continuará en otra sala de evento" : "La historia continuará en el piso " + next.MinFloor, Story);
+            }
             var titleH = TextHeight(20, true);
             var headerH = 12 + titleH + (lay.Outcome.HasValue ? ChipH + 8 : 0) + 8;
             lay.ResultHeaderH = headerH;

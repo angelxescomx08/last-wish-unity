@@ -78,6 +78,82 @@ namespace LastWish.Domain
         }
     }
 
+    /// <summary>An open story: its next chapter waits for an event room (<see cref="RunState.PendingStories"/>).</summary>
+    public sealed class PendingStory
+    {
+        /// <summary>The next chapter's event.</summary>
+        public string EventId { get; }
+        /// <summary>The name of the story's first chapter (the event that started it).</summary>
+        public string StoryName { get; }
+        /// <summary>The chapter whose choice left it open ("" if unknown).</summary>
+        public string FromName { get; }
+        /// <summary>The number of the next chapter (2 = the second) and the chapters of the longest path through it.</summary>
+        public int Chapter { get; }
+        public int Chapters { get; }
+        /// <summary>The first floor the next chapter can appear on.</summary>
+        public int MinFloor { get; }
+        /// <summary>The next event room on this floor opens it.</summary>
+        public bool Ready { get; }
+        public PendingStory(string eventId, string storyName, string fromName, int chapter, int chapters, int minFloor, bool ready)
+        {
+            EventId = eventId; StoryName = storyName; FromName = fromName; Chapter = chapter; Chapters = Math.Max(chapter, chapters);
+            MinFloor = minFloor; Ready = ready;
+        }
+    }
+
+    /// <summary>Linked events (a choice's NextEventId) read as stories: the first chapter, each chapter's number, the length.</summary>
+    public static class EventStories
+    {
+        private static Dictionary<string, string> parent;
+        private static Dictionary<string, List<string>> children;
+
+        private static void Build()
+        {
+            if (parent != null) return;
+            var up = new Dictionary<string, string>(); var down = new Dictionary<string, List<string>>();
+            foreach (var e in EventCatalog.All)
+                foreach (var stage in e.Stages)
+                    foreach (var choice in stage.Choices)
+                    {
+                        var next = choice.NextEventId;
+                        if (next.Length == 0 || next == e.Id) continue;
+                        if (!up.ContainsKey(next)) up[next] = e.Id;
+                        if (!down.TryGetValue(e.Id, out var list)) down[e.Id] = list = new List<string>();
+                        if (!list.Contains(next)) list.Add(next);
+                    }
+            children = down; parent = up;
+        }
+
+        /// <summary>The event that starts the story <paramref name="id"/> belongs to (itself when nothing leads to it).</summary>
+        public static string FirstChapter(string id)
+        {
+            Build(); var seen = new HashSet<string>();
+            while (id != null && seen.Add(id) && parent.TryGetValue(id, out var up)) id = up;
+            return id;
+        }
+
+        /// <summary>The chapter number of an event: 1 for an event nothing leads to.</summary>
+        public static int Chapter(string id)
+        {
+            Build(); var n = 1; var seen = new HashSet<string>();
+            while (id != null && seen.Add(id) && parent.TryGetValue(id, out var up)) { id = up; n++; }
+            return n;
+        }
+
+        /// <summary>Chapters of the longest story path through an event.</summary>
+        public static int Chapters(string id) => Chapter(id) + Below(id, new HashSet<string>());
+
+        private static int Below(string id, HashSet<string> path)
+        {
+            Build();
+            if (id == null || !path.Add(id)) return 0;
+            var best = 0;
+            if (children.TryGetValue(id, out var list)) foreach (var next in list) best = Math.Max(best, 1 + Below(next, path));
+            path.Remove(id);
+            return best;
+        }
+    }
+
     public sealed class EventRecord
     {
         public string EventId { get; }

@@ -12,10 +12,37 @@ namespace LastWish.Domain
         private readonly HashSet<string> seenEvents = new HashSet<string>();
         private readonly HashSet<string> eventFlags = new HashSet<string>();
         private readonly List<string> pendingEvents = new List<string>();
+        /// <summary>The event whose choice left each pending chapter open.</summary>
+        private readonly Dictionary<string, string> pendingFrom = new Dictionary<string, string>();
         private readonly List<EventRecord> eventHistory = new List<EventRecord>();
         public IReadOnlyCollection<string> EventFlags => Array.AsReadOnly(eventFlags.OrderBy(f => f, StringComparer.Ordinal).ToArray());
         public ReadOnlyCollection<EventRecord> EventHistory => eventHistory.AsReadOnly();
         public int PermanentMaxHpAdjustment => BonusMaxHp - eventMaxHpPenalty;
+
+        /// <summary>
+        /// Stories the hero left open, in the order their chapters come: each next chapter waits for an event room (the first
+        /// one that is <see cref="PendingStory.Ready"/> opens in the next event room the hero enters).
+        /// </summary>
+        public IReadOnlyList<PendingStory> PendingStories
+        {
+            get
+            {
+                var stories = new List<PendingStory>();
+                foreach (var id in pendingEvents)
+                {
+                    var next = EventCatalog.Find(id);
+                    if (next == null || seenEvents.Contains(id) || Floor > next.MaxFloor) continue;
+                    var first = EventCatalog.Find(EventStories.FirstChapter(id));
+                    var from = pendingFrom.TryGetValue(id, out var f) ? EventCatalog.Find(f) : null;
+                    stories.Add(new PendingStory(id, first?.Name ?? next.Name, from?.Name ?? "", EventStories.Chapter(id), EventStories.Chapters(id),
+                        next.MinFloor, EventEligible(next)));
+                }
+                return stories.AsReadOnly();
+            }
+        }
+
+        /// <summary>The story the next event room continues on this floor, or null.</summary>
+        public PendingStory NextStory => PendingStories.FirstOrDefault(s => s.Ready);
 
         private bool EventEligible(EventDefinition definition) => Floor >= definition.MinFloor && Floor <= definition.MaxFloor
             && (definition.RequiredFlag.Length == 0 || eventFlags.Contains(definition.RequiredFlag)) && !seenEvents.Contains(definition.Id);
@@ -97,7 +124,7 @@ namespace LastWish.Domain
             { var relic = AcquireRelic(effect.Relic); details.Add("Recibiste: " + relic.Definition.Name + "."); }
             if (success && choice.SetFlag.Length > 0) eventFlags.Add(choice.SetFlag);
             if (success && choice.NextEventId.Length > 0 && !pendingEvents.Contains(choice.NextEventId) && !seenEvents.Contains(choice.NextEventId))
-                pendingEvents.Add(choice.NextEventId);
+            { pendingEvents.Add(choice.NextEventId); pendingFrom[choice.NextEventId] = session.Definition.Id; }
             var message = string.Join(" ", details);
             eventHistory.Add(new EventRecord(session.Definition.Id, session.RoomId, Floor, choice.Label, message));
             return message;

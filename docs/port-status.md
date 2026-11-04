@@ -426,6 +426,39 @@ opens (the shop takes no clicks meanwhile, `Busy`).
   before it opens and blocks other clicks, the scene manager opens it, no gold buys nothing, discounts and the voucher,
   every state draws, and the stall art keeps the style rules. The README capture was re-rendered with the offline renderer.
 
+## Golden replay shows every cast (beyond the original, 2026-11-04)
+
+* User: "La carta de veneno a todos los enemigos no se está aplicando en dorada dos veces" (and asked whether other ×2/×3
+  effects fail too). The rules were right: an audit of every card (normal vs golden vs diamond, fresh enemies and with
+  every keyword condition on) found every effect resolving once per cast; the only differences are random targets,
+  stacking elements/Earth/Strength between casts, reactions and caps (hand 10, mana max). The screen was the problem:
+  the replay of a golden/diamond play only stepped HP and block, so Veneno (and any status, element, Fuerza or mana)
+  jumped to its final value on cast 1 and cast 2 looked empty.
+* `PlayResult` now also records, per cast, each enemy's statuses (`CastEnemyStatuses`), the hero's (`CastHeroStatuses`)
+  and the mana (`CastMana`); `MergeTail` keeps the last cast equal to the fight as it ends. `CombatScene` draws them cast
+  by cast (`shownStatuses`, `shownHeroStatuses`, `ShownMana`; `EntityWidget.DrawEnemy(statuses:)` /
+  `DrawPlayer(statusesShown:)`), so a golden Tormenta de Veneno goes 0 → 5 → 10 and the mana orb fills step by step.
+* Every cast (and every normal card) floats what it added: "+5 Veneno" with the status icon over each enemy, under the
+  damage number (`AnnounceStatusGains`; enemy buffs and Congelado keep their own labels), and "+N Fuerza" over the hero
+  (`AnnounceHeroGains`).
+
+## Open stories on the map (beyond the original, 2026-11-04)
+
+* User: "las historias que tienen continuación que tengan una forma visual de ver que la tienes pendiente".
+* Domain: `RunState.PendingStories` lists each open story in the order its chapters come (`PendingStory`: next chapter,
+  story name = its first chapter, the chapter that left it open, chapter N of M, first floor, `Ready` = an event room on
+  this floor opens it); `RunState.NextStory` is the one the next event room opens. `EventStories` reads the catalog's
+  `NextEventId` links as stories (first chapter, chapter number, longest length).
+* Map: a "Historias" panel left of the plan (mirror of the legend): scroll, story name, "Capítulo 2 de 3" and where it
+  continues ("En el próximo evento" in gold on a warm plate, "Tras la historia anterior", or "Desde el piso N" dimmed);
+  long lists end with "… y N más". While a chapter can open on this floor, every unvisited event room carries the scroll
+  on its icon (warm light, bobbing where you can go, dimmed in the fog) and its tooltip says "Aquí sigue tu historia: …".
+* Event result: "La historia continuará en el piso N" / "… en otra sala de evento".
+* Tests: `ChromaTests` (+3: poison storm per cast, mana/hero snapshots, every card's statuses ×2/×3 and last snapshot =
+  real fight), `GoldenReplayTests` (4, real `CombatScene`), `EventTests` (+3: open story, order and declining, every
+  linked event is a later chapter whose choice sets the flag it needs), `StoryMarkerTests` (5: panel, markers, tooltip,
+  long lists inside the panel, event chip). Unity EditMode 408/408.
+
 ## Card design changes (beyond the original)
 
 `Domain/CardDesign.cs` holds the Unity-only design changes; the exported
@@ -499,6 +532,8 @@ Tracks the power of cards, relics and encounters from real runs and stores it in
   blocked choices explain themselves, every phase draws with hover previews, mouse and keys.
 * `ShopLayoutTests` (19 EditMode cases): the shop — every relic and pack fits its card, prices fit their button, boxes and
   shelves, purchases (charged once, relic flight, pack rise and opening), discounts, every state drawn, stall art.
+* `GoldenReplayTests` (4) and `StoryMarkerTests` (5) EditMode cases: golden/diamond casts drawn one by one (statuses,
+  labels, mana orb) and the open-story panel, map scrolls and event chip.
 * `MerchantTests` (13 EditMode cases): the shopkeeper's sheet (six animations, frames, loops, 12 fps) and place (every pose
   left of the stall), every line fits its bubble with the longest names, his reactions (greeting, sale, golden, voucher,
   refusal, sold, sold out), occasional hover comments, idle chatter without repeats, typing/holding/fading, the animation

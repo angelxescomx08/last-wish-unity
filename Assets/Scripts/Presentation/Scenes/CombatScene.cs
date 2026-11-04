@@ -74,11 +74,17 @@ namespace LastWish.Presentation
         {
             public CardDefinition Card; public BigInteger Dmg; public long Blk; public PlayResult Result; public bool Attack; public string Action;
             public CardPose Start; public float T, Pulse; public int Fired; public int PrevBlock; public int[] PrevHp;
+            /// <summary>Statuses shown before the next cast (display order) and the hero's, to announce what each cast adds.</summary>
+            public StatusSet[] PrevStatuses; public StatusSet PrevHero;
         }
         private Sequence sequence;
         private float holdTime;
         private List<(int hp, int block)> shownEnemies;
         private int? shownPlayerBlock;
+        /// <summary>Statuses and mana drawn during a golden replay (cast by cast), like <see cref="shownEnemies"/>.</summary>
+        private StatusSet[] shownStatuses;
+        private StatusSet shownHeroStatuses;
+        private int? shownMana;
         private readonly BurstParticles bursts = new BurstParticles(400, 11);
         private readonly Rng rng = new Rng(97);
         private float fxTime;
@@ -209,6 +215,8 @@ namespace LastWish.Presentation
         private CardInfo Info(CardDefinition card) => Game.Data.Card(card);
         private bool Unplayable(CardDefinition card) => Info(card).Unplayable;
         private bool Affordable(CardDefinition card) => state.CardCost(card) <= state.Mana;
+        /// <summary>Mana the orb shows: the real value, or the cast being replayed.</summary>
+        private int ShownMana => shownMana ?? state.Mana;
         private float HeroSeconds(string name) => name != null ? heroSheets.Seconds(name) : 0f;
 
         // ------------------------------------------------------------------ outcome
@@ -301,7 +309,7 @@ namespace LastWish.Presentation
             if (overlay != null && overlay.Dismissed) { overlay = null; Sound.PlayCancel(); }
             feedbackTime = Math.Max(0f, feedbackTime - dt);
             banners.Update(dt);
-            orb.Update(dt, state.Mana, state.ManaMaximum);
+            orb.Update(dt, ShownMana, state.ManaMaximum);
             var wasEnemyPhase = enemyPhase > 0;
             enemyPhase = Math.Max(0f, enemyPhase - pdt);
             if (wasEnemyPhase && enemyPhase <= 0) powerBar.FlashWhere(PowerText.ActsAtTurnStart);
