@@ -533,7 +533,14 @@ estático»): reposo de 24 fotogramas (respira, el farol se balancea, bufanda y 
 (12, en bucle), saludar quitándose el sombrero, dar las gracias con una reverencia, negar con el dedo y moneda (lanza y
 atrapa una moneda cuando la tienda está tranquila). Cada fotograma es una pose completa; todas las reacciones empiezan y
 terminan en el fotograma 1 del reposo (la pose aprobada) y el exportador lo comprueba píxel a píxel. El farol cuelga
-recto y se mueve en píxeles enteros aunque el cuerpo se incline. Pendientes de rehacer con él: la Pícara (su hoja actual es por piezas) y los enemigos, cuando el
+recto y se mueve en píxeles enteros aunque el cuerpo se incline. **El Brujo** (sala de mejoras, 04-11-2026):
+`Tools/VfxLab/warlock.html` + `export_warlock_art.py` → `Resources/Game/Warlock/warlock*`; capucha ciruela con la punta
+caída y un cascabel de oro, cara en sombra con ojos verdes y nariz ganchuda, barba con anillo, manto de musgo, túnica con
+runas, frasco verde y bastón nudoso (lo sostiene la mano lejana, que es parte de la misma silueta) con una jaula de raíces
+y una llama fantasma verde. Reposo 24, hablar 12, saludar (llamita en la palma), conjurar 18 (alza el bastón; el destello
+del fotograma 8 es el evento `cast` que la sala usa para lanzar el rayo), negar y pensar (se acaricia la barba). El
+exportador mide los pies con las babuchas y el bajo, no con el bastón. Se enseñó la pose de prueba al usuario antes de la
+hoja. Pendientes de rehacer con él: la Pícara (su hoja actual es por piezas) y los enemigos, cuando el
 usuario lo pida.
 
 **Cara cubierta (regla del usuario, 31-10-2026):** la cara en sombra con ojos que brillan solo tiene sentido si algo la

@@ -314,6 +314,14 @@ dibujo que ejecuta Unity:
 
 ![Gachapón](docs/screenshots/gacha.png)
 
+La sala del Brujo (04-11-2026) tiene su interfaz propia y a El Brujo animado junto a su caldero: tu mazo con el precio de
+cada mejora como botón, la tarifa por rareza, «Ver mejoras» (V) y, al elegir una carta, un panel «Ahora → Mejorada» con lo
+que cambia en fichas grandes. Al confirmar, El Brujo grita el conjuro, alza el bastón y un rayo verde convierte la carta.
+Habla y reacciona como el Mercader (saluda, comenta, niega si falta oro, se acaricia la barba). Arte en
+`Tools/VfxLab/warlock.html` (`python Tools/VfxLab/export_warlock_art.py [--check]`).
+
+![El Brujo](docs/screenshots/warlock.png)
+
 ## Eventos con decisiones
 
 Hay 150 eventos con decisiones, rarezas, restricciones por piso, vendedores extraños, sacrificios de vida y vida máxima, riesgos y 16 historias enlazadas; cuatro tienen finales alternativos. Algunos tienen varias decisiones en la misma sala. Se manejan con clic o ↑/↓, 1–3 y Enter. La lista completa, recompensas, enlaces y seguimiento de imágenes está en [docs/events.md](docs/events.md). La sala tiene su interfaz propia (04-11-2026): placa con un arco mágico dibujado por código, la historia en un panel, una tarjeta por opción con iconos de coste, recompensa y riesgo (al pasar el ratón se ve la carta o la reliquia en juego), opciones bloqueadas que dicen por qué y un resultado con lo que cambió. La ilustración propia de cada evento sigue pendiente en los 150.

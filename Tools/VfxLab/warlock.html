@@ -1,0 +1,775 @@
+<title>El Brujo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one stage (the sprite at 4x on the dungeon night), the animation picker beside it, the frame strip below. */
+  :root {
+    --bg: #0f0d1a; --panel: #17142a; --line: #2b2648; --fg: #e8e4f8; --muted: #9d97bd;
+    --accent: #8be07a; --gold: #d9b26a; --stage: #1c1932; --stage-floor: #120f22;
+    --font-display: "Pixelify Sans", "Silkscreen", ui-monospace, monospace;
+    --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { background: var(--bg); color: var(--fg); }
+  body { font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .page { max-width: 980px; margin: 0 auto; padding-block: 28px 40px; display: grid; gap: 22px; }
+  header { display: grid; gap: 6px; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 6vw, 44px); line-height: 1; margin: 0;
+    letter-spacing: 0.02em; text-wrap: balance; }
+  h1 span { color: var(--accent); }
+  .lede { color: var(--muted); max-width: 64ch; margin: 0; }
+  .work { display: grid; grid-template-columns: minmax(0, 384px) minmax(0, 1fr); gap: 22px; align-items: start; }
+  @media (max-width: 720px) { .work { grid-template-columns: minmax(0, 1fr); } }
+  .stage { position: relative; width: 100%; max-width: 384px; aspect-ratio: 1; border: 1px solid var(--line);
+    background: var(--stage); }
+  .stage canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+  .side { display: grid; gap: 16px; min-width: 0; }
+  .label { font-family: var(--font-display); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .picker { display: flex; flex-wrap: wrap; gap: 8px; }
+  .picker button, .controls button { font: 600 14px/1 var(--font-body); color: var(--fg); background: var(--panel);
+    border: 1px solid var(--line); padding: 10px 12px; cursor: pointer; }
+  .picker button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+  .picker button:hover, .controls button:hover { border-color: var(--muted); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .controls label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 14px; }
+  .readout { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .readout b { color: var(--fg); font-weight: 500; }
+  .note { border-left: 2px solid var(--gold); padding: 2px 0 2px 12px; color: var(--muted); font-size: 14px; margin: 0; }
+  .note strong { color: var(--fg); font-weight: 600; }
+  .strip-wrap { display: grid; gap: 8px; }
+  .strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+  .strip figure { margin: 0; display: grid; gap: 4px; flex: 0 0 auto; }
+  .strip canvas { width: 192px; height: 192px; image-rendering: pixelated; background: var(--stage); border: 1px solid var(--line); cursor: pointer; display: block; }
+  .strip figure[data-on="true"] canvas { border-color: var(--accent); }
+  .strip figcaption { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+  .strip figcaption .ev { color: var(--gold); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+  <header>
+    <h1>El <span>Brujo</span></h1>
+    <p class="lede">El Brujo de la cripta, que mejora cartas a cambio de oro, dibujado con código como los héroes: el bastón nudoso con su jaula de raíces y la llama fantasma verde, la manga y la mano que lo sostienen, la túnica ciruela con runas en el bajo, el cordón con su frasco, las babuchas, el manto de musgo, la capucha honda cuya punta cae hacia atrás, la cara en sombra con ojos verdes y nariz ganchuda, la barba larga con su anillo de oro, la manga acampanada y la mano huesuda son una sola silueta con un único contorno. Celdas de 96 px, mira hacia las cartas. Cada fotograma es una pose completa; todas las animaciones empiezan y terminan en el primer fotograma del reposo.</p>
+  </header>
+  <div class="work">
+    <div class="stage"><canvas id="stage" width="384" height="384" aria-label="El Brujo"></canvas></div>
+    <div class="side">
+      <div class="label">Animación</div>
+      <div class="picker" id="picker" role="group" aria-label="Animación"></div>
+      <div class="controls">
+        <button id="play" type="button">Pausa</button>
+        <button id="prev" type="button" aria-label="Fotograma anterior">◀</button>
+        <button id="next" type="button" aria-label="Fotograma siguiente">▶</button>
+        <label><input id="halo" type="checkbox" checked> Halo de luz</label>
+      </div>
+      <div class="readout" id="readout"></div>
+      <p class="note" id="note"></p>
+    </div>
+  </div>
+  <div class="strip-wrap">
+    <div class="label">Fotogramas a tamaño de juego</div>
+    <div class="strip" id="strip"></div>
+  </div>
+</div>
+
+<script id="warlock-art">
+/* El Brujo, who upgrades cards for gold, drawn by code (docs/art-style.md section 3.1: the mandatory method for
+   characters). Every frame computes the WHOLE figure as one silhouette: the gnarled staff with its cage of roots and the
+   green ghost flame, the far sleeve and hand that hold it, the long plum robe with runes on the hem, the rope belt and its
+   vial, the curled slippers, the moss-fur mantle, the deep hood whose long tip droops behind him, the shadowed face with
+   green eyes and a crooked nose, the long beard with its gold ring, the bell sleeve and the bony hand are zones of the
+   same label map, with one outline around everything. Nothing is drawn as a separate piece on top and nothing is
+   rotated between frames: each frame has its own complete pose. Two layers per frame: paint (readable alone) and
+   emissive light (only the flame, the eyes, the vial and the magic). 96x96 cells, soles on row 93, facing right
+   (towards the cards). Animations: idle (breathing, the flame flickering, beard and hood tip in the draught, a blink),
+   talk (the hand explains, the head nods, the beard moves), greet (a green flame in his palm), cast (he raises the
+   staff and the flame bursts: the upgrade), no (eyes closed, shaking his head, wagging a finger) and ponder (now and
+   then he strokes his beard). Every animation starts and ends on the idle's first frame, so the room can switch between
+   them without a jump. */
+(function (root) {
+  'use strict';
+  const CELL = 96, N = CELL * CELL, GROUND = 93, ROOT_X = 52, FPS = 12, LOOP = 24;
+  const H_HIP = 24, D_TOP = 70;
+  const ANIMATIONS = [['idle', 24, true], ['talk', 12, true], ['greet', 14, false], ['cast', 18, false], ['no', 14, false], ['ponder', 24, false]];
+  const CAST_FRAME = 8;
+
+  // ---------------------------------------------------------------------------------------------- palette
+  const hex = h => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
+  const K = {};
+  for (const [k, v] of Object.entries({
+    ink: '#07050c', body0: '#0c0814', rimc: '#58dcff', rimv: '#3a2163', cyan1: '#137ea3', void1: '#05030a', white: '#ffffff',
+    thread: '#1f5a32', bounce: '#1a2a1c'
+  })) K[k] = hex(v);
+  const ramp = a => a.map(hex);
+  const RAMP = {
+    robe: ramp(['#140b1a', '#22132d', '#331c41', '#472859', '#5f3775']),
+    hood: ramp(['#100916', '#1c0f25', '#2b1636', '#3d2150', '#552d6b']),
+    fur: ramp(['#0f1a0e', '#1a2c17', '#284321', '#3a5d2c', '#527a3a']),
+    beard: ramp(['#4c463e', '#7a7264', '#a9a08c', '#d4cbb4', '#f1ead6']),
+    wood: ramp(['#170e09', '#2a1a0e', '#402814', '#5a3a1e', '#7a522c']),
+    skin: ramp(['#18201a', '#2c3a30', '#4a5c4c', '#6e826c', '#93a68c']),
+    slip: ramp(['#1a0a10', '#2e1219', '#481c26', '#682a34']),
+    rope: ramp(['#2a2218', '#4a3e2c', '#6e5e42', '#94825c']),
+    flame: ramp(['#0f2a18', '#1f5a32', '#3c9a4c', '#8be07a', '#e6ffd0'])
+  };
+  const GOLD = ramp(['#5e4626', '#8a6a3a', '#d9b26a', '#f4dc9c']);
+  const LIGHT = { cyan: [0.25, 0.85, 1.0], white: [1, 1, 1], green: [0.4, 1.0, 0.35], lime: [0.65, 1.0, 0.5], amber: [1.0, 0.72, 0.3] };
+  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+  // ---------------------------------------------------------------------------------------------- tiny raster kit
+  const BAY = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  const B = new Float32Array(N);
+  for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) B[y * CELL + x] = (BAY[y % 4][x % 4] + 0.5) / 16;
+  const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+  const smooth = (e0, e1, d) => clamp01((d - e0) / (e1 - e0));
+  const frac = v => v - Math.floor(v);
+
+  class Cv { constructor() { this.px = new Float32Array(N * 4); } }
+  const val = (a, i) => typeof a === 'number' ? a : typeof a === 'function' ? a(i) : a[i];
+  function put(c, m, col, a = 1) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      if (B[i] < val(a, i)) { const o = i * 4; c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1; }
+    }
+  }
+  function add(g, m, light, a = 1) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      const al = val(a, i), o = i * 4;
+      g.px[o] += light[0] * al; g.px[o + 1] += light[1] * al; g.px[o + 2] += light[2] * al; g.px[o + 3] = 1;
+    }
+  }
+  const idx = (x, y) => { x = Math.floor(x); y = Math.floor(y); return x < 0 || y < 0 || x >= CELL || y >= CELL ? -1 : y * CELL + x; };
+  const inside = (x, y) => x >= 1 && y >= 1 && x < CELL - 1 && y < CELL - 1;
+  function putPx(c, x, y, col, a = 1) {
+    const i = idx(x, y); if (i < 0 || B[i] >= a || !inside(x, y)) return;
+    const o = i * 4; c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+  }
+  function addPx(g, x, y, light, a = 1) {
+    const i = idx(x, y); if (i < 0 || !inside(x, y)) return;
+    const o = i * 4; g.px[o] += light[0] * a; g.px[o + 1] += light[1] * a; g.px[o + 2] += light[2] * a; g.px[o + 3] = 1;
+  }
+  const mask = fn => { const m = new Uint8Array(N); for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) { const i = y * CELL + x; if (fn(x + 0.5, y + 0.5, i, x, y)) m[i] = 1; } return m; };
+  const at = (m, x, y) => x >= 0 && y >= 0 && x < CELL && y < CELL ? m[y * CELL + x] : 0;
+  function dilate(m, diag = false) {
+    const o = new Uint8Array(N);
+    for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
+      const i = y * CELL + x;
+      o[i] = m[i] || at(m, x - 1, y) || at(m, x + 1, y) || at(m, x, y - 1) || at(m, x, y + 1) ||
+        (diag && (at(m, x - 1, y - 1) || at(m, x + 1, y - 1) || at(m, x - 1, y + 1) || at(m, x + 1, y + 1))) ? 1 : 0;
+    }
+    return o;
+  }
+  const outline = m => { const d = dilate(m); for (let i = 0; i < N; i++) d[i] = d[i] && !m[i] ? 1 : 0; return d; };
+  const nb = (m, dx, dy) => { const o = new Uint8Array(N); for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) o[y * CELL + x] = at(m, x + dx, y + dy); return o; };
+  const and = (...ms) => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) { let v = 1; for (const m of ms) if (!m[i]) { v = 0; break; } o[i] = v; } return o; };
+  const or = (...ms) => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) { for (const m of ms) if (m[i]) { o[i] = 1; break; } } return o; };
+  const not = m => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) o[i] = m[i] ? 0 : 1; return o; };
+  function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const uni = (r, a, b) => a + (b - a) * r();
+  function toneIdx(i, light, n, amp) { return Math.max(0, Math.min(n - 1, Math.floor(light * (n - 1) + 0.5 + (B[i] - 0.5) * amp))); }
+  function paintZone(c, m, rp, light, amp = 0.55) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      const col = rp[toneIdx(i, val(light, i), rp.length, amp)], o = i * 4;
+      c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+    }
+  }
+  function bezier(P, t) {
+    const u = 1 - t;
+    return [u * u * u * P[0][0] + 3 * u * u * t * P[1][0] + 3 * u * t * t * P[2][0] + t * t * t * P[3][0],
+      u * u * u * P[0][1] + 3 * u * u * t * P[1][1] + 3 * u * t * t * P[2][1] + t * t * t * P[3][1]];
+  }
+
+  // ---------------------------------------------------------------------------------------------- labels
+  const L_ = {}; ['EMPTY', 'STAFF', 'CAGE', 'FLAME', 'BSLEEVE', 'BHAND', 'SLIP_B', 'SLIP_F', 'ROBE', 'ROPE', 'VIAL', 'MANTLE',
+    'HOOD', 'TIP', 'BELL', 'FACE', 'NOSE', 'BEARD', 'BRING', 'SLEEVE', 'CUFF', 'HAND', 'TOE'].forEach((k, i) => { L_[k] = i; });
+
+  // ---------------------------------------------------------------------------------------------- the pose
+  // hand/elbow: [u, d] in body coordinates (u from the body's centre line at height d). staffX: where the staff stands
+  // (from the root), staffLift raises it, staffTilt moves its top forward; grip: where the far hand holds it (height up
+  // the staff). hs turns the head, tip moves the hood's tip, wag moves the beard, flame/flare: the ghost flame.
+  const IDLE = { x: 0, y: 0, sink: 1, lean: 3.5, nod: 1.5, ff: 6, bf: -4, phase: 0, wind: 1,
+    hand: [9.6, 25.6], elbow: [-0.8, 29.4], armOver: 0, finger: 0, fang: 0, palm: 0,
+    staffX: -16, staffLift: 0, staffTilt: 0, grip: 38, flame: 1, flare: 0,
+    hs: 0, tip: 0, eyes: 1, blink: 0, gaze: [0, 0], wag: 0 };
+
+  function geometry(p) {
+    const gx = ROOT_X + p.x, base = GROUND + p.y, hip = H_HIP - p.sink;
+    const cxAt = dd => gx + p.lean * Math.pow(clamp01((dd - H_HIP) / (D_TOP - H_HIP)), 1.15) + p.nod * clamp01((dd - 44) / (D_TOP - 44)) +
+      (p.hs || 0) * clamp01((dd - 44) / 5);
+    const yAt = dd => base - (dd >= H_HIP ? hip + (dd - H_HIP) : dd * hip / H_HIP);
+    return { gx, base, hip, cxAt, yAt };
+  }
+  const toBody = (G, x, y) => { const hl = G.base - y, d = hl >= G.hip ? H_HIP + (hl - G.hip) : hl * H_HIP / G.hip; return [x - G.cxAt(d), d]; };
+
+  // the staff in screen space: foot on the ground (or lifted), the top leaning forward by staffTilt
+  const STAFF_LEN = 66, CUP = 68.5, FLAME_C = 71.6;
+  const CAGE_PTS = (() => {
+    const pts = [];
+    for (const side of [-1, 1]) for (let k = 0; k <= 40; k++) { const t = k / 40; pts.push([CUP - 1.6 + 10.6 * t, side * (1.0 + 3.7 * Math.sin(Math.PI * t)), 0.82]); }
+    for (let k = 0; k <= 10; k++) { const t = k / 10; pts.push([CUP + 9.0 + 0.6 * t, -1.0 + 2.0 * t, 0.95]); }
+    for (let k = 0; k <= 16; k++) { const t = k / 16, a = Math.PI * 0.9 * t; pts.push([CUP + 9.6 + 2.2 * Math.sin(a), 1.0 + 2.0 * (1 - Math.cos(a)), 0.8]); }
+    return pts;
+  })();
+  function staffFrame(p) {
+    const fx = Math.round(ROOT_X + p.x + p.staffX) + 0.5, fy = GROUND + p.y - p.staffLift;
+    const tx = fx + p.staffTilt, ty = fy - 90;
+    let ax = tx - fx, ay = ty - fy; const len = Math.hypot(ax, ay); ax /= len; ay /= len;
+    return { fx, fy, ax, ay, nx: -ay, ny: ax, at: s => [fx + ax * s, fy + ay * s] };
+  }
+
+  /** The whole figure of a pose as ONE label map. */
+  function figure(p) {
+    const lab = new Int8Array(N), D = new Float32Array(N), U = new Float32Array(N), SA = new Float32Array(N), SP = new Float32Array(N);
+    const { gx, base, hip, cxAt, yAt } = geometry(p), ph = p.phase, wind = p.wind;
+    const SF = staffFrame(p);
+    const hc = 51.6, hr = 8.7, fcx = cxAt(51) + 3.9;
+    // the hood's long tip: a curved cone that bends back and droops, ending in a little gold bell
+    const tipCurve = [[1.0, 57.0], [-3.2, 67.5 + 0.4 * p.tip], [-10.5 - 0.8 * p.tip, 72.0], [-15.8 - 1.6 * p.tip + 0.7 * Math.sin(ph) * wind, 65.0 + 1.2 * p.tip + 0.5 * Math.cos(ph) * wind]]
+      .map(([u, d]) => [cxAt(Math.min(d, 60)) + u, yAt(d)]);
+    const tipPts = []; for (let k = 0; k <= 48; k++) { const t = k / 48; tipPts.push([...bezier(tipCurve, t), 6.4 * Math.pow(1 - t, 0.85) + 0.9 * t]); }
+    const bell = tipPts[tipPts.length - 1];
+    for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
+      const i = y * CELL + x, px = x + 0.5, py = y + 0.5, hl = base - py;
+      const d = hl >= hip ? H_HIP + (hl - hip) : hl * H_HIP / Math.max(hip, 1);
+      const cxl = cxAt(d), u = px - cxl;
+      D[i] = d; U[i] = u;
+      let L = 0;
+      // the staff behind him: shaft with knots and a slight crook, a cup on top, a cage of roots round the flame
+      const vx = px - SF.fx, vy = py - SF.fy, sa = vx * SF.ax + vy * SF.ay, sp = vx * SF.nx + vy * SF.ny;
+      SA[i] = sa; SP[i] = sp;
+      const wig = 0.45 * Math.sin(sa * 0.21 + 0.7) + (sa > 60 ? -0.05 * (sa - 60) : 0);
+      const knot = Math.max(0, 0.7 - Math.abs(sa - 23) * 0.5) + Math.max(0, 0.7 - Math.abs(sa - 52) * 0.5);
+      if (sa >= 0.5 && sa <= STAFF_LEN && Math.abs(sp - wig) <= 1.15 + knot) L = L_.STAFF;
+      if (sa > STAFF_LEN - 0.5 && sa <= CUP && Math.abs(sp - wig) <= 1.15 + (sa - STAFF_LEN + 0.5) * 0.4) L = L_.STAFF;
+      const fl = p.flame + p.flare;
+      // flame: a teardrop sitting in the cup, its tip flickering
+      const fc = FLAME_C, fr0 = 2.25 + 0.5 * p.flare, fd = sa - fc, flick = (0.55 + 0.4 * p.flare) * Math.sin(ph * 3 + sa * 0.9) * smooth(fc, fc + 5, sa);
+      if (fl > 0.05 && (fd < 0 ? Math.hypot(sp - wig, fd / 1.15) <= fr0 : Math.abs(sp - wig - flick) <= fr0 * Math.pow(Math.max(0, 1 - fd / (4.6 + 1.6 * p.flare)), 1.15))) L = L_.FLAME;
+      // two roots bulge round the flame and meet in a knot over it, curling forward at the top (discs swept along each
+      // root, so the thin wood stays one connected line)
+      for (const [qa, qp, r] of CAGE_PTS) if ((sa - qa) ** 2 + (sp - wig - qp) ** 2 <= r * r) { L = L_.CAGE; break; }
+      if (hl <= 0) { lab[i] = L; continue; }
+      // curled slippers under the robe
+      for (const [foot, lb] of [[p.bf, L_.SLIP_B], [p.ff, L_.SLIP_F]]) {
+        const v = px - (ROOT_X + foot);
+        if (hl < 3.2 && v >= -2.8 && v <= (hl < 2.0 ? 4.4 : 2.6)) L = lb;
+        if (lb === L_.SLIP_F && ((v - 5.0) / 1.0) ** 2 + ((hl - 2.4) / 1.5) ** 2 <= 1) L = L_.TOE;
+      }
+      // the body, one profile per row: robe flaring to the ground, moss mantle, the big hood
+      let z = 0, fe = -99, be = -99;
+      if (d >= 2.4 && d < 42) {
+        const ks = Math.pow(smooth(40, 2, d), 1.15);
+        z = d >= 21.4 && d < 23.6 ? L_.ROPE : L_.ROBE;
+        fe = 6.8 + 4.4 * ks; be = 7.2 + 5.2 * ks + wind * 0.7 * Math.sin(ph * 2 + d * 0.33) * ks;
+      }
+      const hemT = 2.6 + 1.3 * Math.abs(frac(u / 3.1 + 0.25 * Math.sin(ph)) - 0.5) * 2;
+      if (z && u <= fe && u >= -be && !(z === L_.ROBE && d < hemT)) L = z;
+      // mantle of moss fur over the shoulders, its lower edge in tufts
+      const tuft = Math.pow(Math.abs(frac(u / 3.2 + 0.1 + 0.04 * Math.sin(ph)) - 0.5) * 2, 1.6);
+      if (d >= 31.8 + 3.2 * tuft && d < 45.5 && u <= 9.0 - 0.12 * (d - 34) && u >= -(8.4 - 0.1 * (d - 34))) L = L_.MANTLE;
+      // hood: a deep cowl round the head (it falls onto the mantle)
+      const half = Math.sqrt(Math.max(0, hr * hr - (d - hc) * (d - hc)));
+      if (d >= hc - hr && d <= hc + hr && u <= 2.6 + half && u >= -(half + 0.6)) L = L_.HOOD;
+      lab[i] = L;
+    }
+    // the hood's tip (part of the hood, painted the same, outlined with the rest)
+    for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
+      const i = y * CELL + x, px = x + 0.5, py = y + 0.5;
+      if (lab[i] === L_.HOOD) continue;
+      for (const [qx, qy, r] of tipPts) if ((px - qx) ** 2 + (py - qy) ** 2 <= r * r) { lab[i] = L_.TIP; break; }
+      if ((px - bell[0]) ** 2 + (py - bell[1] - 1.3) ** 2 <= 1.6 * 1.6) lab[i] = L_.BELL;
+    }
+    // face: the shadow in the hood's opening; the crooked nose pokes out of it
+    for (let i = 0; i < N; i++) {
+      const x = i % CELL, y = (i / CELL) | 0, px = x + 0.5;
+      if ((lab[i] === L_.HOOD) && ((px - fcx) / 4.1) ** 2 + ((D[i] - 51.0) / 4.5) ** 2 <= 1) lab[i] = L_.FACE;
+    }
+    const noseY = yAt(50.0);
+    for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
+      const px = x + 0.5, py = y + 0.5, i = y * CELL + x;
+      if (((px - (fcx + 3.6)) / 2.3) ** 2 + ((py - noseY) / 0.95) ** 2 <= 1 || (px - (fcx + 5.6)) ** 2 + (py - (noseY + 1.1)) ** 2 <= 0.8) lab[i] = L_.NOSE;
+    }
+    // the beard: from under the nose down over the chest, swaying, a gold ring near its end
+    const beardC = d => 5.2 + 0.03 * (49.6 - d) + 1.2 * smooth(36, 30.6, d) + (wind * 0.9 * Math.sin(ph + (49.6 - d) * 0.3) + p.wag * Math.sin(ph * 4 + (49.6 - d) * 0.45)) * smooth(46, 31, d);
+    const beardW = d => d >= 46 ? 2.2 + (49.6 - d) * 0.3 : d >= 41.5 ? 3.3 : 3.3 * Math.pow(clamp01((d - 30.6) / 10.9), 0.8);
+    for (let i = 0; i < N; i++) {
+      const d = D[i], u = U[i] - (cxAt(Math.max(d, 44)) - cxAt(d));
+      if (d < 30.6 || d > 49.6 || lab[i] === L_.NOSE) continue;
+      const w = beardW(d), c0 = beardC(d);
+      if (Math.abs(u - c0) <= w) lab[i] = d > 35.2 && d < 37.0 ? L_.BRING : L_.BEARD;
+    }
+    // ---- the far arm: the sleeve from the back shoulder to the hand on the staff (behind the body)
+    const Sb = [cxAt(39.5) - 4.2, yAt(39.5)], Hb = SF.at(p.grip);
+    const tube = (A0, B0, w0, w1, sag) => {
+      const out = new Uint8Array(N);
+      const mx = (A0[0] + B0[0]) / 2, my = (A0[1] + B0[1]) / 2 + sag;
+      const pts = []; for (let k = 0; k <= 24; k++) { const t = k / 24, u = 1 - t; pts.push([u * u * A0[0] + 2 * u * t * mx + t * t * B0[0], u * u * A0[1] + 2 * u * t * my + t * t * B0[1], w0 + (w1 - w0) * t]); }
+      for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) for (const [qx, qy, r] of pts) if ((x + 0.5 - qx) ** 2 + (y + 0.5 - qy) ** 2 <= r * r) { out[y * CELL + x] = 1; break; }
+      return out;
+    };
+    const back = tube(Sb, [Hb[0] + 1.6, Hb[1] + 0.6], 2.3, 2.9, 1.5);
+    for (let i = 0; i < N; i++) if (back[i] && (lab[i] === 0 || lab[i] === L_.STAFF || lab[i] === L_.CAGE)) lab[i] = L_.BSLEEVE;
+    for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
+      const i = y * CELL + x;
+      if ((x + 0.5 - Hb[0]) ** 2 + (y + 0.5 - Hb[1]) ** 2 <= 1.9 * 1.9 && (lab[i] === 0 || lab[i] === L_.STAFF || lab[i] === L_.BSLEEVE)) lab[i] = L_.BHAND;
+    }
+    // the vial hanging from the rope at his back hip
+    const Vc = [cxAt(19) - 6.2, yAt(17.4)];
+    for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
+      const i = y * CELL + x, dx = x + 0.5 - Vc[0], dy = y + 0.5 - Vc[1];
+      if (((dx / 2.0) ** 2 + (dy / 2.3) ** 2 <= 1) || (Math.abs(dx) <= 0.7 && dy < -1.6 && dy > -4.4)) if (lab[i] === L_.ROBE || lab[i] === L_.ROPE) lab[i] = L_.VIAL;
+    }
+    // ---- the front arm: a wide bell sleeve hanging from the mantle, bent at the elbow, the bony hand
+    const S = [cxAt(40.5) - 2.2, yAt(40.5)];
+    const Hd = [cxAt(p.hand[1]) + p.hand[0], yAt(p.hand[1])];
+    const E = [cxAt(p.elbow[1]) + p.elbow[0], yAt(p.elbow[1])];
+    const segment = (A0, B0) => {
+      let ax = B0[0] - A0[0], ay = B0[1] - A0[1]; const len = Math.max(1e-6, Math.hypot(ax, ay)); ax /= len; ay /= len;
+      let nx = -ay, ny = ax; if (ny < 0) { nx = -nx; ny = -ny; }
+      return { o: A0, ax, ay, nx, ny, len };
+    };
+    const up1 = segment(S, E), fore = segment(E, Hd), l1 = up1.len, l2 = Math.max(1, fore.len - 1.6), total = l1 + l2;
+    const behindFace = L => p.armOver < 0.5 && (L === L_.FACE || L === L_.NOSE || L === L_.HOOD);
+    const beardL = L => L === L_.BEARD || L === L_.BRING;
+    const T = new Float32Array(N);
+    for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
+      const i = y * CELL + x;
+      let best = -1;
+      for (const [sg, from, span, lo] of [[up1, 0, l1, -0.12 * total], [fore, l1, l2, 0]]) {
+        const vx = x + 0.5 - sg.o[0], vy = y + 0.5 - sg.o[1], along = vx * sg.ax + vy * sg.ay, s = vx * sg.nx + vy * sg.ny;
+        if (along < lo || along > span) continue;
+        const tt = clamp01((from + along) / total);
+        if (s < -(2.0 + 0.9 * tt) || s > 1.9 + 1.4 * tt + 4.4 * tt * tt) continue;
+        best = Math.max(best, (from + along) / total);
+      }
+      if (best < -1 + 1e-9 && (x + 0.5 - E[0]) ** 2 + (y + 0.5 - E[1]) ** 2 <= 2.3 * 2.3) best = l1 / total;
+      if (best <= -1) continue;
+      // the beard hangs in front of the upper arm; the forearm and cuff pass in front of the beard
+      if (behindFace(lab[i]) || beardL(lab[i]) && best < 0.62) continue;
+      lab[i] = best > 0.82 ? L_.CUFF : L_.SLEEVE; T[i] = clamp01(best);
+    }
+    const fing = p.finger >= 0.5;
+    for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
+      const px = x + 0.5, py = y + 0.5, i = y * CELL + x;
+      const a = (px - Hd[0]) ** 2 + (py - Hd[1]) ** 2;
+      const k = Hd[1] - 1.0 - py, fx = Hd[0] + 0.7 + p.fang * Math.max(0, k) * 0.35;
+      // long bony fingers hanging down (palm: the hand opens flat, fingers forward; finger: the index raised)
+      const pk = p.palm, hang = ((px - (Hd[0] + 0.8 + 1.2 * pk)) / (1.5 + 0.9 * pk)) ** 2 + ((py - (Hd[1] + 2.0 - 1.6 * pk)) / (2.2 - 1.2 * pk)) ** 2;
+      if (a <= 1.9 * 1.9 || (!fing && hang <= 1) || (fing && k >= 0 && k <= 4.4 && Math.abs(px - fx) <= 0.8)) lab[i] = L_.HAND;
+    }
+    // one figure: anything not 4-connected to the middle of the robe is dropped
+    const reach = new Uint8Array(N), stack = [];
+    const seed = idx(cxAt(28), yAt(28));
+    if (seed >= 0 && lab[seed]) { reach[seed] = 1; stack.push(seed); }
+    else for (let i = 0; i < N; i++) if (lab[i] === L_.ROBE) { reach[i] = 1; stack.push(i); }
+    while (stack.length) {
+      const i = stack.pop(), x = i % CELL, y = (i / CELL) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const j = idx(x + dx, y + dy); if (j >= 0 && !reach[j] && lab[j]) { reach[j] = 1; stack.push(j); }
+      }
+    }
+    let lost = 0;
+    for (let i = 0; i < N; i++) if (!reach[i]) { if (lab[i]) lost++; lab[i] = 0; }
+    const flameAt = SF.at(FLAME_C);
+    return {
+      lost, p, lab, D, U, T, SA, SP, gx, base, hand: Hd, elbow: E, shoulder: S, cxAt, yAt, staff: SF, flame: flameAt, vial: Vc, bell,
+      eyes: [[fcx - 1.0 + p.gaze[0], yAt(52.0) + p.gaze[1]], [fcx + 2.4 + p.gaze[0], yAt(52.0) + p.gaze[1]]],
+      mouth: [fcx + 4, yAt(48)], fcx
+    };
+  }
+
+  // ---------------------------------------------------------------------------------------------- painting
+  function paint(c, g, F, t) {
+    const { p, lab, D, U, T, SA, SP } = F;
+    const is = (...ls) => { const s = new Set(ls); const m = new Uint8Array(N); for (let i = 0; i < N; i++) if (s.has(lab[i])) m[i] = 1; return m; };
+    const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = lab[i] ? 1 : 0;
+    put(c, outline(m), K.ink);
+    const light = new Float32Array(N);
+    for (let i = 0; i < N; i++) light[i] = 0.64 - 0.03 * U[i] - 0.006 * (D_TOP - D[i]) + 0.07 * Math.cos(U[i] * 1.1 + D[i] * 0.17 + 0.4 * Math.sin(p.phase));
+    const up = mm => nb(mm, 0, -1), down = mm => nb(mm, 0, 1), left = mm => nb(mm, -1, 0), right = mm => nb(mm, 1, 0);
+    const fk = p.flame + p.flare;
+    const near = (i, q, r) => { const x = i % CELL + 0.5, y = ((i / CELL) | 0) + 0.5; return Math.hypot(x - q[0], y - q[1]) / r; };
+    // the staff: gnarled wood lit on its left, darker knots; the roots of the cage catch the green light
+    const staff = is(L_.STAFF), cage = is(L_.CAGE), flame = is(L_.FLAME);
+    paintZone(c, staff, RAMP.wood, i => 0.62 - 0.16 * SP[i] - 0.004 * (66 - SA[i]), 0.5);
+    put(c, and(staff, mask((x, y, i) => Math.abs(SA[i] - 23) < 0.7 || Math.abs(SA[i] - 52) < 0.7)), RAMP.wood[0]);
+    put(c, and(staff, mask((x, y, i) => (Math.abs(SA[i] - 21.5) < 0.6 || Math.abs(SA[i] - 50.5) < 0.6) && SP[i] < 0)), RAMP.wood[4]);
+    paintZone(c, cage, RAMP.wood, i => 0.42 - 0.1 * SP[i], 0.4);
+    put(c, and(cage, mask((x, y, i) => near(i, F.flame, 5.2) < 1)), RAMP.flame[1], i => 0.8 * fk * (1 - near(i, F.flame, 5.2)) + 0.2);
+    put(c, and(staff, mask((x, y, i) => SA[i] > CUP - 2.4)), RAMP.wood[3]);
+    // the ghost flame: white-green core, green body, darker edge (and its light)
+    paintZone(c, flame, RAMP.flame, i => clamp01(1.05 - 0.28 * near(i, F.flame, 1) / (1 + 0.2 * p.flare) + 0.1 * p.flare), 0.5);
+    add(g, flame, LIGHT.green, i => (0.75 + 0.5 * p.flare) * clamp01(1.2 - 0.18 * near(i, F.flame, 1)) * Math.min(1.6, fk));
+    // far sleeve and hand (in shadow behind him)
+    const bs = is(L_.BSLEEVE), bh = is(L_.BHAND);
+    paintZone(c, bs, RAMP.robe, i => 0.34 - 0.02 * U[i], 0.5);
+    paintZone(c, bh, RAMP.skin, i => 0.45 - 0.05 * (((i / CELL) | 0) + 0.5 - F.staff.at(p.grip)[1]), 0.4);
+    // slippers with a gold bead on the curled toe
+    for (const lb of [L_.SLIP_B, L_.SLIP_F]) {
+      const sm = is(lb);
+      paintZone(c, sm, RAMP.slip, i => 0.6 - (lb === L_.SLIP_B ? 0.25 : 0) - 0.04 * U[i]);
+      put(c, and(sm, not(down(sm))), RAMP.slip[0]);
+    }
+    const toe = is(L_.TOE);
+    paintZone(c, toe, RAMP.slip, 0.7, 0.3);
+    put(c, and(toe, not(right(toe)), not(down(toe))), GOLD[2]);
+    put(c, and(is(L_.SLIP_B), dilate(is(L_.SLIP_F, L_.TOE))), K.ink);
+    // the robe: plum cloth lit from the upper left, deep folds, a band of green runes stitched on the hem
+    const robe = is(L_.ROBE);
+    paintZone(c, robe, RAMP.robe, i => light[i] + (Math.abs(Math.sin(U[i] * 0.7 + 0.6)) < 0.25 ? 0.1 : 0) - (Math.abs(Math.sin(U[i] * 0.7 + 2.2)) < 0.2 ? 0.1 : 0));
+    const hemBand = and(robe, mask((x, y, i) => D[i] > 4.2 && D[i] < 7.4));
+    paintZone(c, hemBand, RAMP.robe, i => light[i] - 0.18, 0.4);
+    const runes = and(hemBand, mask((x, y, i, X, Y) => { const k = ((X % 6) + 6) % 6, r = Math.floor(D[i] - 4.2); return (k === 1 && r !== 1) || (k === 3 && r === 1) || (k === 2 && r === 0); }));
+    put(c, runes, K.thread); put(c, and(runes, mask((x, y, i) => U[i] > -4)), RAMP.flame[2], 0.6);
+    put(c, and(robe, mask((x, y, i) => Math.abs(D[i] - 7.8) < 0.5)), RAMP.robe[0]);
+    put(c, and(robe, not(down(robe)), not(down(is(L_.SLIP_B, L_.SLIP_F, L_.TOE)))), RAMP.robe[0]);
+    // the rope belt (twisted), the vial of green brew at his hip
+    const rope = is(L_.ROPE);
+    paintZone(c, rope, RAMP.rope, i => 0.62 - 0.03 * U[i], 0.3);
+    put(c, and(rope, mask((x, y, i, X, Y) => (X + Y) % 3 === 0)), RAMP.rope[0]);
+    const vial = is(L_.VIAL);
+    put(c, vial, RAMP.flame[1]);
+    const brew = and(vial, mask((x, y) => y > F.vial[1] - 1.2));
+    paintZone(c, brew, RAMP.flame, i => 0.55 + 0.25 * Math.sin(t * 2 * Math.PI * 2), 0.5);
+    put(c, and(vial, mask((x, y) => y < F.vial[1] - 2.3)), RAMP.rope[2]);
+    put(c, and(vial, mask((x, y) => Math.abs(x - (F.vial[0] - 0.9)) < 0.5 && Math.abs(y - (F.vial[1] - 0.7)) < 0.5)), K.white);
+    add(g, brew, LIGHT.green, 0.32);
+    // the mantle: moss fur, rough dither, tufts darker at the tips
+    const fur = is(L_.MANTLE);
+    paintZone(c, fur, RAMP.fur, i => light[i] + 0.1 - 0.03 * Math.max(0, 38 - D[i]), 0.9);
+    put(c, and(not(fur), m, up(fur), not(is(L_.SLEEVE, L_.CUFF, L_.HAND, L_.BEARD, L_.BRING))), RAMP.robe[0]);
+    put(c, and(fur, not(down(fur))), RAMP.fur[0]);
+    put(c, and(fur, not(up(fur)), mask((x, y, i) => U[i] > -6)), RAMP.fur[4], 0.7);
+    // the hood: deep plum, a lit lip round the face, the long tip and its gold bell
+    const hood = is(L_.HOOD), tip = is(L_.TIP), bellM = is(L_.BELL), face = is(L_.FACE);
+    paintZone(c, hood, RAMP.hood, i => light[i] + 0.12 - 0.04 * Math.max(0, 48 - D[i]));
+    paintZone(c, tip, RAMP.hood, i => light[i] + 0.1 + 0.015 * (D[i] - 60), 0.5);
+    put(c, and(or(hood, tip), not(up(or(hood, tip, bellM)))), RAMP.hood[4], 0.85);
+    const lip = and(hood, dilate(face, true));
+    put(c, lip, RAMP.hood[3]); put(c, and(lip, mask((x, y, i) => D[i] > 50.5 && U[i] > 0)), RAMP.hood[4]);
+    put(c, and(tip, mask((x, y, i) => Math.abs(Math.sin((x + y) * 0.55)) < 0.18)), RAMP.hood[1], 0.7);
+    // a deep fold down the back of the hood
+    put(c, and(hood, mask((x, y, i) => Math.abs(U[i] + 2.8 - 0.35 * (D[i] - 52)) < 0.6 && D[i] > 47)), RAMP.hood[1]);
+    put(c, and(hood, mask((x, y, i) => Math.abs(U[i] + 1.9 - 0.35 * (D[i] - 52)) < 0.5 && D[i] > 48)), RAMP.hood[3], 0.6);
+    paintZone(c, bellM, GOLD, i => 0.75 - 0.1 * (((i / CELL) | 0) - F.bell[1]), 0.4);
+    // face: the shadow under the hood; the nose catches a little light
+    put(c, face, K.body0);
+    put(c, and(face, mask((x, y, i) => D[i] > 53.6)), K.void1);
+    put(c, and(face, mask((x, y, i) => D[i] < 49.4)), K.bounce, 0.6);
+    const nose = is(L_.NOSE);
+    paintZone(c, nose, RAMP.skin, i => 0.55 - 0.18 * (((i / CELL) | 0) + 0.5 - (F.yAt(50.0))) + 0.02 * U[i], 0.4);
+    put(c, and(nose, not(up(nose)), mask((x, y, i) => U[i] > 3)), RAMP.skin[4], 0.8);
+    // the beard: bone-white strands, lit from the upper left, darker at the tips, a gold ring
+    const beard = is(L_.BEARD), bring = is(L_.BRING);
+    paintZone(c, beard, RAMP.beard, i => 0.72 - 0.02 * U[i] - 0.012 * (49 - D[i]) + 0.12 * Math.sin(U[i] * 2.4 + D[i] * 0.2), 0.45);
+    put(c, and(beard, not(down(beard)), not(down(bring))), RAMP.beard[1]);
+    put(c, and(beard, mask((x, y, i) => D[i] < 34)), RAMP.beard[1], 0.45);
+    paintZone(c, bring, GOLD, i => 0.62 - 0.03 * U[i], 0.4);
+    put(c, and(bring, not(up(bring))), GOLD[3]);
+    put(c, and(or(beard, bring), not(right(or(beard, bring, nose))), not(right(not(m)))), RAMP.beard[1]);
+    // the front sleeve (plum, bell-shaped), its moss cuff, the bony hand
+    const sl = is(L_.SLEEVE), cuff = is(L_.CUFF), hand = is(L_.HAND), arm = or(sl, cuff, hand);
+    paintZone(c, sl, RAMP.robe, i => 0.92 - 0.26 * T[i] + 0.06 * Math.cos(T[i] * 9) - 0.015 * U[i]);
+    put(c, and(sl, not(up(arm))), RAMP.robe[4]);
+    paintZone(c, cuff, RAMP.fur, i => 0.66 - 0.02 * U[i], 0.5); put(c, and(cuff, not(up(arm))), RAMP.fur[4]);
+    put(c, and(cuff, nb(sl, -1, 0)), GOLD[1]);
+    const bodyM = is(L_.ROBE, L_.ROPE, L_.MANTLE, L_.VIAL);
+    put(c, and(bodyM, or(up(arm), left(arm), right(arm), down(arm))), K.ink);
+    put(c, and(sl, nb(is(L_.BEARD, L_.BRING), 1, 0)), K.ink);
+    paintZone(c, hand, RAMP.skin, i => 0.7 - 0.14 * (((i / CELL) | 0) + 0.5 - F.hand[1]) - 0.03 * (i % CELL + 0.5 - F.hand[0]));
+    put(c, and(hand, not(up(hand))), RAMP.skin[4]);
+    put(c, and(hand, mask((x, y) => (Math.abs(x - (F.hand[0] + 0.4)) < 0.5 || Math.abs(x - (F.hand[0] + 1.9)) < 0.5) && y > F.hand[1] + 1.4 && p.palm < 0.5 && p.finger < 0.5)), RAMP.skin[1]);
+    // rim light: cyan on the front and top edges, violet behind; the flame lights the back edges green
+    const fig = and(m, not(or(staff, cage, flame, face, hand, bh, bellM, nose)));
+    const topEdge = and(not(up(m)), left(m));
+    const rimC = and(fig, or(not(right(m)), topEdge), mask((x, y, i) => U[i] > -6));
+    const rimV = and(fig, not(left(m)), not(rimC));
+    put(c, rimV, K.rimv, 0.8);
+    const low = mask((x, y, i) => D[i] < 20);
+    put(c, and(rimC, not(low)), K.rimc); add(g, and(rimC, not(low)), LIGHT.cyan, 0.4);
+    put(c, and(rimC, low), K.cyan1); add(g, and(rimC, low), LIGHT.cyan, 0.08);
+    const greenSide = and(or(fig, bh), or(not(left(m)), not(up(m))), mask((x, y, i) => near(i, F.flame, 26) < 1), not(rimC));
+    put(c, greenSide, RAMP.flame[2], i => fk * 0.95 * (1 - near(i, F.flame, 26)));
+    add(g, greenSide, LIGHT.green, i => fk * 0.25 * (1 - near(i, F.flame, 26)));
+    const glowSide = and(or(staff, bh, bs, tip), mask((x, y, i) => near(i, F.flame, 9) < 1 && x < F.flame[0] + 4));
+    put(c, glowSide, RAMP.flame[1], i => 0.55 * fk * (1 - near(i, F.flame, 9)));
+    // eyes
+    const ek = p.eyes;
+    if (ek > 0.02) for (const [ex, ey] of F.eyes) {
+      const h = p.blink > 0.5 ? 1 : 2;
+      for (let j = 0; j < h; j++) {
+        const i = idx(ex, ey + j - (h === 2 ? 1 : 0));
+        if (i >= 0 && lab[i] === L_.FACE) { const one = new Uint8Array(N); one[i] = 1; put(c, one, j === 0 && h === 2 ? RAMP.flame[3] : RAMP.flame[2]); add(g, one, LIGHT.green, 0.5 * ek); }
+      }
+    }
+    return m;
+  }
+
+  // ---------------------------------------------------------------------------------------------- effects
+  function star4(c, g, x, y, arm, o = {}) {
+    const core = o.core || K.white, col = o.col || RAMP.flame[3], edge = o.edge || RAMP.flame[2], light = o.light || LIGHT.green, gain = o.gain ?? 1;
+    x = Math.floor(x); y = Math.floor(y);
+    for (let i = 1; i <= arm; i++) {
+      const k = i / (arm + 0.5), colr = k < 0.55 ? col : edge;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { putPx(c, x + dx * i + 0.5, y + dy * i + 0.5, colr); addPx(g, x + dx * i + 0.5, y + dy * i + 0.5, light, gain * (1 - k) * 0.9); }
+    }
+    putPx(c, x + 0.5, y + 0.5, core); addPx(g, x + 0.5, y + 0.5, LIGHT.white, gain * 1.2);
+  }
+  /** Wisps rising from the ghost flame: 1-px green motes that sway up and fade. */
+  function wisps(c, g, t, F, count = 4, gain = 1) {
+    const r = rng(91);
+    for (let i = 0; i < count; i++) {
+      const phase = r(), u = frac(t + phase), x = F.flame[0] + uni(r, -2, 2) + Math.sin((u * 2 + phase) * Math.PI * 2) * 1.4, y = F.flame[1] - 5 - u * 9;
+      const a = Math.sin(u * Math.PI) * gain; if (a < 0.25) continue;
+      putPx(c, x, y, i % 2 ? RAMP.flame[3] : RAMP.flame[2], Math.min(1, a * 1.4)); addPx(g, x, y, LIGHT.green, 0.5 * a);
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------- the frames
+  const withP = (p, o) => Object.assign({}, p, o);
+  /** Idle: he breathes (the body settles one pixel), the ghost flame flickers, the beard, the hood's tip and the robe's
+   *  hem move in the draught, a blink. Frame 0 is the rest pose every other animation starts and ends on. */
+  function idlePose(t) {
+    const w = t * 2 * Math.PI;
+    return withP(IDLE, { phase: w, sink: IDLE.sink + Math.round(0.5 - 0.5 * Math.cos(w)), flame: 1 + 0.12 * Math.sin(3 * w) });
+  }
+  const ease = k => k * k * (3 - 2 * k);
+  const NEUTRAL = idlePose(0);
+  function keyed(keys, f) {
+    let i = 0; while (i < keys.length - 1 && keys[i + 1][0] <= f) i++;
+    const [fa, A] = keys[i], [fb, Bk] = keys[Math.min(i + 1, keys.length - 1)], k = fb === fa ? 0 : ease(clamp01((f - fa) / (fb - fa)));
+    const out = {};
+    for (const key of new Set([...Object.keys(A), ...Object.keys(Bk)])) {
+      const a = key in A ? A[key] : NEUTRAL[key], b = key in Bk ? Bk[key] : NEUTRAL[key];
+      out[key] = Array.isArray(a) ? a.map((v, j) => v + (b[j] - v) * k) : a + (b - a) * k;
+    }
+    return withP(NEUTRAL, out);
+  }
+  // talk (loops, 1 s): the hand opens towards you and makes two beats, the head nods with them, the beard moves
+  const TALK = [[0, {}],
+    [2, { hand: [12.4, 31.4], elbow: [2.6, 29.8], palm: 1, nod: 2.4, wag: 0.8 }],
+    [4, { hand: [13.2, 30.0], elbow: [2.8, 29.6], palm: 1, nod: 1.6, wag: 0 }],
+    [6, { hand: [12.8, 32.0], elbow: [2.7, 29.9], palm: 1, nod: 2.6, wag: 0.8 }],
+    [8, { hand: [13.2, 30.4], elbow: [2.8, 29.6], palm: 1, nod: 1.8, wag: 0 }],
+    [10, { hand: [11.2, 28.0], elbow: [1.4, 29.6], palm: 0.4, nod: 1.6, wag: 0.4 }],
+    [12, {}]];
+  // greet (when you walk in): the palm rises, a little green flame lights in it, he bows his head, the hand closes on it
+  const GREET = [[0, {}],
+    [3, { hand: [12.6, 33.4], elbow: [2.8, 30.2], palm: 1, nod: 2.2, lean: 4.2 }],
+    [5, { hand: [13.0, 35.0], elbow: [3.0, 30.6], palm: 1, nod: 3.4, lean: 5.0, sink: 2, blink: 1 }],
+    [8, { hand: [13.0, 35.2], elbow: [3.0, 30.6], palm: 1, nod: 3.6, lean: 5.2, sink: 2, blink: 1 }],
+    [10, { hand: [12.4, 33.0], elbow: [2.8, 30.2], palm: 0.2, nod: 2.2, lean: 4.0 }],
+    [13, {}]];
+  // cast (the upgrade): the staff rises and leans forward, the other hand reaches out, the flame swells and bursts on
+  // CAST_FRAME (a flash and a ring of runes), then he lowers the staff
+  const CAST = [[0, {}],
+    [3, { staffLift: 2, staffTilt: 2, hand: [11.6, 30.0], elbow: [2.4, 30.0], palm: 1, flare: 0.5, lean: 2.6, nod: 1.0, sink: 2, eyes: 1.3 }],
+    [6, { staffLift: 6, staffTilt: 5, hand: [14.4, 33.6], elbow: [4.0, 31.4], palm: 1, flare: 1.2, lean: 2.2, nod: 0.6, sink: 0, eyes: 1.6, tip: 0.8 }],
+    [8, { staffLift: 7, staffTilt: 7, hand: [15.4, 34.4], elbow: [4.8, 32.0], palm: 1, flare: 2.2, lean: 5.4, nod: 2.6, sink: 2, eyes: 1.8, tip: 1.2 }],
+    [11, { staffLift: 5, staffTilt: 5, hand: [14.4, 33.0], elbow: [4.2, 31.4], palm: 1, flare: 1.0, lean: 5.0, nod: 2.2, sink: 2, eyes: 1.4, tip: 0.6 }],
+    [15, { staffLift: 1, staffTilt: 1, hand: [10.6, 27.0], elbow: [0.0, 29.6], palm: 0.2, flare: 0.2, lean: 3.8, nod: 1.6 }],
+    [17, {}]];
+  // no (gold short, or a card already upgraded): eyes closed, he shakes his head and wags a bony finger
+  const NO = [[0, {}],
+    [2, { hand: [11.8, 34.4], elbow: [2.6, 30.6], finger: 1, fang: 0, lean: 2.6, nod: 1.0, blink: 1 }],
+    [4, { hand: [11.2, 34.4], elbow: [2.4, 30.6], finger: 1, fang: -1.2, hs: -1, blink: 1, lean: 2.6, nod: 1.0 }],
+    [6, { hand: [12.6, 34.4], elbow: [2.8, 30.6], finger: 1, fang: 1.2, hs: 1, blink: 1, lean: 2.6, nod: 1.0 }],
+    [8, { hand: [11.2, 34.4], elbow: [2.4, 30.6], finger: 1, fang: -1.2, hs: -1, blink: 1, lean: 2.6, nod: 1.0 }],
+    [10, { hand: [12.2, 34.0], elbow: [2.6, 30.6], finger: 1, fang: 0.6, hs: 0.5, blink: 1, lean: 2.6, nod: 1.0 }],
+    [13, {}]];
+  // ponder (now and then, when nobody talks to him): he strokes his beard twice, eyes half closed; a spark leaves the flame
+  const PONDER = [[0, {}],
+    [4, { hand: [7.6, 42.4], elbow: [1.0, 32.6], armOver: 1, nod: 2.2, lean: 3.8, wag: 0.2 }],
+    [7, { hand: [7.8, 37.0], elbow: [1.6, 31.6], armOver: 1, nod: 2.4, blink: 1, lean: 3.8, wag: 0.4 }],
+    [10, { hand: [7.6, 42.4], elbow: [1.0, 32.6], armOver: 1, nod: 2.2, lean: 3.8, wag: 0.2 }],
+    [13, { hand: [7.8, 37.0], elbow: [1.6, 31.6], armOver: 1, nod: 2.4, blink: 1, lean: 3.8, wag: 0.4 }],
+    [16, { hand: [8.0, 39.4], elbow: [1.4, 32.0], armOver: 1, nod: 1.8, lean: 3.6, flare: 0.6, gaze: [-0.6, -1] }],
+    [19, { hand: [9.0, 30.0], elbow: [0.2, 30.0], armOver: 0, nod: 1.6, flare: 0.3, gaze: [-0.6, -1] }],
+    [23, {}]];
+  const CLIPS = { talk: TALK, greet: GREET, cast: CAST, no: NO, ponder: PONDER };
+  const lengthOf = name => ANIMATIONS.find(a => a[0] === name)[1];
+  /** The draught's clock: the idle loops once in 2 s; an action runs one full cycle, so it ends where the idle begins. */
+  const clipT = (name, f) => name === 'idle' ? f / LOOP : name === 'talk' ? f / lengthOf('talk') : f / (lengthOf(name) - 1);
+  function poseOf(name, f) {
+    const t = clipT(name, f);
+    if (name === 'idle') return withP(idlePose(t), { blink: f === 17 || f === 18 ? 1 : 0 });
+    const p = keyed(CLIPS[name], f);
+    return withP(p, { phase: t * 2 * Math.PI, flame: p.flame + 0.12 * Math.sin(6 * Math.PI * t) });
+  }
+  /** The little flame in his palm when he greets you. */
+  function palmFlame(c, g, F, f) {
+    if (f < 3 || f > 10) return;
+    const k = f <= 5 ? (f - 2) / 3 : f >= 9 ? (11 - f) / 3 : 1, hx = F.hand[0] + 2.0, hy = F.hand[1] - 2.0;
+    const h = Math.round(1 + 3 * k);
+    for (let j = 0; j < h; j++) {
+      const w = j === 0 ? 1 : j < h - 1 ? 1 : 0, y = hy - j, sway = j === h - 1 && f % 2 ? 1 : 0;
+      for (let dx = -w; dx <= w; dx++) {
+        const col = j === 0 && dx === 0 ? RAMP.flame[4] : j < 2 ? RAMP.flame[3] : RAMP.flame[2];
+        putPx(c, hx + dx + sway + 0.5, y + 0.5, col); addPx(g, hx + dx + sway + 0.5, y + 0.5, LIGHT.green, 0.7 * k);
+      }
+    }
+    if (f === 6) star4(c, g, hx + 0.5, hy - h - 1.5, 2, { gain: 0.6 });
+  }
+  /** The burst of the upgrade: a flash in the flame and a ring of runes that grows and fades. */
+  function castBurst(c, g, F, f) {
+    const k = f - CAST_FRAME;
+    if (k < -2 || k > 5) return;
+    const [cx, cy] = F.flame;
+    if (k < 0) { star4(c, g, cx + 0.5, cy - 0.5, 2 + k + 2, { gain: 0.6 }); return; }
+    if (k <= 1) star4(c, g, cx + 0.5, cy - 0.5, k === 0 ? 6 : 4, { gain: 1.4 });
+    const r = 5 + 2.2 * k, n = 10, fade = 1 - k / 6;
+    for (let j = 0; j < n; j++) {
+      const a = j / n * 2 * Math.PI + k * 0.25, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r * 0.9;
+      const col = j % 2 ? RAMP.flame[3] : RAMP.flame[2];
+      putPx(c, x, y, col, fade + 0.2); addPx(g, x, y, LIGHT.green, 0.8 * fade);
+      if (j % 2 === 0) { putPx(c, x + 1, y, col, fade); addPx(g, x + 1, y, LIGHT.green, 0.5 * fade); }
+    }
+    const rr = rng(13 + k);
+    for (let j = 0; j < 6; j++) { const a = rr() * 2 * Math.PI, d = 3 + k * 2.6 + rr() * 3; const x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d - k; putPx(c, x, y, RAMP.flame[4], fade); addPx(g, x, y, LIGHT.lime, 0.6 * fade); }
+  }
+  function frameOf(name, f) {
+    const p = poseOf(name, f), t = clipT(name, f);
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    paint(c, g, F, t);
+    wisps(c, g, t, F, 4, 1 + 0.6 * p.flare);
+    if (name === 'greet') palmFlame(c, g, F, f);
+    if (name === 'cast') castBurst(c, g, F, f);
+    if (name === 'ponder' && (f === 16 || f === 17)) star4(c, g, F.flame[0] + 2.5, F.flame[1] - 6.5 - (f - 16) * 2, f === 16 ? 2 : 1, { gain: 0.7 });
+    return [c, g];
+  }
+  const silhouette = p => { const F = figure(p); const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = F.lab[i] ? 1 : 0; return m; };
+  const FRAME = {}; for (const [name] of ANIMATIONS) FRAME[name] = f => frameOf(name, f);
+  const durationsMs = n => Array.from({ length: n }, (_, i) => Math.round((i + 1) * 1000 / FPS) - Math.round(i * 1000 / FPS));
+  const silhouetteOf = (name, f) => silhouette(poseOf(name, f));
+  const lostOf = (name, f) => figure(poseOf(name, f)).lost;
+  /** Where the room anchors things: mouth (speech bubble), staff (the flame's glow), top (the highest row the figure
+   *  reaches in any frame, the staff raised in the cast included, so his bubble never hides the flame). */
+  const anchors = () => {
+    const F = figure(idlePose(0)); let top = CELL;
+    for (const [name, n] of ANIMATIONS) for (let f = 0; f < n; f++) {
+      const G = figure(poseOf(name, f));
+      for (let i = 0; i < N; i++) if (G.lab[i]) { top = Math.min(top, (i / CELL) | 0); break; }
+    }
+    return { mouth: F.mouth, staff: F.flame, hand: F.hand, top: Math.max(0, top - 3) };
+  };
+  const feetOf = (name, f) => {
+    const F = figure(poseOf(name, f)); let lo = CELL, hi = -1;
+    for (let y = GROUND - 3; y < GROUND; y++) for (let x = 0; x < CELL; x++) { const L = F.lab[y * CELL + x]; if (L === L_.SLIP_B || L === L_.SLIP_F || L === L_.TOE || L === L_.ROBE) { lo = Math.min(lo, x); hi = Math.max(hi, x); } }
+    return [Math.round((lo + hi + 1) / 2 * 10) / 10, hi + 1 - lo];
+  };
+  const events = () => ({ cast: { frame: CAST_FRAME, point: figure(poseOf('cast', CAST_FRAME)).flame } });
+  const api = { feetOf, CELL, GROUND, FPS, LOOP, ANIMATIONS, FRAME, durationsMs, silhouetteOf, lostOf, anchors, events, poseOf };
+  root.WarlockArt = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+(function () {
+  'use strict';
+  const A = window.WarlockArt;
+  const INFO = {
+    idle: ['Reposo', 'Respira (el cuerpo baja un píxel), la llama fantasma del bastón parpadea y suelta motas verdes, la barba, la punta de la capucha y el bajo de la túnica se mueven con la corriente, y parpadea. El fotograma 1 es la pose de la que parten y a la que vuelven todas las demás.'],
+    talk: ['Hablar', 'Mientras se escribe su frase: abre la mano hacia ti y marca dos golpes, la cabeza asiente y la barba se mueve. Se repite y siempre termina la vuelta antes de volver al reposo.'],
+    greet: ['Saludar', 'Al entrar: alza la mano con la palma hacia arriba, enciende en ella una llamita verde, inclina la cabeza y la apaga al cerrar la mano.'],
+    cast: ['Conjurar', 'Al mejorar una carta: alza el bastón con la otra mano extendida, la llama crece y estalla en un destello con un círculo de runas (el momento en que la carta cambia), y baja el bastón.'],
+    no: ['Negar', 'Cuando no te alcanza el oro o la carta ya está mejorada: cierra los ojos, niega con la cabeza y mueve el índice huesudo.'],
+    ponder: ['Pensar', 'De vez en cuando, si nadie le habla: se acaricia la barba dos veces con los ojos entornados y una chispa verde se le escapa de la llama.']
+  };
+  const EVENTS = { cast: { 8: 'destello' } };
+  const cache = {};
+  function toCanvases(c, g) {
+    const lit = document.createElement('canvas'), glow = document.createElement('canvas');
+    lit.width = glow.width = lit.height = glow.height = A.CELL;
+    const L = lit.getContext('2d').createImageData(A.CELL, A.CELL), G = glow.getContext('2d').createImageData(A.CELL, A.CELL);
+    for (let i = 0; i < A.CELL * A.CELL; i++) {
+      const o = i * 4;
+      let r = c.px[o] + Math.min(4, g.px[o]) * 0.6, gg = c.px[o + 1] + Math.min(4, g.px[o + 1]) * 0.6, b = c.px[o + 2] + Math.min(4, g.px[o + 2]) * 0.6;
+      const hot = Math.max(0, Math.max(r, gg, b) - 1) * 0.5;
+      r = Math.min(1, Math.min(1, r) + hot); gg = Math.min(1, Math.min(1, gg) + hot); b = Math.min(1, Math.min(1, b) + hot);
+      L.data[o] = r * 255 + 0.5; L.data[o + 1] = gg * 255 + 0.5; L.data[o + 2] = b * 255 + 0.5; L.data[o + 3] = c.px[o + 3] > 0.01 ? 255 : 0;
+      G.data[o] = Math.min(1, g.px[o] / 2.5) * 255; G.data[o + 1] = Math.min(1, g.px[o + 1] / 2.5) * 255; G.data[o + 2] = Math.min(1, g.px[o + 2] / 2.5) * 255; G.data[o + 3] = 255;
+    }
+    lit.getContext('2d').putImageData(L, 0, 0); glow.getContext('2d').putImageData(G, 0, 0);
+    return { lit, glow };
+  }
+  function frames(name) {
+    if (!cache[name]) { const n = A.ANIMATIONS.find(a => a[0] === name)[1]; cache[name] = Array.from({ length: n }, (_, f) => toCanvases(...A.FRAME[name](f))); }
+    return cache[name];
+  }
+  const stage = document.getElementById('stage'), ctx = stage.getContext('2d');
+  const strip = document.getElementById('strip'), readout = document.getElementById('readout'), note = document.getElementById('note');
+  const playBtn = document.getElementById('play'), haloBox = document.getElementById('halo');
+  let name = 'idle', frame = 0, playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches, acc = 0, last = 0, rest = 0;
+  function paint(target, fr, scale, withHalo) {
+    const t = target.getContext('2d'), s = A.CELL * scale, css = getComputedStyle(document.documentElement);
+    t.fillStyle = css.getPropertyValue('--stage').trim() || '#1c1932'; t.fillRect(0, 0, s, s);
+    t.fillStyle = css.getPropertyValue('--stage-floor').trim() || '#120f22'; t.fillRect(0, A.GROUND * scale, s, s - A.GROUND * scale);
+    t.imageSmoothingEnabled = false; t.drawImage(fr.lit, 0, 0, s, s);
+    if (!withHalo) return;
+    t.save(); t.globalCompositeOperation = 'lighter'; t.imageSmoothingEnabled = true;
+    t.filter = `blur(${1.4 * scale}px)`; t.globalAlpha = 0.55 * 0.9; t.drawImage(fr.glow, 0, 0, s, s);
+    t.filter = `blur(${4 * scale}px)`; t.globalAlpha = 0.55 * 1.1; t.drawImage(fr.glow, 0, 0, s, s);
+    t.restore();
+  }
+  function render() {
+    const fr = frames(name);
+    paint(stage, fr[frame], 4, haloBox.checked);
+    const n = fr.length, ev = (EVENTS[name] || {})[frame];
+    readout.innerHTML = `Fotograma <b>${frame + 1}</b> / ${n} · ${A.durationsMs(n)[frame]} ms${ev ? ` · <b>${ev}</b>` : ''}`;
+    strip.querySelectorAll('figure').forEach((el, i) => { el.dataset.on = String(i === frame); });
+  }
+  function buildStrip() {
+    strip.textContent = '';
+    frames(name).forEach((fr, i) => {
+      const fig = document.createElement('figure'), cv = document.createElement('canvas'), cap = document.createElement('figcaption');
+      cv.width = cv.height = 192; paint(cv, fr, 2, true);
+      cv.addEventListener('click', () => { frame = i; setPlaying(false); render(); });
+      const ev = (EVENTS[name] || {})[i];
+      cap.innerHTML = String(i + 1) + (ev ? ` <span class="ev">${ev}</span>` : '');
+      fig.append(cv, cap); strip.append(fig);
+    });
+  }
+  function select(n) {
+    name = n; frame = 0; acc = 0; rest = 0;
+    picker.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.anim === n)));
+    note.innerHTML = `<strong>${INFO[n][0]}.</strong> ${INFO[n][1]}`;
+    buildStrip(); render();
+  }
+  function setPlaying(v) { playing = v; playBtn.textContent = v ? 'Pausa' : 'Reproducir'; }
+  const picker = document.getElementById('picker');
+  A.ANIMATIONS.forEach(([n]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.anim = n; b.textContent = INFO[n][0];
+    b.addEventListener('click', () => select(n)); picker.append(b);
+  });
+  playBtn.addEventListener('click', () => setPlaying(!playing));
+  document.getElementById('prev').addEventListener('click', () => { setPlaying(false); const n = frames(name).length; frame = (frame - 1 + n) % n; render(); });
+  document.getElementById('next').addEventListener('click', () => { setPlaying(false); frame = (frame + 1) % frames(name).length; render(); });
+  haloBox.addEventListener('change', render);
+  function tick(now) {
+    const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
+    if (playing) {
+      const fr = frames(name), n = fr.length, loop = A.ANIMATIONS.find(a => a[0] === name)[2];
+      if (rest > 0) { rest -= dt; if (rest <= 0) { frame = 0; acc = 0; render(); } }
+      else {
+        acc += dt;
+        const dur = A.durationsMs(n)[frame] / 1000;
+        if (acc >= dur) {
+          acc -= dur;
+          if (frame === n - 1 && !loop) { rest = name === 'death' ? 1.6 : 0.6; }
+          else { frame = (frame + 1) % n; render(); }
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  setPlaying(playing);
+  select('idle');
+  requestAnimationFrame(tick);
+})();
+</script>

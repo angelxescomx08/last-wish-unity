@@ -426,6 +426,65 @@ opens (the shop takes no clicks meanwhile, `Busy`).
   before it opens and blocks other clicks, the scene manager opens it, no gold buys nothing, discounts and the voucher,
   every state draws, and the stall art keeps the style rules. The README capture was re-rendered with the offline renderer.
 
+## Warlock interface (beyond the original, 2026-11-04)
+
+User: "en la UI del brujo hay cosas que no parecen como con el diseño del juego, mejórala y ponle un NPC brujo animado que
+interactúe como lo hace el de la tienda, animado y que se entienda, porque hay letras que no se ven tanto". The old screen
+was the generic collection viewer (flat panel, thin grey text, flat buttons). `WarlockScene` (now in its own file,
+`Presentation/Scenes/WarlockScene.cs`) draws the room with the language of the shop, gachapón and events; the rules are
+unchanged (`RunState.UpgradePrice` / `BuyUpgrade`, one upgrade per card). Domain addition: `RunState.UpgradePriceFor(rarity)`
+and `UpgradeDiscount` (Martillo del Herrero) for the price list.
+
+* **Room:** the dungeon backdrop under a green focus and vignette; title band "El Brujo" in the bold face (pale green,
+  drop shadow, green glow) and the crimson ribbon "Mejora tus cartas a cambio de oro"; the plate "Mejoradas N/M" left of the
+  pause buttons (`Counter`, flashes after an upgrade); the gold counter at its usual top-right place (it was bottom right).
+* **Price list** (`Tariffs`, `TariffList()`): iron panel "Tarifa por mejora" with one row per rarity (gem, name in its
+  colour, coin and price from `UpgradePriceFor`); with the Martillo del Herrero the old price is struck through and a green
+  note says it halves them.
+* **Deck** (`DeckPanel`, `Viewport`, `Tile(i)` → `TileView`): iron panel "Tu mazo · N cartas" with two whole rows of six
+  cards at once (`TileW` 148, `TileH` 240), scrolled with the wheel, the bar (drag or page) and ↑ ↓ PgUp PgDn Home End,
+  smoothly. Under each card its price *is* the bronze kit button (coin + "75 oro" in the chunky face, `PriceLine` shrinks
+  and never leaves it); short of gold: grey button with the price in red and a light veil on the card; upgraded cards
+  get a green "Mejorada" tag instead. Hover lifts the card with a 2-px frame and shows the card tooltip with "Al mejorarla:
+  …" and the price. The "Ver mejoras" kit button (or V) shows every card as it will be (gold while on, with "Así quedarán
+  al mejorarlas" in the header).
+* **Confirmation** (`Confirmation()` → `ConfirmView`): the deck side dims (El Brujo stays visible) and an iron panel opens:
+  "Mejorar <carta>", the card now and upgraded side by side at ×1.25 under "Ahora" / "Mejorada" tags with three chevrons
+  between them, the changes as big chips with icons (`Upgrades.Changes`: "+3 de daño", "+3 de escudo", "−1 de maná",
+  "Roba 1 más", "Mejora especial"), the gold button "Mejorar · coin · 75 oro · Enter" and the bronze "Cancelar · Esc", and
+  "Tienes N de oro · no se puede deshacer" or, short of gold, "Te faltan N de oro" in red (the button is grey and shakes).
+  Escape, the cancel button or a click outside the panel cancel; clicks on El Brujo's side do not.
+* **The upgrade show** (`Phase.Upgrading`): El Brujo shouts the spell and raises his staff (`cast`); on its release frame
+  (`events.cast` in `warlock.json`) the flame bursts and a green bolt arcs from it over the panel to the upgraded card
+  (`BoltT` 0.22 s); the card's veil lifts with a flash, sparks and twinkles, the old card dims and "¡Mejorada!" replaces
+  the tag; after `HoldT` (or a click / Enter once the bolt has landed) the room comes back, the plate counts the upgrade
+  and the card glows in the grid. The gold is charged once, when you confirm.
+* **El Brujo** (code-drawn with the mandatory character method, `Tools/VfxLab/warlock.html` +
+  `Tools/VfxLab/export_warlock_art.py` (Node) → `Resources/Game/Warlock/warlock_96.png`, `warlock_halo_96.png`,
+  `warlock.json`): deep plum hood whose long tip droops back to a little gold bell, shadowed face with green eyes and a
+  crooked nose, long bone-white beard with a gold ring, moss-fur mantle and cuffs, plum robe with green runes on the hem,
+  rope belt with a glowing vial, curled slippers, and a gnarled staff held by the far hand with a cage of roots round a
+  green ghost flame (the green of the map's cauldron icon). Six animations at 12 fps, one complete pose per frame: `idle`
+  (24, loop: breathing, the flame flickering and shedding motes, beard, hood tip and hem in the draught, a blink), `talk`
+  (12, loop: the palm opens towards you and beats twice, nods, the beard moves), `greet` (14: a little green flame lights
+  in his palm and he bows his head), `cast` (18: staff raised and tilted, the other hand reaching out, the flame swells and
+  bursts with a ring of runes on frame 8), `no` (14: eyes closed, head shake, wagging finger) and `ponder` (24: strokes his
+  beard twice; a spark leaves the flame). Every animation starts and ends on idle frame 0 and no part comes loose
+  (checked by the exporter); `feet` in the JSON measure the slippers, not the staff. He stands left of the deck
+  (`NpcX` 140, `NpcGround` 642) with green floor light, a contact shadow (and a small one under the staff) and the flame's
+  glow, by his **cauldron** (`WarlockCauldron`, code-drawn: iron pot on three legs with rivets and green brew, live green
+  flames and bubbles).
+* **He talks and reacts** (`WarlockCue`, `WarlockLines`, `WarlockSpeech`, `WarlockPose` in `WarlockNpc.cs`): he greets you
+  (greet), comments sometimes on the card under the mouse (normal, rare, already upgraded, too expensive), explains when
+  you pick one, shouts a spell when you confirm (cast), refuses when you are short or the card is already upgraded (no),
+  answers a cancel, chats after quiet spells, strokes his beard when idle 7–12 s, and says goodbye (greet) when nothing is
+  left to upgrade.
+* **Shared NPC code** (`Presentation/Scenes/Npc.cs`): `NpcSheet` (was `MerchantSheet`: named anchors and events from the
+  JSON), `NpcSpeech<TCue>`, `NpcPose` (fidget clip as a parameter) and `SpeechBubble` (layout + drawing). El Mercader uses
+  them unchanged (`MerchantSpeech`, `MerchantPose`, `MerchantSheet.Load`), so both characters behave the same way.
+* Tests: `WarlockLayoutTests` (EditMode, 18) — see below. The README capture `docs/screenshots/warlock.png` was rendered
+  with the offline renderer.
+
 ## Golden replay shows every cast (beyond the original, 2026-11-04)
 
 * User: "La carta de veneno a todos los enemigos no se está aplicando en dorada dos veces" (and asked whether other ×2/×3
@@ -539,6 +598,14 @@ Tracks the power of cards, relics and encounters from real runs and stores it in
   refusal, sold, sold out), occasional hover comments, idle chatter without repeats, typing/holding/fading, the animation
   of every cue, hat tip / bow / head shake in the shop (interrupting each other), talking that ends only at the end of a
   cycle and goes back to idle frame 0, the coin flip now and then and lines interrupting it, every state drawn.
+* `WarlockLayoutTests` (18 EditMode cases): El Brujo's room — his sheet (six animations, 12 fps, cast event, anchors) and
+  place with the cauldron left of the deck, cauldron art rules, every line fits its bubble with the longest card name, cue
+  → reaction, non-overlapping boxes, every card of the game (three heroes) fits its tile and its confirmation panel (title,
+  both cards, chips, button), prices 0…`int.MaxValue` fit, the price list and the Martillo del Herrero, pick → confirm →
+  show (charged once, cannot be skipped before the bolt lands, comes back alone), skipping with click / Enter, cancelling
+  three ways, no gold (shake, "no", exactly enough), goodbye after the last upgrade, toggle / scrolling / exit, the scene
+  manager (pause button hidden while the panel is open, Escape closes it first), occasional hover comments, beard stroking
+  when quiet, every state drawn.
 * `Tools/DomainSmoke` also plays 975 floor-1 fights, 1002 floor-2 fights and 1305 floor-3 fights with the expanded roster
   (summons, splits, trios, cap never above 3).
 * Floor-2 expansion: 41 EditMode cases (`Floor2PatternTests`, `Floor2MechanicTests`, `Floor2PresentationTests`: every

@@ -511,11 +511,15 @@ namespace LastWish.Domain
 
         // ------------------------------------------------------------ warlock / purge
         public static bool CanUpgrade(CardDefinition card) => !card.Upgraded;
-        public int UpgradePrice(CardDefinition card)
+        public int UpgradePrice(CardDefinition card) => UpgradePriceFor(card.Rarity, card.Upgraded);
+        /// <summary>What El Brujo charges for a card of <paramref name="rarity"/> (the Martillo del Herrero halves it).</summary>
+        public int UpgradePriceFor(int rarity, bool upgraded = false)
         {
-            var price = UpgradePrices[Math.Max(1, Math.Min(5, card.Rarity)) - 1] * (card.Upgraded ? 2 : 1);
+            var price = UpgradePrices[Math.Max(1, Math.Min(5, rarity)) - 1] * (upgraded ? 2 : 1);
             return HasRelic("smith_hammer") ? (price + 1) / 2 : price;
         }
+        /// <summary>The Martillo del Herrero halves El Brujo's prices.</summary>
+        public bool UpgradeDiscount => HasRelic("smith_hammer");
         public bool CanBuyUpgrade(CardDefinition card) => CanUpgrade(card) && Gold >= UpgradePrice(card);
         public bool BuyUpgrade(int index)
         {

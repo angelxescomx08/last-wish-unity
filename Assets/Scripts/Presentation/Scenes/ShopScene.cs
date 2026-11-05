@@ -64,7 +64,7 @@ namespace LastWish.Presentation
         private int purchases;
         private ChoiceRecord relicChoice;     // power telemetry: the three relics on sale
         private readonly DungeonBackdrop backdrop;
-        private readonly MerchantSheet merchant;
+        private readonly NpcSheet merchant;
         private readonly MerchantSpeech speech;
         private readonly MerchantPose pose;
         private readonly BurstParticles fx = new BurstParticles(500, 29);
@@ -97,7 +97,7 @@ namespace LastWish.Presentation
         }
 
         public MerchantSpeech Speech => speech;
-        public MerchantSheet Merchant => merchant;
+        public NpcSheet Merchant => merchant;
         public MerchantPose Pose => pose;
 
         public IReadOnlyList<RelicOffer> Relics => relics;
@@ -394,7 +394,7 @@ namespace LastWish.Presentation
         {
             if (!merchant.Valid) return;
             var r = MerchantRect; var flick = 0.85f + 0.15f * (float)Math.Sin(time * 7.3) * (float)Math.Sin(time * 3.1 + 1);
-            var (lx, ly) = merchant.ToScreen(r, merchant.Lantern);
+            var (lx, ly) = merchant.ToScreen(r, merchant.Anchor("lantern", (18, 61)));
             Glows.Draw(canvas, Art, lx, ly, 70, Glows.Scaled(new Rgba(90, 52, 18), flick));
             GroundShadow.Draw(canvas, Art, r.X + merchant.Feet.x * merchant.Scale, MerchantGround, merchant.Feet.w * merchant.Scale * 2.4f, merchant.Scale, 1f, new Rgba(52, 34, 16));
             merchant.Draw(canvas, pose.Anim, pose.Elapsed, r, flick);
@@ -402,54 +402,16 @@ namespace LastWish.Presentation
         }
 
         /// <summary>The speech bubble: where it goes and the lines of the current sentence (tests: every line fits).</summary>
-        public sealed class BubbleView { public RectF Box; public List<string> Lines = new List<string>(); public (float x, float y) Tip; public float TailX; }
-
-        public BubbleView Bubble(string text)
+        public SpeechBubble.View Bubble(string text)
         {
-            var b = new BubbleView();
-            if (string.IsNullOrEmpty(text)) return b;
-            var font = Fonts.Get(13);
-            b.Lines = TextFit.Wrap(font, text, BubbleMaxW);
-            var w = b.Lines.Max(l => font.Width(l)) + 28; var h = b.Lines.Count * BubbleLine + 20;
-            var r = MerchantRect; var (mx, my) = merchant.ToScreen(r, merchant.Mouth);
-            var bottom = r.Y + merchant.Top * merchant.Scale - 16;
-            var cx = Math.Max(16 + w / 2f, Math.Min(StallX - 12 - w / 2f, mx - 6));
-            b.Box = new RectF((float)Math.Floor((cx - w / 2f) / 2) * 2, (float)Math.Floor((bottom - h) / 2) * 2, (float)Math.Ceiling(w / 2f) * 2, (float)Math.Ceiling(h / 2f) * 2);
-            b.TailX = Math.Max(b.Box.X + 18, Math.Min(b.Box.Right - 18, mx - 14));
-            b.Tip = ((float)Math.Floor((mx - 4) / 2) * 2, b.Box.Bottom + 14);
-            return b;
+            var r = MerchantRect;
+            return SpeechBubble.Layout(Fonts.Get(13), text, BubbleMaxW, merchant.ToScreen(r, merchant.Mouth), r.Y + merchant.Top * merchant.Scale, 16, StallX - 12);
         }
-
-        private static readonly Rgba Paper = new Rgba(236, 226, 200), PaperLight = new Rgba(250, 244, 226), PaperShade = new Rgba(196, 182, 150), Words = new Rgba(52, 36, 24);
 
         private void DrawBubble(Canvas canvas)
         {
             if (!speech.Visible) return;
-            var b = Bubble(speech.Text); if (b.Lines.Count == 0) return;
-            var a = speech.Alpha; var pop = Math.Min(1f, speech.Age / 0.12f);
-            canvas.PushAlpha(a);
-            var box = b.Box.Move(0, (float)Math.Round((1 - pop) * 3) * 2);
-            // tail first (the box covers its root): rows of 2 px leaning from the box towards his face, ink round paper
-            var drop = box.Y - b.Box.Y; var rows = (int)((b.Tip.y + drop - box.Bottom) / 2) + 1;
-            for (var k = 0; k < rows; k++)
-            {
-                var u = k / (float)Math.Max(1, rows - 1); var y = box.Bottom - 2 + k * 2;
-                var mid = b.TailX + (b.Tip.x - b.TailX) * u; var half = 7f * (1 - u) + 1;
-                float x0 = (float)Math.Floor((mid - half) / 2) * 2, x1 = (float)Math.Ceiling((mid + half) / 2) * 2;
-                canvas.Fill(new RectF(x0 - 2, y, x1 - x0 + 4, k == rows - 1 ? 4 : 2), Colors.Ink);
-                if (x1 - x0 >= 2 && k < rows - 1) canvas.Fill(new RectF(x0, y, x1 - x0, 2), k < rows - 2 ? Paper : PaperShade);
-            }
-            PixelUi.PixelBox(canvas, box, Paper, Colors.Ink, PaperLight);
-            canvas.Fill(new RectF(box.X + 2, box.Bottom - 4, box.W - 4, 2), PaperShade);
-            var shown = speech.Shown; var font = Fonts.Get(13); var y0 = box.Y + 10;
-            foreach (var line in b.Lines)
-            {
-                if (shown <= 0) break;
-                var part = line.Length <= shown ? line : line.Substring(0, shown);
-                font.Draw(canvas, part, box.X + 14, y0, Words);
-                shown -= line.Length + 1; y0 += BubbleLine;
-            }
-            canvas.PopAlpha();
+            SpeechBubble.Draw(canvas, Fonts.Get(13), Bubble(speech.Text), speech.Shown, speech.Age, speech.Alpha);
         }
 
         private void DrawStall(Canvas canvas)

@@ -119,163 +119,24 @@ namespace LastWish.Presentation
             if (up.ManaGain != card.ManaGain) parts.Add("+" + (up.ManaGain - card.ManaGain) + " de maná al jugarla");
             return parts.Count > 0 ? string.Join(", ", parts) : "mejora especial";
         }
-    }
 
-    /// <summary>The deck grid of El Brujo with prices and the "Ver mejoras" toggle.</summary>
-    internal sealed class UpgradeGrid : PileViewer
-    {
-        public override string CloseLabel => "Salir";
-        public override string FooterText => "Las cartas normales se pueden mejorar una sola vez";
-        public override string HintText => "Haz clic en una carta para mejorarla  ·  Rueda / ↑ ↓ para desplazarte";
-        public override bool CloseOnOutsideClick => false;
-        private static readonly Rgba Accent = new Rgba(80, 210, 170), Gold = new Rgba(235, 195, 70), TooExpensive = new Rgba(220, 90, 80);
-        private readonly RunState run;
-        public int? Clicked;
-        public bool ShowUpgraded;
-        public readonly IRect ToggleRect;
+        private static readonly Rgba ManaInk = new Rgba(110, 190, 255), DamageInk = new Rgba(255, 120, 90), BlockInk = new Rgba(100, 175, 255),
+            DrawInk = new Rgba(140, 230, 120), SpecialInk = new Rgba(190, 140, 255);
 
-        public UpgradeGrid(GameContext game, RunState run) : base(game, "El Brujo", run.Deck, CardBonus.ForRun(run))
-        { this.run = run; ToggleRect = new IRect(CloseRect.X - 220, CloseRect.Y, 208, CloseRect.H); }
-
-        public void Sync() { Items.Clear(); Items.AddRange(run.Deck); }
-        public void ClearMouse() => MousePos = (-1, -1);
-
-        public override void HandleEvent(in InputEvent e)
+        /// <summary>What an upgrade changes, one chip each (icon, Spanish text, colour): El Brujo's confirmation panel.</summary>
+        public static List<(string icon, string text, Rgba color)> Changes(CardDefinition card)
         {
-            if (e.IsLeftDown && ToggleRect.Contains(e.X, e.Y) || e.IsKey(Key.V)) { ShowUpgraded = !ShowUpgraded; return; }
-            if (e.IsLeftDown && Viewport.Contains(e.X, e.Y))
-                foreach (var pair in ItemRects) if (pair.Value.Contains(e.X, e.Y)) { Clicked = pair.Key; return; }
-            base.HandleEvent(e);
-        }
-
-        private CardDefinition Shown(CardDefinition c) => ShowUpgraded && RunState.CanUpgrade(c) ? c.Upgrade() : c;
-
-        protected override void DrawItem(Canvas canvas, CardDefinition item, IRect rect, int index)
-        {
-            string text; Rgba color;
-            if (!RunState.CanUpgrade(item)) { text = "Ya mejorada"; color = Colors.TextSecondary; }
-            else { var price = run.UpgradePrice(item); text = price + " de oro"; color = run.Gold >= price ? Gold : TooExpensive; }
-            Game.Fonts.Get(15).DrawCentered(canvas, text, rect.CenterX, rect.Y + 24, color);
-            var shown = Shown(item);
-            CardWidget.Draw(canvas, Game, shown, rect.X + 20, rect.Y + 44, CardBonus.ForRun(run).For(shown));
-            if (!run.CanBuyUpgrade(item)) canvas.Fill(new RectF(rect.X + 20, rect.Y + 44, CardWidget.CardW, CardWidget.CardH), new Rgba(0, 0, 0, 130));
-        }
-
-        public override void Draw(Canvas canvas)
-        {
-            base.Draw(canvas);
-            var on = ShowUpgraded;
-            canvas.Rect(ToggleRect, on ? new Rgba(30, 110, 85) : Colors.BgDark, 0, 6);
-            canvas.Rect(ToggleRect, on ? Accent : Colors.PanelBorder, 1, 6);
-            Game.Fonts.Get(15).DrawCentered(canvas, "Ver mejoras (V): " + (on ? "Sí" : "No"), ToggleRect.CenterX, ToggleRect.CenterY, Colors.TextPrimary);
-        }
-
-        protected override TooltipContent TooltipOf(CardDefinition item)
-        {
-            var shown = Shown(item); var s = CardBonus.ForRun(run).For(shown);
-            var tip = Tooltip.Card(Game, shown, s.BonusDamage, s.BonusBlock);
-            var lines = RunState.CanUpgrade(item)
-                ? new List<string> { "Al mejorarla: " + Upgrades.Describe(item), "Precio: " + run.UpgradePrice(item) + " de oro" }
-                : new List<string> { "Ya está mejorada al máximo." };
-            lines.Add(""); lines.AddRange(tip.Lines);
-            return new TooltipContent(tip.Title) { Lines = lines, Icon = tip.Icon, Subtitle = tip.Subtitle, Panels = tip.Panels };
-        }
-    }
-
-    /// <summary>scenes/warlock_scene.py: El Brujo upgrades cards for gold.</summary>
-    public sealed class WarlockScene : Scene
-    {
-        private static readonly Rgba Accent = new Rgba(80, 210, 170), Gold = new Rgba(235, 195, 70), TooExpensive = new Rgba(220, 90, 80);
-        private static readonly IRect PanelRect = new IRect(290, 110, 700, 500);
-        private const int BtnW = 200, BtnH = 44;
-        private readonly RunState run;
-        private readonly UpgradeGrid grid;
-        private int? selected;
-        private IRect? confirmRect, cancelRect;
-        private string message = ""; private bool messageOk = true;
-        public bool Cleared { get; set; }
-        public int? SelectedIndex => selected;
-        public override RectF? PauseButtonRect => new RectF(78, 652, 64, 36);
-        public override (Anchor anchor, float x, float y)? GoldHudPos => (Anchor.BottomRight, 1268, 708);
-        public override bool HasOverlay => selected.HasValue;
-
-        public WarlockScene(GameContext game, RunState run) : base(game) { this.run = run; grid = new UpgradeGrid(game, run); }
-
-        public void Select(int index)
-        {
-            if (index < 0 || index >= run.Deck.Count) return;
-            var card = run.Deck[index];
-            if (!RunState.CanUpgrade(card)) { Say(card.Name + " ya no se puede mejorar", false); Sound.PlayError(); return; }
-            selected = index; grid.ClearMouse(); Sound.PlayConfirm();
-        }
-
-        public bool Confirm()
-        {
-            if (!selected.HasValue) return false;
-            var oldName = run.Deck[selected.Value].Name;
-            if (run.BuyUpgrade(selected.Value))
-            {
-                Say(oldName + " → " + run.Deck[selected.Value].Name); Sound.PlayPurchase(); selected = null; grid.Sync();
-                return true;
-            }
-            Say("No tienes suficiente oro", false); Sound.PlayError();
-            return false;
-        }
-
-        public void Cancel() { if (selected.HasValue) { selected = null; Sound.PlayCancel(); } }
-        private void Say(string text, bool ok = true) { message = text; messageOk = ok; }
-
-        public override void HandleEvent(in InputEvent e)
-        {
-            if (Cleared) return;
-            if (selected.HasValue)
-            {
-                if (e.Type == EventType.KeyDown)
-                {
-                    if (e.Key == Key.Escape) Cancel();
-                    else if (e.IsConfirmKey) Confirm();
-                }
-                else if (e.IsLeftDown)
-                {
-                    if (confirmRect.HasValue && confirmRect.Value.Contains(e.X, e.Y)) Confirm();
-                    else if (cancelRect.HasValue && cancelRect.Value.Contains(e.X, e.Y) || !PanelRect.Contains(e.X, e.Y)) Cancel();
-                }
-                return;
-            }
-            grid.HandleEvent(e);
-            if (grid.Clicked.HasValue) { var i = grid.Clicked.Value; grid.Clicked = null; Select(i); }
-            if (grid.Dismissed) { Cleared = true; Sound.PlayCancel(); }
-        }
-
-        public override void Draw(Canvas canvas)
-        {
-            grid.Draw(canvas);
-            if (message.Length > 0) Txt.DrawAt(canvas, Fonts.Get(15), message, Anchor.MidRight, 1100, 104, messageOk ? Accent : TooExpensive);
-            if (selected.HasValue) DrawConfirm(canvas, run.Deck[selected.Value]);
-        }
-
-        private void DrawConfirm(Canvas canvas, CardDefinition card)
-        {
-            canvas.Fill(new RectF(0, 0, Canvas.Width, Canvas.Height), new Rgba(0, 0, 0, 170));
-            canvas.Rect(PanelRect, Colors.BgPanel, 0, 12); canvas.Rect(PanelRect, Accent, 2, 12);
-            var cx = PanelRect.CenterX;
-            Fonts.Get(24).DrawMidTop(canvas, "Mejorar carta", cx, PanelRect.Y + 18, Accent);
-            var preview = card.Upgrade(); var top = PanelRect.Y + 70; var bonus = CardBonus.ForRun(run);
-            CardWidget.Draw(canvas, Game, card, cx - 60 - CardWidget.CardW, top, bonus.For(card));
-            CardWidget.Draw(canvas, Game, preview, cx + 60, top, bonus.For(preview));
-            Fonts.Get(40).DrawCentered(canvas, "→", cx, top + CardWidget.CardH / 2, Accent);
-            var y = top + CardWidget.CardH + 22;
-            Fonts.Get(16).DrawMidTop(canvas, "Mejora: " + Upgrades.Describe(card), cx, y, Colors.TextPrimary);
-            var price = run.UpgradePrice(card); var affordable = run.Gold >= price;
-            Fonts.Get(15).DrawMidTop(canvas, "Precio: " + price + " de oro  ·  Tienes: " + run.Gold, cx, y + 28, affordable ? Gold : TooExpensive);
-            var by = PanelRect.Bottom - BtnH - 22;
-            var ok = new IRect(cx - BtnW - 12, by, BtnW, BtnH); var no = new IRect(cx + 12, by, BtnW, BtnH);
-            confirmRect = ok; cancelRect = no;
-            canvas.Rect(ok, affordable ? new Rgba(30, 110, 85) : new Rgba(50, 50, 55), 0, 6);
-            canvas.Rect(ok, affordable ? Accent : Colors.PanelBorder, 2, 6);
-            canvas.Rect(no, Colors.BgDark, 0, 6); canvas.Rect(no, Colors.PanelBorder, 1, 6);
-            Fonts.Get(16).DrawCentered(canvas, "Mejorar (" + price + ")", ok.CenterX, ok.CenterY, affordable ? Colors.TextPrimary : Colors.TextSecondary);
-            Fonts.Get(16).DrawCentered(canvas, "Cancelar", no.CenterX, no.CenterY, Colors.TextSecondary);
+            var up = card.Upgrade();
+            var (d0, b0, r0) = Base(card); var (d1, b1, r1) = Base(up);
+            var list = new List<(string, string, Rgba)>();
+            var dc = up.Cost - card.Cost;
+            if (dc != 0) list.Add(("mana", card.Cost + dc <= 0 ? "Coste 0" : (dc > 0 ? "+" : "−") + Math.Abs(dc) + " de maná", ManaInk));
+            if (d1 != d0) list.Add(("damage", "+" + (d1 - d0) + " de daño", DamageInk));
+            if (b1 != b0) list.Add(("block", "+" + (b1 - b0) + " de escudo", BlockInk));
+            if (r1 != r0) list.Add(("draw", "Roba " + (r1 - r0) + " más", DrawInk));
+            if (up.ManaGain != card.ManaGain) list.Add(("mana", "+" + (up.ManaGain - card.ManaGain) + " de maná al jugarla", ManaInk));
+            if (list.Count == 0) list.Add(("buff", "Mejora especial", SpecialInk));
+            return list;
         }
     }
 }
