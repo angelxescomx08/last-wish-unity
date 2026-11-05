@@ -99,7 +99,7 @@ namespace LastWish.Presentation
             var reason = run.PurgeBlockReason();
             var lines = new List<string> { reason.Length > 0 ? reason : "Eliminar por " + run.PurgePrice + " de oro (para siempre)", "" };
             lines.AddRange(tip.Lines);
-            return new TooltipContent(tip.Title) { Lines = lines, Icon = tip.Icon, Subtitle = tip.Subtitle, Panels = tip.Panels };
+            return tip.WithLines(lines);
         }
     }
 

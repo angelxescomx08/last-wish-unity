@@ -518,6 +518,29 @@ and `UpgradeDiscount` (Martillo del Herrero) for the price list.
   linked event is a later chapter whose choice sets the flag it needs), `StoryMarkerTests` (5: panel, markers, tooltip,
   long lists inside the panel, event chip). Unity EditMode 408/408.
 
+## Card hover and card tooltip (beyond the original, 2026-11-04)
+
+* User: "cuando se hace hover en una carta como que el texto cambia […] coste, texto, daño" and "que se vea mejor el texto
+  en la explicación y agregar la calidad de la carta, legendaria o así".
+* **Hover no longer changes the text.** The hand laid a hovered card out again at 1.3× (and an aimed one at 1.1×): other
+  pixel-font sizes, other line breaks, the name in the tiny face, a bigger cost and damage. Now every card of the hand
+  area (fan, hover, aim, deal, cast stage, leaving ghosts) is laid out at 1.0 (`CombatScene.HandFace`) and only resized.
+  `CardWidget.DrawAt(faceScale:)` = the layout size; a face shown bigger than its layout is rendered at ×2
+  (`CardWidget.ResFor`, `MaxRes` = 2): `ComposeFace` lays out in face pixels under a ×2 transform into a target twice as big
+  (`FaceKey.Res`; clips mapped through it, `PushFaceClip`), so the hovered card shows exactly the same glyphs and lines,
+  sharp. `CardPose.Face` and the face tween are gone. Other screens keep their faces as they were.
+* **Card tooltip** (`Tooltip.Card`, used by the hand, rewards, packs, deck viewers, purge and El Brujo): opaque boxes (the
+  cards behind used to show through the text); the title in the bold face and the box frame (2 px) in the rarity colour
+  (`Tooltip.RarityInk`: Común stone, Poco común green, Rara blue, Épica violet, Legendaria gold); under the title one row of
+  chips (`TooltipContent.Chips`, `TooltipChip`, drawn like the shop tags): the rarity with its gem ("Legendaria", bold),
+  the type with its icon and the cost with the mana icon ("Coste 2" / "Injugable"); the class ("Guerrera", "Pícara",
+  "Mago", "Neutral") is the title's tag in the 16 px face. The 8 px grey subtitle is no longer drawn for cards.
+  `TooltipContent.WithLines` keeps chips and colours when El Brujo and the purge add their own lines.
+* **Rarity under the offered cards:** the combat reward and the pack pick draw the rarity chip under every card
+  (`Tooltip.RarityChip`, `RarityTags`), and the card tooltip opens beside the hovered card instead of following the mouse.
+  "Omitir"/"Terminar" and "Volver a tirar" moved down 12/10 px to make room.
+* Tests: `CardHoverAndTooltipTests` (EditMode, 17) — see below.
+
 ## Card design changes (beyond the original)
 
 `Domain/CardDesign.cs` holds the Unity-only design changes; the exported
@@ -606,6 +629,13 @@ Tracks the power of cards, relics and encounters from real runs and stores it in
   three ways, no gold (shake, "no", exactly enough), goodbye after the last upgrade, toggle / scrolling / exit, the scene
   manager (pause button hidden while the panel is open, Escape closes it first), occasional hover comments, beard stroking
   when quiet, every state drawn.
+* `CardHoverAndTooltipTests` (17 EditMode cases): every card of the game composed at ×1 and ×2 draws the same pieces at
+  twice the place (same glyphs, fonts, colours); `ResFor`; `DrawAt` resizes the face it was told to lay out; a real
+  `CombatScene` hovering every card, aiming and cancelling never shows a face laid out at 1.1/1.3 (only 1.0, ×1 or ×2) and the
+  hovered card still grows to 1.3×; the hovered face uses the resting face's glyphs; every card tooltip (all cards, starters,
+  status cards) names its rarity first with its colour, type and cost on one row inside the box, class as the tag; five
+  rarity colours; every tooltip quad is opaque; `WithLines` keeps the chips; the reward (with and without an elite relic)
+  and the pack pick (with reroll) draw a rarity chip under each card, centred, clear of the buttons.
 * `Tools/DomainSmoke` also plays 975 floor-1 fights, 1002 floor-2 fights and 1305 floor-3 fights with the expanded roster
   (summons, splits, trios, cap never above 3).
 * Floor-2 expansion: 41 EditMode cases (`Floor2PatternTests`, `Floor2MechanicTests`, `Floor2PresentationTests`: every

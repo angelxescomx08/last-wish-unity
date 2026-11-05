@@ -9,9 +9,9 @@ namespace LastWish.Presentation
     /// <summary>scenes/combat_scene.CardPose: where a card is drawn (centre, size, tilt, face layout scale).</summary>
     public sealed class CardPose
     {
-        public float X, Y, Scale = 1f, Angle; public float? Face;
-        public CardPose(float x, float y, float scale = 1f, float angle = 0f, float? face = null) { X = x; Y = y; Scale = scale; Angle = angle; Face = face; }
-        public CardPose Copy() => new CardPose(X, Y, Scale, Angle, Face);
+        public float X, Y, Scale = 1f, Angle;
+        public CardPose(float x, float y, float scale = 1f, float angle = 0f) { X = x; Y = y; Scale = scale; Angle = angle; }
+        public CardPose Copy() => new CardPose(X, Y, Scale, Angle);
     }
 
     /// <summary>
@@ -36,6 +36,9 @@ namespace LastWish.Presentation
         private static readonly Rgba TargetingColor = new Rgba(255, 190, 50);
         private const int PlayLineY = HandAreaY;
         private static readonly float HandBaseY = CardY + CardWidget.CardH / 2f - 12;
+        /// <summary>Every card of the hand area (fan, hover, aim, deal, cast stage, leaving) is laid out at this scale and only
+        /// resized: hovering a card grows it without changing its fonts, line breaks or numbers (user, 2026-11-04).</summary>
+        private const float HandFace = 1f;
         private const float HoverScale = 1.3f, AimScale = 1.1f, MaxTilt = 10f, TiltStep = 2.5f, NeighbourPush = 46f, Ease = 16f, EaseHeld = 32f, LeaveSeconds = 0.3f;
         private static readonly (float x, float y) AimCenter = (640f, 500f), CastStage = (560f, 250f);
         private const float CastIntro = 0.35f, CastGap = 0.65f, CastOutro = 0.8f, KillHold = 0.7f, DeathHold = 0.35f;

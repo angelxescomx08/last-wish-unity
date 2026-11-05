@@ -53,14 +53,6 @@ namespace LastWish.Presentation
             return new IRect(MathX.Round(pose.X) - w / 2, MathX.Round(pose.Y) - h / 2, w, h);
         }
 
-        private static float? ShrinkFace(CardPose pose) => Math.Max(pose.Scale, pose.Face ?? 0f);
-
-        private static void TweenFace(CardPose pose, float goalScale)
-        {
-            if (CardWidget.QuantizeScale(pose.Scale) == CardWidget.QuantizeScale(goalScale)) pose.Face = null;
-            else pose.Face = Math.Max(goalScale, pose.Face ?? pose.Scale);
-        }
-
         private int? HeldIndex()
         {
             var card = play.Active ? play.Card : null;
@@ -117,13 +109,13 @@ namespace LastWish.Presentation
             deal.Advance(dt);
             if (deal.Waiting)
             {
-                pose.X = deal.Start.x; pose.Y = deal.Start.y; pose.Scale = CardDeal.StartScale; pose.Angle = CardDeal.StartAngle; pose.Face = goal.Scale;
+                pose.X = deal.Start.x; pose.Y = deal.Start.y; pose.Scale = CardDeal.StartScale; pose.Angle = CardDeal.StartAngle;
                 return true;
             }
             if (deal.Done)
             {
                 deals.Remove(key);
-                pose.X = goal.X; pose.Y = goal.Y; pose.Scale = goal.Scale; pose.Angle = goal.Angle; pose.Face = null;
+                pose.X = goal.X; pose.Y = goal.Y; pose.Scale = goal.Scale; pose.Angle = goal.Angle;
                 bursts.Burst(goal.X, goal.Y - 40, 8, TrailOf(key), (40f, 140f), null, (0.2f, 0.45f), (1.5f, 2.5f), ParticleStyle.Spark, 3.0f, 0f, 30f);
                 return false;
             }
@@ -135,7 +127,7 @@ namespace LastWish.Presentation
                     bursts.Emit(x + rng.UniformF(-14, 14), y + rng.UniformF(-20, 20), -vx * 0.08f + rng.UniformF(-30, 30), -vy * 0.08f + rng.UniformF(-30, 30),
                         rng.UniformF(0.25f, 0.5f), TrailOf(key), rng.UniformF(1.5f, 3.0f), ParticleStyle.Square, 2.5f);
             }
-            pose.X = x; pose.Y = y; pose.Scale = scale; pose.Angle = angle; pose.Face = goal.Scale;
+            pose.X = x; pose.Y = y; pose.Scale = scale; pose.Angle = angle;
             return true;
         }
 
@@ -167,7 +159,6 @@ namespace LastWish.Presentation
                 pose.Y += (goal.Y - pose.Y) * f;
                 pose.Scale = goal.Scale;
                 pose.Angle += (goal.Angle - pose.Angle) * f;
-                TweenFace(pose, goal.Scale);
             }
             liveKeys.Clear(); foreach (var c in state.Hand) liveKeys.Add(c);
             staleKeys.Clear(); foreach (var key in motion.Keys) if (!liveKeys.Contains(key)) staleKeys.Add(key);
@@ -255,7 +246,7 @@ namespace LastWish.Presentation
                 return;
             }
             if (played != null && playedPose != null)
-                leaving.Add(new Leaving { Card = played, Pose = new CardPose(playedPose.X, playedPose.Y, playedPose.Scale, playedPose.Angle, ShrinkFace(playedPose)), Dmg = bonuses.Item1, Blk = bonuses.Item2 });
+                leaving.Add(new Leaving { Card = played, Pose = new CardPose(playedPose.X, playedPose.Y, playedPose.Scale, playedPose.Angle), Dmg = bonuses.Item1, Blk = bonuses.Item2 });
             PlayHeroAction(action);
             if (blockGained > 0 && playerRect.HasValue) { fx.AddBlockFlash(playerRect.Value, blockGained, heroFx == null); Sound.PlayBlock(); }
             var delay = heroAction == "attack" && heroFx != null ? heroSheets.StrikeSeconds : 0f;
@@ -498,7 +489,7 @@ namespace LastWish.Presentation
             var outro = Math.Max(CastOutro, HeroSeconds(seq.Action) + 0.04f);
             if (seq.T >= CastTime(result.Casts - 1) + outro)
             {
-                leaving.Add(new Leaving { Card = seq.Card, Pose = new CardPose(CastStage.x, CastStage.y, 0.95f, 0f, 0.95f + 0.14f), Dmg = seq.Dmg, Blk = seq.Blk });
+                leaving.Add(new Leaving { Card = seq.Card, Pose = new CardPose(CastStage.x, CastStage.y, 0.95f, 0f), Dmg = seq.Dmg, Blk = seq.Blk });
                 sequence = null; shownEnemies = null; shownPlayerBlock = null; shownStatuses = null; shownHeroStatuses = null; shownMana = null;
             }
         }
@@ -828,7 +819,7 @@ namespace LastWish.Presentation
                 if (motion.TryGetValue(card, out var pose) && !deals.ContainsKey(card))
                 {
                     var (d, b) = Bonuses(card);
-                    leaving.Add(new Leaving { Card = card, Pose = new CardPose(pose.X, pose.Y, pose.Scale, pose.Angle, ShrinkFace(pose)), Dmg = d, Blk = b });
+                    leaving.Add(new Leaving { Card = card, Pose = new CardPose(pose.X, pose.Y, pose.Scale, pose.Angle), Dmg = d, Blk = b });
                 }
             var frozen = new HashSet<int>();
             for (var i = 0; i < before.Count; i++)

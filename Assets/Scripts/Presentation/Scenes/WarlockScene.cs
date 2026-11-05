@@ -674,7 +674,7 @@ namespace LastWish.Presentation
                 ? new List<string> { "Al mejorarla: " + Upgrades.Describe(item), "Precio: " + run.UpgradePrice(item) + " de oro" }
                 : new List<string> { "Ya está mejorada al máximo." };
             lines.Add(""); lines.AddRange(tip.Lines);
-            return new TooltipContent(tip.Title) { Lines = lines, Icon = tip.Icon, Subtitle = tip.Subtitle, Panels = tip.Panels };
+            return tip.WithLines(lines);
         }
 
         // ------------------------------------------------------------------ small pieces

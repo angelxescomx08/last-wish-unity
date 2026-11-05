@@ -16,18 +16,34 @@ namespace LastWish.Presentation
         { Title = title; Lines = new List<string>(lines ?? Array.Empty<string>()); Icon = icon; Color = color; Tag = tag ?? ""; Key = key ?? ""; }
     }
 
+    /// <summary>A labelled chip under the title (card rarity, type, cost, class): its colour tints the box and the text;
+    /// <see cref="Gem"/> draws the rarity gem, <see cref="Icon"/> a UI icon before the text.</summary>
+    public readonly struct TooltipChip
+    {
+        public readonly string Text, Icon; public readonly Rgba Color; public readonly bool Gem;
+        public TooltipChip(string text, Rgba color, string icon = null, bool gem = false) { Text = text ?? ""; Color = color; Icon = icon; Gem = gem; }
+    }
+
     public sealed class TooltipContent
     {
         public string Title; public List<string> Lines = new List<string>(); public string Icon; public string Subtitle = ""; public string Tag = "";
         public Rgba? Accent; public List<TooltipPanel> Panels = new List<TooltipPanel>();
+        /// <summary>Chips drawn under the title instead of the small subtitle line (cards: rarity, type, cost, class).</summary>
+        public List<TooltipChip> Chips = new List<TooltipChip>();
+        /// <summary>Title in the bold face, coloured like <see cref="Accent"/>, with a 2 px frame of that colour (cards).</summary>
+        public bool Bold;
         public TooltipContent(string title) { Title = title ?? ""; }
+
+        /// <summary>The same tooltip (title, chips, colours, panels) with other body lines (Warlock, purge).</summary>
+        public TooltipContent WithLines(List<string> lines) =>
+            new TooltipContent(Title) { Lines = lines, Icon = Icon, Subtitle = Subtitle, Tag = Tag, Accent = Accent, Panels = Panels, Chips = Chips, Bold = Bold };
 
         /// <summary>Every visible string (searches and the layout cache key).</summary>
         public string AllText()
         {
             var sb = new StringBuilder();
             void Add(string s) { if (!string.IsNullOrEmpty(s)) sb.Append(Tooltip.StripIcon(s)).Append('\n'); }
-            Add(Title); Add(Subtitle); Add(Tag); foreach (var l in Lines) Add(l);
+            Add(Title); Add(Subtitle); Add(Tag); foreach (var c in Chips) Add(c.Text); foreach (var l in Lines) Add(l);
             foreach (var p in Panels) { Add(p.Title); Add(p.Tag); foreach (var l in p.Lines) Add(l); }
             return sb.ToString();
         }
@@ -35,7 +51,8 @@ namespace LastWish.Presentation
         internal string Key()
         {
             var sb = new StringBuilder();
-            sb.Append(Title).Append('\u0001').Append(Icon).Append('\u0001').Append(Subtitle).Append('\u0001').Append(Tag).Append('\u0001').Append(Accent?.ToString());
+            sb.Append(Title).Append('\u0001').Append(Icon).Append('\u0001').Append(Subtitle).Append('\u0001').Append(Tag).Append('\u0001').Append(Accent?.ToString()).Append(Bold ? "\u0001B" : "");
+            foreach (var c in Chips) sb.Append('\u0005').Append(c.Text).Append('\u0001').Append(c.Icon).Append('\u0001').Append(c.Color.ToString()).Append(c.Gem ? "g" : "");
             foreach (var l in Lines) sb.Append('\u0002').Append(l);
             foreach (var p in Panels)
             {
@@ -90,10 +107,15 @@ namespace LastWish.Presentation
             var mask = CardTotals.Normalize(card, active);
             var type = CardWidget.TypeOf(game, card);
             var cost = info.Unplayable ? "Injugable" : "Coste: " + card.Cost + " maná";
+            var typeName = TypeName.TryGetValue(type, out var tn) ? tn : type;
+            var className = CardClassLabel.TryGetValue(card.ClassId ?? "neutral", out var cl) ? cl : "Neutral";
+            var rarity = Math.Max(1, Math.Min(5, card.Rarity));
             var content = new TooltipContent(ChromaFx.Title(card.Name, card.Chroma))
             {
                 Icon = TypeIcon.TryGetValue(type, out var ti) ? ti : null,
-                Subtitle = (TypeName.TryGetValue(type, out var tn) ? tn : type) + "  ·  " + cost + "  ·  " + (CardClassLabel.TryGetValue(card.ClassId ?? "neutral", out var cl) ? cl : "Neutral"),
+                Subtitle = typeName + "  ·  " + cost + "  ·  " + className,
+                Accent = RarityInk(rarity), Bold = true, Tag = RunContent.ClassLabel(card.ClassId ?? "neutral"),
+                Chips = CardChips(card, type, typeName, info.Unplayable),
             };
             var lines = content.Lines;
             var dmg = CardTotals.Damage(card, mask); var blk = CardTotals.Block(card, mask);
@@ -141,6 +163,36 @@ namespace LastWish.Presentation
             }
             AddGlossary(g, content);
             return content;
+        }
+
+        /// <summary>Title and frame colour of a card tooltip by rarity: the rarity colours of the card frames, bright enough to read.</summary>
+        public static Rgba RarityInk(int rarity)
+        {
+            switch (Math.Max(1, Math.Min(5, rarity)))
+            {
+                case 1: return new Rgba(222, 212, 194);
+                case 2: return new Rgba(116, 226, 136);
+                case 3: return new Rgba(112, 176, 255);
+                case 4: return new Rgba(200, 128, 255);
+                default: return new Rgba(255, 196, 72);
+            }
+        }
+
+        private static readonly Dictionary<string, Rgba> TypeInk = new Dictionary<string, Rgba>
+        { ["ATTACK"] = new Rgba(240, 112, 98), ["SKILL"] = new Rgba(104, 176, 255), ["POWER"] = new Rgba(194, 134, 255), ["STATUS"] = new Rgba(160, 196, 96) };
+        public static readonly Rgba ManaChip = new Rgba(110, 196, 255), ClassChip = new Rgba(196, 184, 160), UnplayableChip = new Rgba(170, 160, 160);
+
+        /// <summary>The chips of a card tooltip: rarity (gem + "Legendaria"…), type and cost — always one row (the class is the
+        /// title's tag).</summary>
+        public static List<TooltipChip> CardChips(CardDefinition card, string type, string typeName, bool unplayable)
+        {
+            var rarity = Math.Max(1, Math.Min(5, card.Rarity));
+            return new List<TooltipChip>
+            {
+                new TooltipChip(RunContent.RarityLabel(rarity), RarityInk(rarity), null, true),
+                new TooltipChip(typeName, TypeInk.TryGetValue(type, out var c) ? c : ClassChip, TypeIcon.TryGetValue(type, out var i) ? i : null),
+                unplayable ? new TooltipChip("Injugable", UnplayableChip, "unplayable") : new TooltipChip("Coste " + card.Cost, ManaChip, "mana"),
+            };
         }
 
         /// <summary>card_rule_lines: the card's own effect sentences (status-card panels).</summary>
@@ -536,11 +588,15 @@ namespace LastWish.Presentation
 
         // ------------------------------------------------------------------ renderer
         public const int MainW = 318, PanelW = 318, Pad = 9, Gap = 3, StackGap = 5, Corner = 5, OffX = 18, OffY = -6, IconW = 28;
-        private static readonly Rgba Bg = new Rgba(16, 13, 26, 238), PanelBg = new Rgba(22, 18, 34, 236), Accent0 = new Rgba(215, 180, 75);
+        /// <summary>Chip height, gaps between chips and rows, text padding (cards).</summary>
+        public const int ChipH = 22, ChipGap = 5, ChipRowGap = 4, ChipPad = 7;
+        // opaque: the cards and the room behind a tooltip never show through its text
+        private static readonly Rgba Bg = new Rgba(16, 13, 26), PanelBg = new Rgba(22, 18, 34), Accent0 = new Rgba(215, 180, 75);
 
         private struct Row { public Sprite Icon; public bool HasIcon; public RichLine Line; public int Indent; }
         private sealed class Head { public Sprite Icon; public bool HasIcon; public int TitleX; public string Tag; public FontFace TagFont; public List<string> Lines = new List<string>(); public FontFace Font; public Rgba Color; public int H; }
-        private sealed class Block { public bool Main; public Head Head; public List<RichLine> Sub; public List<Row> Rows; public int H; public Rgba Accent; public Rgba Color; }
+        private sealed class Block { public bool Main; public Head Head; public List<RichLine> Sub; public List<Row> Rows; public int H; public Rgba Accent; public Rgba Color; public bool Bold;
+            public List<(TooltipChip chip, RectF rect)> Chips = new List<(TooltipChip, RectF)>(); public int ChipsH; }
         private sealed class Layout { public List<List<Block>> Columns = new List<List<Block>>(); public int W, H; }
 
         private static readonly Dictionary<string, Layout> layouts = new Dictionary<string, Layout>();
@@ -596,14 +652,83 @@ namespace LastWish.Presentation
         {
             var f = game.Fonts; var inner = MainW - Pad * 2;
             var accent = content.Accent ?? Accent0;
-            var b = new Block { Main = true, Accent = accent };
-            b.Head = MakeHead(game, content.Title, content.Icon, content.Tag, accent, f.Get(16), f.Get(11), inner);
-            b.Sub = string.IsNullOrEmpty(content.Subtitle) ? new List<RichLine>() : new List<RichLine>(RichText.Lines(game.Data.Glossary, content.Subtitle, f.Get(11), inner, new Rgba(160, 152, 138)));
+            var b = new Block { Main = true, Accent = accent, Bold = content.Bold };
+            b.Head = MakeHead(game, content.Title, content.Icon, content.Tag, accent, content.Bold ? f.Bold(16) : f.Get(16), content.Bold ? f.Get(13) : f.Get(11), inner);
+            if (content.Chips.Count > 0)
+            {
+                PlaceChips(game, content.Chips, inner, b.Chips, out b.ChipsH);
+                b.Sub = new List<RichLine>();
+            }
+            else b.Sub = string.IsNullOrEmpty(content.Subtitle) ? new List<RichLine>() : new List<RichLine>(RichText.Lines(game.Data.Glossary, content.Subtitle, f.Get(11), inner, new Rgba(160, 152, 138)));
             b.Rows = Body(game, content.Lines, f.Get(13), inner, game.Data.Glossary.Body);
             var h = Pad * 2 + b.Head.H; foreach (var s in b.Sub) h += s.Height; if (b.Sub.Count > 0) h += 2;
+            if (b.ChipsH > 0) h += 6 + b.ChipsH;
             if (b.Rows.Count > 0) h += 10 + BodyHeight(b.Rows);
             b.H = h;
             return b;
+        }
+
+        /// <summary>Width of a chip: padding, gem or icon, the ink-outlined label.</summary>
+        public static int ChipWidth(Art art, TooltipChip chip)
+        {
+            var w = ChipPad * 2 + PixelUi.InkTextWidth(art, chip.Text, 13, chip.Gem);
+            if (chip.Gem) w += 12; else if (!string.IsNullOrEmpty(chip.Icon) && art.Icon(chip.Icon).Valid) w += art.Icon(chip.Icon).W + 3;
+            return w;
+        }
+
+        /// <summary>Chips left to right, wrapping to a new row when the next one does not fit (rects relative to the body's top-left).</summary>
+        private static void PlaceChips(GameContext game, List<TooltipChip> chips, int width, List<(TooltipChip, RectF)> placed, out int height)
+        {
+            float x = 0, y = 0;
+            foreach (var chip in chips)
+            {
+                var w = Math.Min(width, ChipWidth(game.Art, chip));
+                if (x > 0 && x + w > width) { x = 0; y += ChipH + ChipRowGap; }
+                placed.Add((chip, new RectF(x, y, w, ChipH)));
+                x += w + ChipGap;
+            }
+            height = chips.Count > 0 ? (int)y + ChipH : 0;
+        }
+
+        /// <summary>The chip rects of a tooltip's main box, relative to its top-left (layout tests).</summary>
+        public static List<RectF> ChipRects(GameContext game, TooltipContent content)
+        {
+            var main = MeasureMain(game, content); var list = new List<RectF>();
+            var top = Pad + main.Head.H + 6;
+            foreach (var (_, r) in main.Chips) list.Add(r.Move(Pad, top));
+            return list;
+        }
+
+        /// <summary>The rarity chip of a card (gem + "Legendaria"…), also shown under the cards offered in rewards and packs.</summary>
+        public static TooltipChip RarityChip(int rarity) => new TooltipChip(RunContent.RarityLabel(Math.Max(1, Math.Min(5, rarity))), RarityInk(rarity), null, true);
+
+        /// <summary>A chip centred on (cx, cy); returns its rect.</summary>
+        public static RectF DrawChipCentered(Canvas canvas, Art art, TooltipChip chip, float cx, float cy)
+        {
+            var w = ChipWidth(art, chip);
+            var r = new RectF((float)Math.Floor(cx - w / 2f), (float)Math.Floor(cy - ChipH / 2f), w, ChipH);
+            DrawChip(canvas, art, chip, r);
+            return r;
+        }
+
+        public static void DrawChip(Canvas canvas, Art art, TooltipChip chip, RectF r)
+        {
+            var c = chip.Color;
+            PixelUi.PixelBox(canvas, r, Glows.Scaled(c, 0.2), Glows.Scaled(c, 0.78), Glows.Scaled(c, 0.34));
+            var x = r.X + ChipPad;
+            if (chip.Gem)
+            {
+                float gx = (float)Math.Floor((x + 4) / 2) * 2 - 4, gy = (float)Math.Floor(r.CenterY / 2) * 2 - 4;
+                canvas.Fill(new RectF(gx + 2, gy, 4, 8), Colors.Ink); canvas.Fill(new RectF(gx, gy + 2, 8, 4), Colors.Ink);
+                canvas.Fill(new RectF(gx + 2, gy + 2, 4, 4), c); canvas.Fill(new RectF(gx + 2, gy + 2, 2, 2), Glows.Scaled(c, 1.5));
+                x += 12;
+            }
+            else if (!string.IsNullOrEmpty(chip.Icon))
+            {
+                var icon = art.Icon(chip.Icon);
+                if (icon.Valid) { canvas.Blit(icon, x - 1, (float)Math.Floor(r.CenterY - icon.H / 2f)); x += icon.W + 3; }
+            }
+            PixelUi.InkText(canvas, art, chip.Text, 13, Anchor.MidLeft, x, r.CenterY - 1, Glows.Scaled(c, 1.18), false, chip.Gem);
         }
 
         private static Block MeasurePanel(GameContext game, TooltipPanel panel)
@@ -674,7 +799,7 @@ namespace LastWish.Presentation
             }
         }
 
-        private static void DrawLayout(Canvas canvas, Layout layout, int tx, int ty)
+        private static void DrawLayout(Canvas canvas, GameContext game, Layout layout, int tx, int ty)
         {
             for (var c = 0; c < layout.Columns.Count; c++)
             {
@@ -683,8 +808,16 @@ namespace LastWish.Presentation
                 {
                     if (b.Main)
                     {
-                        DrawBox(canvas, new RectF(x, y, MainW, b.H), Bg, Dim(b.Accent, 0.85));
+                        var box = new RectF(x, y, MainW, b.H);
+                        DrawBox(canvas, box, Bg, Dim(b.Accent, 0.85));
+                        if (b.Bold) canvas.Rect(box.Inflate(-1, -1), Dim(b.Accent, 0.7), 1, Corner);   // 2 px rarity frame
                         var cy = DrawHead(canvas, b.Head, x + Pad, y + Pad, MainW - Pad * 2);
+                        if (b.ChipsH > 0)
+                        {
+                            cy += 6;
+                            foreach (var (chip, r) in b.Chips) DrawChip(canvas, game.Art, chip, r.Move(x + Pad, cy));
+                            cy += b.ChipsH;
+                        }
                         foreach (var s in b.Sub) { s.Draw(canvas, x + Pad, cy + 1); cy += s.Height; }
                         if (b.Rows.Count > 0)
                         {
@@ -725,7 +858,7 @@ namespace LastWish.Presentation
                 if (ty + layout.H > sh - 4) ty = sh - 4 - layout.H;
             }
             tx = Math.Max(4, Math.Min(tx, sw - 4 - layout.W)); ty = Math.Max(4, ty);
-            DrawLayout(canvas, layout, tx, ty);
+            DrawLayout(canvas, game, layout, tx, ty);
             return new RectF(tx, ty, layout.W, layout.H);
         }
 
@@ -733,7 +866,7 @@ namespace LastWish.Presentation
         public static (int w, int h) DrawAt(Canvas canvas, GameContext game, TooltipContent content, int x, int y, int screenH = 1 << 20)
         {
             var layout = Build(game, content, screenH);
-            DrawLayout(canvas, layout, x, y);
+            DrawLayout(canvas, game, layout, x, y);
             return (layout.W, layout.H);
         }
     }

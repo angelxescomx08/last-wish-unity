@@ -177,9 +177,12 @@ namespace LastWish.Presentation
             public bool BoostD, BoostB, Affordable, Upgraded; public uint Mask; public ChromaKind Chroma;
             /// <summary>The art window is left transparent: an animated illustration is drawn behind the face.</summary>
             public bool Hollow;
+            /// <summary>Texels per layout pixel: the face is laid out at (W, H) and rendered <c>Res</c> times larger,
+            /// so a card drawn bigger than its layout (hovered, aimed) keeps exactly the same text, only sharper.</summary>
+            public int Res;
             public bool Equals(FaceKey o) => Id == o.Id && Name == o.Name && Rarity == o.Rarity && ShownCost == o.ShownCost && PrintedCost == o.PrintedCost && W == o.W && H == o.H
                 && Damage == o.Damage && Block == o.Block && BoostD == o.BoostD && BoostB == o.BoostB && Affordable == o.Affordable && Upgraded == o.Upgraded && Mask == o.Mask && Chroma == o.Chroma
-                && Hollow == o.Hollow;
+                && Hollow == o.Hollow && Res == o.Res;
             public override bool Equals(object obj) => obj is FaceKey o && Equals(o);
             public override int GetHashCode()
             {
@@ -188,6 +191,7 @@ namespace LastWish.Presentation
                     var h = Id.GetHashCode() * 31 + Name.GetHashCode();
                     h = h * 31 + ShownCost; h = h * 31 + W; h = h * 31 + H * 7 + Rarity; h = h * 31 + Damage.GetHashCode(); h = h * 31 + Block.GetHashCode();
                     h = h * 31 + (int)Mask; h = h * 31 + (int)Chroma; h = h * 31 + (Affordable ? 1 : 0) + (BoostD ? 2 : 0) + (BoostB ? 4 : 0) + (Upgraded ? 8 : 0) + (Hollow ? 16 : 0);
+                    h = h * 31 + Res;
                     return h;
                 }
             }
@@ -225,12 +229,23 @@ namespace LastWish.Presentation
         }
 
         /// <summary>render_card_surface: the static face at (w, h), composed once and cached (an animated illustration shows its still frame).</summary>
-        public static Sprite Face(GameContext g, CardDefinition card, in CardShow show, int w = CardW, int h = CardH) => ComposeFace(g, card, show, w, h, false);
+        public static Sprite Face(GameContext g, CardDefinition card, in CardShow show, int w = CardW, int h = CardH) => ComposeFace(g, card, show, w, h, false, 1);
+
+        /// <summary>The face laid out at (w, h) and rendered <paramref name="res"/> times larger (a sprite of w·res × h·res
+        /// texels): drawn at any size up to that it shows the same lines, numbers and fonts as the (w, h) face.</summary>
+        public static Sprite Face(GameContext g, CardDefinition card, in CardShow show, int w, int h, int res) => ComposeFace(g, card, show, w, h, false, Math.Max(1, res));
 
         /// <summary>The face with a transparent art window, for <see cref="Draw"/> and <see cref="DrawAt"/> to put an animation behind.</summary>
-        private static Sprite HollowFace(GameContext g, CardDefinition card, in CardShow show, int w, int h) => ComposeFace(g, card, show, w, h, true);
+        private static Sprite HollowFace(GameContext g, CardDefinition card, in CardShow show, int w, int h, int res = 1) => ComposeFace(g, card, show, w, h, true, res);
 
-        private static Sprite ComposeFace(GameContext g, CardDefinition card, in CardShow show, int w, int h, bool hollow)
+        /// <summary>Most texels per layout pixel a face is rendered with (a card is never shown more than twice its layout).</summary>
+        public const int MaxRes = 2;
+
+        /// <summary>Render resolution for a face laid out at <paramref name="layoutW"/> px and shown <paramref name="shownW"/> px wide:
+        /// 1 when shown at its size or smaller, 2 when shown bigger (the text is magnified from a ×2 render, never re-laid out).</summary>
+        public static int ResFor(int layoutW, int shownW) => shownW > layoutW ? MaxRes : 1;
+
+        private static Sprite ComposeFace(GameContext g, CardDefinition card, in CardShow show, int w, int h, bool hollow, int res)
         {
             var canvas = g.Canvas;
             var mask = CardTotals.Normalize(card, show.Ready);
@@ -243,7 +258,7 @@ namespace LastWish.Presentation
             {
                 Id = card.Id, Name = card.Name, Rarity = card.Rarity, ShownCost = show.Cost ?? card.Cost, PrintedCost = card.Cost, W = w, H = h, Damage = damage, Block = block,
                 BoostD = show.BonusDamage > 0 || comboDmg, BoostB = show.BonusBlock > 0 || comboBlk, Affordable = !show.Unaffordable, Upgraded = card.Upgraded, Mask = mask, Chroma = card.Chroma,
-                Hollow = hollow,
+                Hollow = hollow, Res = res,
             };
             if (faces.TryGetValue(key, out var hit))
             {
@@ -251,9 +266,11 @@ namespace LastWish.Presentation
                 lru.Remove(hit.Node); lru.AddLast(hit.Node);
                 return new Sprite(hit.Texture);
             }
-            var tex = RentTarget(canvas, w, h);
+            var tex = RentTarget(canvas, w * res, h * res);
             canvas.BeginTarget(tex);
+            if (res > 1) canvas.PushTransform(Mat2D.Scale(res, res));    // lay out in face pixels, render in texels
             Compose(g, card, key, mask);
+            if (res > 1) canvas.PopTransform();
             canvas.EndTarget();
             var entry = new FaceEntry { Key = key, Texture = tex, LastFrame = canvas.FrameIndex };
             entry.Node = lru.AddLast(entry);
@@ -344,7 +361,7 @@ namespace LastWish.Presentation
                         var dotsW = font.Width("…");
                         var keep = Math.Min(line.Width, textRect.W - dotsW);
                         var jw = keep + dotsW; var x = textRect.CenterX - jw / 2;
-                        canvas.PushClip(new RectF(x, y, keep, line.Height));
+                        PushFaceClip(canvas, new RectF(x, y, keep, line.Height));
                         line.Draw(canvas, x, y);
                         canvas.PopClip();
                         font.Draw(canvas, "…", x + keep, y, InkLight);
@@ -366,6 +383,13 @@ namespace LastWish.Presentation
                 Txt.OutlinedCross(canvas, font, txt, cx - tw / 2, cy - th / 2, boosted ? BonusInk : isDamage ? AtkInk : DefInk);
             }
             if (!key.Affordable) canvas.PopTint();
+        }
+
+        /// <summary>Canvas clips are in target pixels: map a clip given in face pixels through the layout scale.</summary>
+        private static void PushFaceClip(Canvas canvas, RectF r)
+        {
+            var (x0, y0) = canvas.Transform.Apply(r.X, r.Y); var (x1, y1) = canvas.Transform.Apply(r.Right, r.Bottom);
+            canvas.PushClip(new RectF(Math.Min(x0, x1), Math.Min(y0, y1), Math.Abs(x1 - x0), Math.Abs(y1 - y0)));
         }
 
         private static void DrawTypeBackdrop(Canvas canvas, string type, IRect r)
@@ -391,7 +415,7 @@ namespace LastWish.Presentation
                 var k = Math.Max(r.W / (double)s.W, r.H / (double)s.H);
                 int bw = Math.Max(r.W, MathX.Round(s.W * k)), bh = Math.Max(r.H, MathX.Round(s.H * k));
                 int ox = (bw - r.W) / 2, oy = (bh - r.H) / 2;
-                canvas.PushClip(new RectF(r.X, r.Y, r.W, r.H));
+                PushFaceClip(canvas, new RectF(r.X, r.Y, r.W, r.H));
                 canvas.BlitRect(s, new RectF(r.X - ox, r.Y - oy, bw, bh), Rgba.White);
                 canvas.PopClip();
                 return;
@@ -571,15 +595,18 @@ namespace LastWish.Presentation
         public static float QuantizeScale(float scale) => Math.Max(ScaleStep, MathX.Round(scale / ScaleStep) * ScaleStep);
         public static (int w, int h) CardSize(float scale) { var q = QuantizeScale(scale); return (MathX.Round(CardW * q), MathX.Round(CardH * q)); }
 
-        /// <summary>draw_card_at: centred, scaled (5 % steps) and tilted; ``faceScale`` lays the face out once at
-        /// that scale and resizes it smoothly while the card grows or shrinks.</summary>
+        /// <summary>draw_card_at: centred, scaled (5 % steps) and tilted. ``faceScale`` is the size the face is laid out at:
+        /// the card then shows exactly the same text at any size (only resized), rendered at ×2 when shown bigger than its
+        /// layout so the magnified text stays sharp. The combat hand lays every card out at 1.0, so hovering, aiming or
+        /// playing a card never changes its fonts or line breaks.</summary>
         public static RectF DrawAt(Canvas canvas, GameContext g, CardDefinition card, float centerX, float centerY, in CardShow show,
             float scale = 1f, float angle = 0f, Rgba? outline = null, float? faceScale = null)
         {
             var (w, h) = CardSize(scale);
             var (fw, fh) = faceScale.HasValue ? CardSize(faceScale.Value) : (w, h);
+            var res = ResFor(fw, w);
             var anim = CardArtAnimations.For(g.Art, card.Id);
-            var body = anim != null ? HollowFace(g, card, show, fw, fh) : Face(g, card, show, fw, fh);
+            var body = anim != null ? HollowFace(g, card, show, fw, fh, res) : Face(g, card, show, fw, fh, res);
             var tilt = MathX.Round(angle);
             int cx = MathX.Round(centerX), cy = MathX.Round(centerY);
             var t = g.Time;

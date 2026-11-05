@@ -48,8 +48,13 @@ namespace LastWish.Presentation
         private readonly CardBonus bonus; private readonly LuckReport luck;
         private List<OfferedCard> cards;
         private readonly string packName;
-        private readonly List<RectF> cardRects = new List<RectF>();
+        private readonly List<RectF> cardRects = new List<RectF>(), rarityTags = new List<RectF>();
         private int? hovered; private RectF? skipRect, rerollRect;
+        /// <summary>The rarity chip under each card of the pick (last frame) and the cards and buttons (layout tests).</summary>
+        public IReadOnlyList<RectF> RarityTags => rarityTags;
+        public IReadOnlyList<RectF> CardRects => cardRects;
+        public RectF? SkipRect => skipRect;
+        public RectF? RerollRect => rerollRect;
         private (float x, float y) mouse;
         private readonly PyRandom rng;
         private readonly ChromaKind packChroma;
@@ -504,7 +509,7 @@ namespace LastWish.Presentation
         private void DrawPick(Canvas canvas, int ox, int oy)
         {
             var n = cards.Count; var totalW = n * CardWidget.CardW + Math.Max(0, n - 1) * Gap; var startX = ScreenW / 2 - totalW / 2;
-            cardRects.Clear();
+            cardRects.Clear(); rarityTags.Clear();
             for (var i = 0; i < n; i++)
             {
                 var offer = cards[i]; var (cx, cy) = SlotCenter(i);
@@ -519,6 +524,7 @@ namespace LastWish.Presentation
                 var rect = CardWidget.Draw(canvas, Game, offer.Card, x, CardY + oy, bonus.For(offer.Card), chosen.Contains(i), hovered == i);
                 if (offer.Lucky) CardFx.DrawLuckyFront(canvas, Game, rect, time);
                 cardRects.Add(rect.Move(-ox, -oy));
+                rarityTags.Add(Tooltip.DrawChipCentered(canvas, Art, Tooltip.RarityChip(offer.Card.Rarity), x + CardWidget.CardW / 2f, CardY + oy + CardWidget.CardH + CombatRewardScene.RarityTagY).Move(-ox, -oy));
             }
         }
 
@@ -565,7 +571,7 @@ namespace LastWish.Presentation
                 var text = picks == 1 ? "Elige una carta para añadir a tu mazo:" : "Sobre " + (packChroma == ChromaKind.Golden ? "dorado" : "especial") + ": elige " + picks + " cartas (te quedan " + left + ")";
                 Fonts.Get(13).DrawCentered(canvas, text, cx, 90, Colors.TextPrimary);
                 var f = Fonts.Get(14); var label = chosen.Count > 0 ? "Terminar" : "Omitir";
-                int w = f.Width(label), h = f.Height, sx = cx - w / 2, sy = CardY + CardWidget.CardH + 40 - h / 2;
+                int w = f.Width(label), h = f.Height, sx = cx - w / 2, sy = CardY + CardWidget.CardH + 52 - h / 2;
                 var sr = new RectF(sx - 10, sy - 6, w + 20, h + 12); skipRect = sr;
                 canvas.Rect(sr, Colors.BgPanel, 0, 5); canvas.Rect(sr, Colors.PanelBorder, 1, 5);
                 f.Draw(canvas, label, sx, sy, Colors.TextSecondary);
@@ -573,7 +579,7 @@ namespace LastWish.Presentation
                 if (CanReroll)
                 {
                     const string rl = "Volver a tirar (Dado Cargado)";
-                    int rw = f.Width(rl), rx = cx - rw / 2, ry = CardY + CardWidget.CardH + 84 - h / 2;
+                    int rw = f.Width(rl), rx = cx - rw / 2, ry = CardY + CardWidget.CardH + 94 - h / 2;
                     var rr = new RectF(rx - 10, ry - 6, rw + 20, h + 12); rerollRect = rr;
                     canvas.Rect(rr, Colors.BgPanel, 0, 5); canvas.Rect(rr, Colors.TextAccent, 1, 5);
                     f.Draw(canvas, rl, rx, ry, Colors.TextAccent);
@@ -581,7 +587,7 @@ namespace LastWish.Presentation
                 if (hovered.HasValue && hovered.Value < cards.Count)
                 {
                     var c = cards[hovered.Value].Card; var s = bonus.For(c);
-                    Tooltip.Draw(canvas, Game, Tooltip.Card(Game, c, s.BonusDamage, s.BonusBlock), mouse);
+                    Tooltip.Draw(canvas, Game, Tooltip.Card(Game, c, s.BonusDamage, s.BonusBlock), mouse, hovered.Value < cardRects.Count ? cardRects[hovered.Value] : (RectF?)null);
                 }
             }
             else if (phase != "outro") Fonts.Get(12).DrawCentered(canvas, "Clic para saltar", cx, ScreenH - 28, Colors.TextSecondary);

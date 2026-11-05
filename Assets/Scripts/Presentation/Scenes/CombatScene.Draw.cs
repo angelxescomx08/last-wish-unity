@@ -233,7 +233,7 @@ namespace LastWish.Presentation
                 var card = hand[i];
                 var pose = motion.TryGetValue(card, out var p) ? p : SpawnPose();
                 CardWidget.DrawAt(canvas, Game, card, pose.X, pose.Y, HandShow(card), pose.Scale, pose.Angle,
-                    i == hovered ? CardWidget.RarityColor(card.Rarity) : (Rgba?)null, pose.Face);
+                    i == hovered ? CardWidget.RarityColor(card.Rarity) : (Rgba?)null, HandFace);
             }
             DrawDealt(canvas, dealing);
             var waiting = WaitingIndices().Count;
@@ -258,7 +258,7 @@ namespace LastWish.Presentation
                 if (u < CardDeal.FlipEnd)
                     CardDeal.Draw(canvas, Art, CardWidget.Face(Game, card, show), (pose.X, pose.Y, pose.Scale, pose.Angle), u);
                 else
-                    CardWidget.DrawAt(canvas, Game, card, pose.X, pose.Y, show, pose.Scale, pose.Angle, null, pose.Face);
+                    CardWidget.DrawAt(canvas, Game, card, pose.X, pose.Y, show, pose.Scale, pose.Angle, null, HandFace);
             }
         }
 
@@ -277,7 +277,7 @@ namespace LastWish.Presentation
         private void DrawLeaving(Canvas canvas)
         {
             foreach (var l in leaving)
-                CardWidget.DrawAt(canvas, Game, l.Card, l.Pose.X, l.Pose.Y, CardShow.With(l.Dmg, l.Blk), l.Pose.Scale, l.Pose.Angle, null, l.Pose.Face);
+                CardWidget.DrawAt(canvas, Game, l.Card, l.Pose.X, l.Pose.Y, CardShow.With(l.Dmg, l.Blk), l.Pose.Scale, l.Pose.Angle, null, HandFace);
         }
 
         private void DrawHeldCard(Canvas canvas)
@@ -287,7 +287,7 @@ namespace LastWish.Presentation
             var card = state.Hand[held.Value];
             var ready = play.Armed || play.Aiming && play.Target.HasValue;
             var show = HandShow(card, play.Target); show.Unaffordable = false;
-            var rect = CardWidget.DrawAt(canvas, Game, card, pose.X, pose.Y, show, pose.Scale, 0f, ready ? Playable : Held, pose.Face);
+            var rect = CardWidget.DrawAt(canvas, Game, card, pose.X, pose.Y, show, pose.Scale, 0f, ready ? Playable : Held, HandFace);
             if (play.Aiming) Targeting.DrawArrow(canvas, Art, ((int)rect.X + (int)rect.W / 2, rect.Y + 6), ArrowEnd(), play.Target.HasValue, fxTime);
         }
 
@@ -324,7 +324,7 @@ namespace LastWish.Presentation
             var start = seq.Start;
             var x = start.X + (CastStage.x - start.X) * u; var y = start.Y + (CastStage.y - start.Y) * u;
             var scale = start.Scale + (0.95f - start.Scale) * u + 0.14f * seq.Pulse;
-            CardWidget.DrawAt(canvas, Game, seq.Card, x, y, CardShow.With(seq.Dmg, seq.Blk), scale, start.Angle * (1f - u), null, Math.Max(start.Scale, 0.95f + 0.14f));
+            CardWidget.DrawAt(canvas, Game, seq.Card, x, y, CardShow.With(seq.Dmg, seq.Blk), scale, start.Angle * (1f - u), null, HandFace);
         }
 
         // ------------------------------------------------------------------ tooltips

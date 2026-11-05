@@ -13,9 +13,13 @@ namespace LastWish.Presentation
         private readonly CardBonus bonus;
         private readonly int goldEarned, interest;
         private readonly List<OfferedCard> cards;
-        private readonly List<RectF> cardRects = new List<RectF>();
+        private readonly List<RectF> cardRects = new List<RectF>(), rarityTags = new List<RectF>();
         private int? hovered;
         private RectF? skipRect, relicRect;
+        /// <summary>The rarity chip drawn under each offered card in the last frame (layout tests).</summary>
+        public IReadOnlyList<RectF> RarityTags => rarityTags;
+        public IReadOnlyList<RectF> CardRects => cardRects;
+        public RectF? SkipRect => skipRect;
         private (float x, float y) mouse;
         private float t;
         public RelicOffer Relic { get; }
@@ -49,7 +53,7 @@ namespace LastWish.Presentation
                 cardY += 8;
             }
             var n = cards.Count; var totalW = n * CardWidget.CardW + Math.Max(0, n - 1) * Gap; var startX = cx - totalW / 2;
-            cardRects.Clear();
+            cardRects.Clear(); rarityTags.Clear();
             for (var i = 0; i < n; i++)
             {
                 var x = startX + i * (CardWidget.CardW + Gap);
@@ -58,9 +62,10 @@ namespace LastWish.Presentation
                 var rect = CardWidget.Draw(canvas, Game, offer.Card, x, cardY, bonus.For(offer.Card), hovered: hovered == i);
                 if (offer.Lucky) CardFx.DrawLuckyFront(canvas, Game, rect, t);
                 cardRects.Add(rect);
+                rarityTags.Add(Tooltip.DrawChipCentered(canvas, Art, Tooltip.RarityChip(offer.Card.Rarity), x + CardWidget.CardW / 2f, cardY + CardWidget.CardH + RarityTagY));
             }
             var font = Fonts.Get(14); var sw = font.Width("Omitir"); var sh = font.Height;
-            var sx = cx - sw / 2; var sy = cardY + CardWidget.CardH + 40 - sh / 2;
+            var sx = cx - sw / 2; var sy = cardY + CardWidget.CardH + 52 - sh / 2;
             skipRect = new RectF(sx - 10, sy - 6, sw + 20, sh + 12);
             canvas.Rect(skipRect.Value, Colors.BgPanel, 0, 5); canvas.Rect(skipRect.Value, Colors.PanelBorder, 1, 5);
             font.Draw(canvas, "Omitir", sx, sy, Colors.TextSecondary);
@@ -69,9 +74,15 @@ namespace LastWish.Presentation
             else if (hovered.HasValue && hovered.Value < cards.Count)
             {
                 var s = bonus.For(cards[hovered.Value].Card);
-                Tooltip.Draw(canvas, Game, Tooltip.Card(Game, cards[hovered.Value].Card, s.BonusDamage, s.BonusBlock), mouse);
+                Tooltip.Draw(canvas, Game, Tooltip.Card(Game, cards[hovered.Value].Card, s.BonusDamage, s.BonusBlock), mouse, CardRect(hovered.Value));
             }
         }
+
+        /// <summary>Centre of the rarity chip under each offered card, below the card's bottom edge.</summary>
+        public const int RarityTagY = 18;
+
+        /// <summary>The rect the hovered card is drawn in (the tooltip goes beside it, never over the other cards).</summary>
+        private RectF? CardRect(int i) => i < cardRects.Count ? cardRects[i] : (RectF?)null;
 
         private void DrawRelic(Canvas canvas, int cx)
         {
