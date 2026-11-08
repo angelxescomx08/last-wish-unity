@@ -136,7 +136,7 @@ python Tools/GenerateCardArt.py --only a_tajo --preview TestResults/card-art   #
 
 Lee los tiles del repositorio Python (`--source-dir`, por defecto `../../python/last-wish`).
 
-### Ilustraciones animadas (cartas básicas de los tres héroes y todas las de la Pícara)
+### Ilustraciones animadas (cartas básicas de los tres héroes y todas las de la Pícara y la Guerrera)
 
 Puñalada, Esquiva y Finta (Pícara), Proyectil Arcano, Égida y Chispa Ígnea (Mago) y Espadazo, Bloqueo y Guardia Férrea
 (Guerrera) tienen ilustración animada en el juego (88×64, 24 fotogramas a 12 fps; las de la Pícara son las del VFX Lab,
@@ -158,6 +158,20 @@ Rebuscar, Vaciar Bolsillos, Abanico de Cuchillas, Astucia, Danza de Sombras, Est
 Audaz, Maestra de Dagas y Preparación. `Tools/VfxLab/rogue_pool_art_6.py`: Rapiña, Sombra Gemela, Asesina, Cadena
 Perfecta, Lluvia de Golpes, Mazo Impecable, Mil Cortes, Nada que Perder, Ritmo Letal, Tormenta de Acero y Tormenta de
 Veneno. Con eso la Pícara tiene sus 66 cartas animadas (72 de 178 en todo el juego).
+
+Todo el botín de la Guerrera también (8-11-2026: sus 50 cartas están animadas; sin personaje: su espada, su escudo,
+su hacha, su cuerno, su guantelete, su yelmo vacío en un poste, su coraza en un soporte, su martillo, y su vida como
+un corazón de cristal). Su vocabulario se repite en todas: perder vida = una gota de su sangre que cae desde arriba;
+Furia = esa sangre en el arma (runas y aura carmesí); Aguante = el escudo que ya tiene (contorno azul tenue) y un pulso
+dorado desde su gema; Fuerza = cheurones carmesí que suben; curarse = cruces verdes y el corazón que se llena; escudo
+= el rombo azul del juego. `Tools/VfxLab/warrior_pool_art.py`: las 9 comunes (Corte Sangriento, Embate Firme, Escudo de
+Sangre, Golpe Doble, Herida Abierta, Muro de Acero, Postura Firme, Tajo Brutal, Vendaje). `warrior_pool_art_2.py`: las 10
+poco comunes (Fortaleza Interior, Grito de Batalla, Grito de Guerra, Hachazo Temerario, Puño de Hierro, Respiro, Rugido,
+Sangre Hirviente, Sangría, Sed de Batalla). `warrior_pool_art_3.py`: las 14 raras (Conjuro de Combate, Coraza Viva,
+Golpe Pesado, Golpe Total, Golpe de Escudo, Martillo Sísmico, Pacto de Hierro, Regeneración, Represalia, Sacrificio,
+Segunda Piel, Torbellino de Acero, Torre, Transfusión). `warrior_pool_art_4.py`: las 6 épicas y 8 legendarias (Baluarte,
+Furia Desatada, Gran Golpe, Gran Muralla, Ira Carmesí, Piel de Acero, Bastión, Berserker, Doblar Escudo, Ejecución,
+Escudo Impenetrable, Golpe Vampírico, Muralla Infranqueable, Voluntad de Hierro). En total, 119 de 178 cartas animadas.
 
 ```powershell
 python Tools/VfxLab/export_game_card_art.py           # escribe Cards/Anim (hojas, halos y anim.json)

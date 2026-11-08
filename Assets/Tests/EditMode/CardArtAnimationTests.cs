@@ -31,8 +31,22 @@ namespace LastWish.Tests
             "ep_mazo_impecable", "r_mil_cortes", "r_nada_que_perder", "r_ritmo_letal", "r_tormenta_de_acero",
             "ep_tormenta_veneno",
         };
+        private static readonly string[] WarriorLoot =
+        {
+            "wr_corte_sangriento", "wr_embate_firme", "wr_escudo_sangre", "wr_golpe_doble", "wr_herida_abierta",
+            "wr_muro_acero", "wr_postura_firme", "wr_tajo_brutal", "wr_vendaje",
+            "wr_fortaleza_interior", "wr_grito_batalla", "m_grito_de_guerra", "wr_hachazo_temerario", "wr_puno_hierro",
+            "wr_respiro", "wr_rugido", "wr_sangre_hirviente", "wr_sangria", "wr_sed_batalla",
+            "m_conjuro", "wr_coraza_viva", "a_golpe_pesado", "a_golpe_total", "wr_golpe_escudo", "wr_martillo_sismico",
+            "wr_pacto_hierro", "wr_regeneracion", "wr_represalia", "wr_sacrificio", "wr_segunda_piel",
+            "wr_torbellino_acero", "e_torre", "wr_transfusion",
+            "e_baluarte", "wr_furia_desatada", "a_gran_golpe", "e_gran_muralla", "wr_ira_carmesi", "wr_piel_acero",
+            "ep_bastion", "wr_berserker", "wr_doblar_escudo", "ep_ejecucion", "ep_escudo_impenet", "wr_golpe_vampirico",
+            "wr_muralla_infranqueable", "wr_voluntad_hierro",
+        };
+        private const string NotYetAnimated = "mg_bola_fuego";   // a mage loot card: still art until its turn comes
         private static readonly string[] Starters = Rogue.Concat(Mage).Concat(Warrior).ToArray();
-        private static readonly string[] All = Starters.Concat(RogueLoot).ToArray();
+        private static readonly string[] All = Starters.Concat(RogueLoot).Concat(WarriorLoot).ToArray();
 
         private sealed class Recorder : IRenderBackend
         {
@@ -73,7 +87,7 @@ namespace LastWish.Tests
         [Test] public void EveryHeroStarterCardIsAnimated()
         {
             var (g, _) = Game();
-            Assert.That(CardArtAnimations.Ids(g.Art), Is.EquivalentTo(All), "the starter cards plus every rogue loot card");
+            Assert.That(CardArtAnimations.Ids(g.Art), Is.EquivalentTo(All), "the starter cards and every rogue and warrior loot card");
             var deck = RunContent.StarterDeck(HeroKind.Rogue).Select(c => c.Id).Distinct();
             Assert.That(deck, Is.EquivalentTo(Rogue), "every basic rogue card has its animation");
             Assert.That(RunContent.StarterDeck(HeroKind.Mage).Select(c => c.Id).Distinct(), Is.EquivalentTo(Mage),
@@ -86,7 +100,7 @@ namespace LastWish.Tests
                 Assert.That((anim.Frames, anim.Fps, anim.Duration), Is.EqualTo((24, 12f, 2f)), id);
                 Assert.That(anim.Still, Is.InRange(0, anim.Frames - 1), id);
             }
-            Assert.That(CardArtAnimations.For(g.Art, "wr_tajo_brutal"), Is.Null, "loot cards keep their still art for now");
+            Assert.That(CardArtAnimations.For(g.Art, NotYetAnimated), Is.Null, "cards not animated yet keep their still art");
             Assert.That(CardArtAnimations.For(g.Art, null), Is.Null);
             Assert.That(CardArtAnimations.For(null, "punalada_base"), Is.Null);
         }
@@ -135,6 +149,34 @@ namespace LastWish.Tests
                 Assert.That(card.ClassId, Is.EqualTo("rogue"), id + ": a rogue card");
                 Assert.That(card.Rarity, Is.InRange(1, 5), id + ": from her loot, common to legendary");
                 Assert.That(RunContent.StarterDeck(HeroKind.Rogue).Any(c => c.Id == id), Is.False, id + " is not a starter card");
+                var anim = CardArtAnimations.For(g.Art, id);
+                Assert.That(anim, Is.Not.Null, id);
+                Assert.That((anim.Frames, anim.Fps, anim.Duration), Is.EqualTo((24, 12f, 2f)), id);
+                Assert.That(anim.Still, Is.InRange(0, anim.Frames - 1), id);
+            }
+        }
+
+        [Test] public void EveryWarriorCardIsAnimated()
+        {
+            var (g, _) = Game();
+            var loot = RunContent.Cards.Where(c => c.ClassId == "warrior").Select(c => c.Id).ToArray();
+            var starters = RunContent.StarterDeck(HeroKind.Warrior).Select(c => c.Id).Distinct().ToArray();
+            Assert.That(loot.Length + starters.Length, Is.EqualTo(50), "the warrior's 50 cards (47 loot + 3 starters)");
+            foreach (var id in loot.Concat(starters))
+                Assert.That(CardArtAnimations.For(g.Art, id), Is.Not.Null, id + " has its animated illustration");
+            Assert.That(WarriorLoot, Is.EquivalentTo(loot), "the list here is every loot card she can find");
+        }
+
+        [Test] public void TheWarriorLootCardsAreAnimated()
+        {
+            var (g, _) = Game();
+            foreach (var id in WarriorLoot)
+            {
+                var card = RunContent.Cards.FirstOrDefault(c => c.Id == id);
+                Assert.That(card, Is.Not.Null, id + " is a real card");
+                Assert.That(card.ClassId, Is.EqualTo("warrior"), id + ": a warrior card");
+                Assert.That(card.Rarity, Is.InRange(1, 5), id + ": from her loot, common to legendary");
+                Assert.That(RunContent.StarterDeck(HeroKind.Warrior).Any(c => c.Id == id), Is.False, id + " is not a starter card");
                 var anim = CardArtAnimations.For(g.Art, id);
                 Assert.That(anim, Is.Not.Null, id);
                 Assert.That((anim.Frames, anim.Fps, anim.Duration), Is.EqualTo((24, 12f, 2f)), id);
@@ -227,6 +269,23 @@ namespace LastWish.Tests
             }
         }
 
+        [Test] public void TheWarriorLootCardsAreDrawnBehindAHollowFaceToo()
+        {
+            for (var i = 0; i < WarriorLoot.Length; i++)
+            {
+                var id = WarriorLoot[i];
+                var (g, render) = Game();
+                g.Time = 0.9f;
+                CardWidget.DrawAt(g.Canvas, g, RunContent.Cards.First(c => c.Id == id), 640, 600, Fresh(124 + i), 1.3f, 5f);   // 124..170: a fresh face per card
+                var screen = render.Quads.Where(q => q.target == null).ToList();
+                var art = screen.FindIndex(q => q.tex == "Cards/Anim/" + id);
+                var halo = screen.FindIndex(q => q.tex == "Cards/Anim/" + id + "_halo");
+                var face = screen.FindIndex(q => q.tex != null && q.tex.StartsWith("card_face_"));
+                Assert.That(art >= 0 && art < halo && halo < face, Is.True, id + ": art, light, then the face over them");
+                Assert.That(render.Quads.Any(q => q.tex == "Cards/Art/" + id), Is.False, id + ": the old still is not used");
+            }
+        }
+
         [Test] public void TiltedAndScaledHandCardsAnimateToo()
         {
             var (g, render) = Game();
@@ -254,10 +313,10 @@ namespace LastWish.Tests
         [Test] public void OtherCardsAreUnchanged()
         {
             var (g, render) = Game();
-            var card = RunContent.Cards.First(c => c.Id == "wr_tajo_brutal");
+            var card = RunContent.Cards.First(c => c.Id == NotYetAnimated);
             CardWidget.Draw(g.Canvas, g, card, 100, 300, Fresh(44));
             Assert.That(render.Quads.Any(q => q.tex != null && q.tex.StartsWith("Cards/Anim/")), Is.False);
-            Assert.That(render.Quads.Any(q => q.target != null && q.tex == "Cards/Art/wr_tajo_brutal"), Is.EqualTo(g.Art.HasCardArt("wr_tajo_brutal")));
+            Assert.That(render.Quads.Any(q => q.target != null && q.tex == "Cards/Art/" + NotYetAnimated), Is.EqualTo(g.Art.HasCardArt(NotYetAnimated)));
         }
 
         [Test] public void UnaffordableAndFadingCardsDimTheLight()

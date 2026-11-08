@@ -1010,6 +1010,664 @@
         224,
         74
       ]
+    },
+    "wr_corte_sangriento": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "wr_embate_firme": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        244,
+        220,
+        156
+      ],
+      "mote": [
+        143,
+        196,
+        230
+      ]
+    },
+    "wr_escudo_sangre": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "wr_golpe_doble": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        255,
+        224,
+        176
+      ]
+    },
+    "wr_herida_abierta": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "wr_muro_acero": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        169,
+        200,
+        242
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "wr_postura_firme": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "wr_tajo_brutal": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "wr_vendaje": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        120,
+        236,
+        120
+      ],
+      "mote": [
+        255,
+        224,
+        176
+      ]
+    },
+    "wr_fortaleza_interior": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        120,
+        236,
+        120
+      ],
+      "mote": [
+        124,
+        196,
+        255
+      ]
+    },
+    "wr_grito_batalla": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        244,
+        220,
+        156
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "m_grito_de_guerra": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        195,
+        231,
+        255
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "wr_hachazo_temerario": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "wr_puno_hierro": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        224,
+        176
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "wr_respiro": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        120,
+        236,
+        120
+      ],
+      "mote": [
+        255,
+        179,
+        94
+      ]
+    },
+    "wr_rugido": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        255,
+        224,
+        176
+      ]
+    },
+    "wr_sangre_hirviente": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        244,
+        220,
+        156
+      ]
+    },
+    "wr_sangria": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "wr_sed_batalla": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        120,
+        236,
+        120
+      ]
+    },
+    "m_conjuro": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        124,
+        196,
+        255
+      ]
+    },
+    "wr_coraza_viva": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        169,
+        200,
+        242
+      ],
+      "mote": [
+        124,
+        196,
+        255
+      ]
+    },
+    "a_golpe_pesado": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        255,
+        224,
+        176
+      ]
+    },
+    "a_golpe_total": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        205,
+        213,
+        236
+      ]
+    },
+    "wr_golpe_escudo": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        124,
+        196,
+        255
+      ]
+    },
+    "wr_martillo_sismico": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "wr_pacto_hierro": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        195,
+        231,
+        255
+      ]
+    },
+    "wr_regeneracion": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        120,
+        236,
+        120
+      ],
+      "mote": [
+        255,
+        208,
+        230
+      ]
+    },
+    "wr_represalia": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "wr_sacrificio": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        199,
+        155,
+        255
+      ]
+    },
+    "wr_segunda_piel": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
+    },
+    "wr_torbellino_acero": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        120,
+        236,
+        120
+      ]
+    },
+    "e_torre": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        205,
+        213,
+        236
+      ]
+    },
+    "wr_transfusion": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        124,
+        196,
+        255
+      ],
+      "mote": [
+        120,
+        236,
+        120
+      ]
+    },
+    "e_baluarte": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        169,
+        200,
+        242
+      ],
+      "mote": [
+        232,
+        238,
+        255
+      ]
+    },
+    "wr_furia_desatada": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        255,
+        176,
+        74
+      ]
+    },
+    "a_gran_golpe": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        150,
+        240,
+        255
+      ],
+      "mote": [
+        205,
+        213,
+        236
+      ]
+    },
+    "e_gran_muralla": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        205,
+        213,
+        236
+      ]
+    },
+    "wr_ira_carmesi": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        120,
+        236,
+        120
+      ]
+    },
+    "wr_piel_acero": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        169,
+        200,
+        242
+      ],
+      "mote": [
+        242,
+        179,
+        94
+      ]
+    },
+    "ep_bastion": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        244,
+        220,
+        156
+      ]
+    },
+    "wr_berserker": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        200,
+        58,
+        64
+      ]
+    },
+    "wr_doblar_escudo": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        106,
+        166,
+        200
+      ]
+    },
+    "ep_ejecucion": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        120,
+        236,
+        120
+      ]
+    },
+    "ep_escudo_impenet": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        194,
+        228,
+        255
+      ],
+      "mote": [
+        255,
+        176,
+        74
+      ]
+    },
+    "wr_golpe_vampirico": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        255,
+        116,
+        100
+      ],
+      "mote": [
+        120,
+        236,
+        120
+      ]
+    },
+    "wr_muralla_infranqueable": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        244,
+        220,
+        156
+      ],
+      "mote": [
+        232,
+        238,
+        255
+      ]
+    },
+    "wr_voluntad_hierro": {
+      "frames": 24,
+      "still": 0,
+      "spark": [
+        169,
+        200,
+        242
+      ],
+      "mote": [
+        255,
+        116,
+        100
+      ]
     }
   },
   "cell": [

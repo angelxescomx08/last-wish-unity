@@ -249,6 +249,19 @@ Small domain additions for presentation (rules unchanged, tests green):
   their quiet start. `CardArtAnimationTests.EveryRogueCardIsAnimated` checks every rogue card (loot from
   `RunContent.Cards` plus her starter deck); `RogueLootCardArtTests` (PlayMode) puts the 63 loot cards in her deck and
   takes three more scrolled captures (`rogue-loot-deck-scrolled-rares-1..3`).
+* All 47 warrior loot cards followed on 2026-11-08, in four modules by rarity: `Tools/VfxLab/warrior_pool_art.py`
+  (the 9 commons and the warrior's shared vocabulary), `warrior_pool_art_2.py` (10 uncommons), `warrior_pool_art_3.py`
+  (14 rares) and `warrior_pool_art_4.py` (6 epics, 8 legendaries). No figure: her sword and shield plus the rest of her
+  kit drawn as single silhouettes (greataxe, war horn, gauntlet, her empty helm on a post, her cuirass on a stand, war
+  hammer, an iron pact tablet) and her life as a crystal heart. One picture per mechanic on every card: losing HP = a drop
+  of her blood falling from above; Furia = that blood on the weapon (crimson runes and aura); Aguante = her existing block
+  as a faint blue outline plus a gold pulse from the shield's gem; Fuerza = rising crimson chevrons; healing = green
+  crosses and the heart filling; block = the game's blue diamond ward; draw = a card flipping up; mana = the blue crystal.
+  All 50 warrior cards are animated (119 of 178 cards). Enemy sigils turn a whole number of times per loop
+  (`warrior_pool_art.foe_sigil`). `CardArtAnimationTests` gains `WarriorLoot`, `EveryWarriorCardIsAnimated`,
+  `TheWarriorLootCardsAreAnimated` and `TheWarriorLootCardsAreDrawnBehindAHollowFaceToo` (fresh face costs 124..170);
+  the "not animated yet" checks use `mg_bola_fuego`. `WarriorLootCardArtTests` (PlayMode, captures
+  `TestResults/warrior-loot-*.png`) compiles and has not been run yet (it takes captures).
 * Cards without an entry keep `Cards/Art` (unchanged, `GenerateCardArt.py --check` still passes).
 
 ## Gachapón sounds (beyond the original)
@@ -751,6 +764,8 @@ Tracks the power of cards, relics and encounters from real runs and stores it in
   floors 1-2 untouched, and a headless `CombatScene` fighting every floor-3 enemy, group and boss). Offline runner: 260/260
   with the rest of the suite; the EditMode tests also compile against netstandard2.1. `Floor3EnemyTests` (PlayMode, captures
   `f3-*.png`) still has to be run in Unity.
+* Warrior loot card art (2026-11-08): `export_game_card_art.py --check` and `card_art_status.py --check` OK on the
+  project; Unity EditMode 483/483 (`CardArtAnimationTests` 17 cases).
 * All C# (Domain, Presentation, Runtime, Editor, tests) compiles against the Unity
   6000.3.6f1 assemblies with no errors.
 * Offline renderer: the presentation's draw commands rasterised and compared side

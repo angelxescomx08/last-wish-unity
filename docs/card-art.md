@@ -8,69 +8,69 @@ Cada ilustración animada mide 88×64 a 12 fps (24 fotogramas, bucle sin costura
 
 | Clase | Animadas | Iniciales animadas |
 |---|---|---|
-| Guerrera | 3 / 50 | 3 / 3 |
+| Guerrera | 50 / 50 | 3 / 3 |
 | Mago | 3 / 45 | 3 / 3 |
 | Pícara | 66 / 66 | 3 / 3 |
 | Neutral | 0 / 13 | — |
 | Estados y fichas | 0 / 4 | — |
-| **Total** | **72 / 178** | |
+| **Total** | **119 / 178** | |
 
 Ilustración fija: 178 / 178 cartas.
 
-## Guerrera (3 / 50 animadas)
+## Guerrera (50 / 50 animadas)
 
 | # | Carta | Id | Tipo | Rareza | Origen | Animada |
 |---|---|---|---|---|---|---|
 | 1 | Bloqueo | `bloqueo_base` | Habilidad | Común | Inicial | ✅ |
 | 2 | Espadazo | `espadazo_base` | Ataque | Común | Inicial | ✅ |
 | 3 | Guardia Férrea | `guardia_ferrea_base` | Habilidad | Común | Inicial | ✅ |
-| 4 | Corte Sangriento | `wr_corte_sangriento` | Ataque | Común | Acero | — |
-| 5 | Embate Firme | `wr_embate_firme` | Ataque | Común | Acero | — |
-| 6 | Escudo de Sangre | `wr_escudo_sangre` | Habilidad | Común | Escudo | — |
-| 7 | Golpe Doble | `wr_golpe_doble` | Ataque | Común | Acero | — |
-| 8 | Herida Abierta | `wr_herida_abierta` | Habilidad | Común | Magia | — |
-| 9 | Muro de Acero | `wr_muro_acero` | Habilidad | Común | Escudo | — |
-| 10 | Postura Firme | `wr_postura_firme` | Habilidad | Común | Escudo | — |
-| 11 | Tajo Brutal | `wr_tajo_brutal` | Ataque | Común | Acero | — |
-| 12 | Vendaje | `wr_vendaje` | Habilidad | Común | Magia | — |
-| 13 | Fortaleza Interior | `wr_fortaleza_interior` | Poder | Poco común | Magia | — |
-| 14 | Grito de Batalla | `wr_grito_batalla` | Habilidad | Poco común | Magia | — |
-| 15 | Grito de Guerra | `m_grito_de_guerra` | Habilidad | Poco común | Magia | — |
-| 16 | Hachazo Temerario | `wr_hachazo_temerario` | Ataque | Poco común | Acero | — |
-| 17 | Puño de Hierro | `wr_puno_hierro` | Ataque | Poco común | Acero | — |
-| 18 | Respiro | `wr_respiro` | Habilidad | Poco común | Escudo | — |
-| 19 | Rugido | `wr_rugido` | Habilidad | Poco común | Magia | — |
-| 20 | Sangre Hirviente | `wr_sangre_hirviente` | Poder | Poco común | Magia | — |
-| 21 | Sangría | `wr_sangria` | Habilidad | Poco común | Magia | — |
-| 22 | Sed de Batalla | `wr_sed_batalla` | Ataque | Poco común | Acero | — |
-| 23 | Conjuro de Combate | `m_conjuro` | Ataque | Rara | Magia | — |
-| 24 | Coraza Viva | `wr_coraza_viva` | Habilidad | Rara | Escudo | — |
-| 25 | Golpe Pesado | `a_golpe_pesado` | Ataque | Rara | Acero | — |
-| 26 | Golpe Total | `a_golpe_total` | Ataque | Rara | Acero | — |
-| 27 | Golpe de Escudo | `wr_golpe_escudo` | Ataque | Rara | Acero | — |
-| 28 | Martillo Sísmico | `wr_martillo_sismico` | Ataque | Rara | Acero | — |
-| 29 | Pacto de Hierro | `wr_pacto_hierro` | Habilidad | Rara | Magia | — |
-| 30 | Regeneración | `wr_regeneracion` | Poder | Rara | Magia | — |
-| 31 | Represalia | `wr_represalia` | Ataque | Rara | Acero | — |
-| 32 | Sacrificio | `wr_sacrificio` | Ataque | Rara | Acero | — |
-| 33 | Segunda Piel | `wr_segunda_piel` | Poder | Rara | Escudo | — |
-| 34 | Torbellino de Acero | `wr_torbellino_acero` | Ataque | Rara | Acero | — |
-| 35 | Torre | `e_torre` | Habilidad | Rara | Escudo | — |
-| 36 | Transfusión | `wr_transfusion` | Habilidad | Rara | Magia | — |
-| 37 | Baluarte | `e_baluarte` | Habilidad | Épica | Escudo | — |
-| 38 | Furia Desatada | `wr_furia_desatada` | Ataque | Épica | Épico | — |
-| 39 | Gran Golpe | `a_gran_golpe` | Ataque | Épica | Acero | — |
-| 40 | Gran Muralla | `e_gran_muralla` | Habilidad | Épica | Escudo | — |
-| 41 | Ira Carmesí | `wr_ira_carmesi` | Ataque | Épica | Épico | — |
-| 42 | Piel de Acero | `wr_piel_acero` | Poder | Épica | Épico | — |
-| 43 | Bastión | `ep_bastion` | Habilidad | Legendaria | Épico | — |
-| 44 | Berserker | `wr_berserker` | Poder | Legendaria | Épico | — |
-| 45 | Doblar Escudo | `wr_doblar_escudo` | Habilidad | Legendaria | Épico | — |
-| 46 | Ejecución | `ep_ejecucion` | Ataque | Legendaria | Épico | — |
-| 47 | Escudo Impenetrable | `ep_escudo_impenet` | Habilidad | Legendaria | Épico | — |
-| 48 | Golpe Vampírico | `wr_golpe_vampirico` | Ataque | Legendaria | Épico | — |
-| 49 | Muralla Infranqueable | `wr_muralla_infranqueable` | Habilidad | Legendaria | Épico | — |
-| 50 | Voluntad de Hierro | `wr_voluntad_hierro` | Poder | Legendaria | Épico | — |
+| 4 | Corte Sangriento | `wr_corte_sangriento` | Ataque | Común | Acero | ✅ |
+| 5 | Embate Firme | `wr_embate_firme` | Ataque | Común | Acero | ✅ |
+| 6 | Escudo de Sangre | `wr_escudo_sangre` | Habilidad | Común | Escudo | ✅ |
+| 7 | Golpe Doble | `wr_golpe_doble` | Ataque | Común | Acero | ✅ |
+| 8 | Herida Abierta | `wr_herida_abierta` | Habilidad | Común | Magia | ✅ |
+| 9 | Muro de Acero | `wr_muro_acero` | Habilidad | Común | Escudo | ✅ |
+| 10 | Postura Firme | `wr_postura_firme` | Habilidad | Común | Escudo | ✅ |
+| 11 | Tajo Brutal | `wr_tajo_brutal` | Ataque | Común | Acero | ✅ |
+| 12 | Vendaje | `wr_vendaje` | Habilidad | Común | Magia | ✅ |
+| 13 | Fortaleza Interior | `wr_fortaleza_interior` | Poder | Poco común | Magia | ✅ |
+| 14 | Grito de Batalla | `wr_grito_batalla` | Habilidad | Poco común | Magia | ✅ |
+| 15 | Grito de Guerra | `m_grito_de_guerra` | Habilidad | Poco común | Magia | ✅ |
+| 16 | Hachazo Temerario | `wr_hachazo_temerario` | Ataque | Poco común | Acero | ✅ |
+| 17 | Puño de Hierro | `wr_puno_hierro` | Ataque | Poco común | Acero | ✅ |
+| 18 | Respiro | `wr_respiro` | Habilidad | Poco común | Escudo | ✅ |
+| 19 | Rugido | `wr_rugido` | Habilidad | Poco común | Magia | ✅ |
+| 20 | Sangre Hirviente | `wr_sangre_hirviente` | Poder | Poco común | Magia | ✅ |
+| 21 | Sangría | `wr_sangria` | Habilidad | Poco común | Magia | ✅ |
+| 22 | Sed de Batalla | `wr_sed_batalla` | Ataque | Poco común | Acero | ✅ |
+| 23 | Conjuro de Combate | `m_conjuro` | Ataque | Rara | Magia | ✅ |
+| 24 | Coraza Viva | `wr_coraza_viva` | Habilidad | Rara | Escudo | ✅ |
+| 25 | Golpe Pesado | `a_golpe_pesado` | Ataque | Rara | Acero | ✅ |
+| 26 | Golpe Total | `a_golpe_total` | Ataque | Rara | Acero | ✅ |
+| 27 | Golpe de Escudo | `wr_golpe_escudo` | Ataque | Rara | Acero | ✅ |
+| 28 | Martillo Sísmico | `wr_martillo_sismico` | Ataque | Rara | Acero | ✅ |
+| 29 | Pacto de Hierro | `wr_pacto_hierro` | Habilidad | Rara | Magia | ✅ |
+| 30 | Regeneración | `wr_regeneracion` | Poder | Rara | Magia | ✅ |
+| 31 | Represalia | `wr_represalia` | Ataque | Rara | Acero | ✅ |
+| 32 | Sacrificio | `wr_sacrificio` | Ataque | Rara | Acero | ✅ |
+| 33 | Segunda Piel | `wr_segunda_piel` | Poder | Rara | Escudo | ✅ |
+| 34 | Torbellino de Acero | `wr_torbellino_acero` | Ataque | Rara | Acero | ✅ |
+| 35 | Torre | `e_torre` | Habilidad | Rara | Escudo | ✅ |
+| 36 | Transfusión | `wr_transfusion` | Habilidad | Rara | Magia | ✅ |
+| 37 | Baluarte | `e_baluarte` | Habilidad | Épica | Escudo | ✅ |
+| 38 | Furia Desatada | `wr_furia_desatada` | Ataque | Épica | Épico | ✅ |
+| 39 | Gran Golpe | `a_gran_golpe` | Ataque | Épica | Acero | ✅ |
+| 40 | Gran Muralla | `e_gran_muralla` | Habilidad | Épica | Escudo | ✅ |
+| 41 | Ira Carmesí | `wr_ira_carmesi` | Ataque | Épica | Épico | ✅ |
+| 42 | Piel de Acero | `wr_piel_acero` | Poder | Épica | Épico | ✅ |
+| 43 | Bastión | `ep_bastion` | Habilidad | Legendaria | Épico | ✅ |
+| 44 | Berserker | `wr_berserker` | Poder | Legendaria | Épico | ✅ |
+| 45 | Doblar Escudo | `wr_doblar_escudo` | Habilidad | Legendaria | Épico | ✅ |
+| 46 | Ejecución | `ep_ejecucion` | Ataque | Legendaria | Épico | ✅ |
+| 47 | Escudo Impenetrable | `ep_escudo_impenet` | Habilidad | Legendaria | Épico | ✅ |
+| 48 | Golpe Vampírico | `wr_golpe_vampirico` | Ataque | Legendaria | Épico | ✅ |
+| 49 | Muralla Infranqueable | `wr_muralla_infranqueable` | Habilidad | Legendaria | Épico | ✅ |
+| 50 | Voluntad de Hierro | `wr_voluntad_hierro` | Poder | Legendaria | Épico | ✅ |
 
 ## Mago (3 / 45 animadas)
 

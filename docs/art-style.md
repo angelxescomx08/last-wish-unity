@@ -23,6 +23,7 @@ Referencias aprobadas (mirarlas antes de dibujar):
 | Cartas básicas del Mago (hechizos sin personaje, rampa de fuego) | `Tools/VfxLab/mage_art.py` |
 | Cartas básicas de la Guerrera (su espada y su escudo, sin personaje) | `Tools/VfxLab/warrior_art.py` |
 | Cartas del botín de la Pícara (sus dagas, cartas, venenos, humo, capa, botas y dados, sin personaje) | `Tools/VfxLab/rogue_pool_art.py`, `_2.py` … `_6.py` |
+| Cartas del botín de la Guerrera (su equipo, su vida como corazón de cristal, sin personaje) | `Tools/VfxLab/warrior_pool_art.py`, `_2.py` … `_4.py` |
 | Qué cartas tienen ya ilustración animada (lista generada) | `docs/card-art.md` (`Tools/VfxLab/card_art_status.py`) |
 | Hojas del juego | `Assets/Resources/Game/Cards/Anim/` |
 | **Personajes y enemigos: método y diseño obligatorios (§3.1)** — ábrelo en el navegador | `Tools/VfxLab/mage_hero.html` → `Assets/Resources/Game/Heroes/mage*` |
@@ -443,6 +444,61 @@ usan un fotograma fijo distinto del 0 (`still`): Astucia 8, Lluvia de Golpes 5, 
 `tube` y `jester_cap`, `cloak_ball`, `chest`, `satchel`, `fortune_coin`, `big_card`, `ghost_blade`, `hp_bar`, `skull`,
 `chain_link`, `ground_sigil`, `metronome`, `brazier`; rampas `K5` (Combo, bambú, cofre) y `K6` (cadena, sangre, tormenta).
 
+**El botín de la Guerrera** (`warrior_pool_art.py` … `warrior_pool_art_4.py`, 8-11-2026: con ellos están animadas sus 50
+cartas). Sin figura: su espada y su escudo (los de `warrior_art.py`) y el resto de su equipo dibujado como una sola
+silueta cada uno: su hacha de guerra (`greataxe`), su cuerno (`war_horn`), su guantelete solo (`gauntlet`, sin brazo), su
+yelmo cerrado con visera en T y penacho, vacío sobre un poste (`helm`), su coraza en un soporte (`cuirass`, con escamas
+que crecen), su martillo (`warhammer`) y una tablilla de hierro encadenada (`iron_tablet`). Su vida es un corazón de
+cristal en un engaste dorado (`life_heart`: la parte roja es la vida que tiene, el resto cristal oscuro; grieta = herida).
+Un dibujo por mecánica, igual en todas sus cartas: **perder vida** = una gota de su sangre que cae desde arriba (su mano,
+fuera del cuadro) y salpica (`blood_drop`, `drip`, `splash`); **Furia** = esa sangre en el arma: runas carmesí y un aura
+carmesí que parpadea (`blood_aura`); **Aguante** = el escudo que ya tiene, un contorno azul tenue que respira
+(`faint_ward`), y un pulso dorado que sale de la gema del escudo (`gold_pulse`); **Fuerza** = cheurones carmesí que suben
+(`rising_chevrons`); **curarse** = cruces verdes que suben (`heal_crosses`, el verde de las curas del juego) y el corazón que
+se llena; **escudo** = el rombo azul (`ward_rings`); **robar** = una carta que sube girando; **maná** = el cristal azul;
+**inicio/fin de turno** = el reloj de arena que gira; **poder** = el círculo de runas en el suelo. Los sigilos enemigos
+giran un número entero de vueltas por bucle (`foe_sigil`). Comunes: Corte Sangriento (bajo una luna roja su sangre cae
+en la guarda, las runas se vuelven carmesí y una media luna carmesí raja un sigilo), Embate Firme (tras su escudo el pulso
+dorado carga la espada, que embiste un portón de roble; «+» dorados), Escudo de Sangre (tres gotas sobre el escudo en una
+cripta, venas carmesí y un rombo grande con borde carmesí), Golpe Doble (dos tajos, abajo y arriba, abollan un peto
+enemigo en su soporte), Herida Abierta (dos gotas bajan por el filo hasta una pila de piedra y cada salpicadura es una
+carta), Muro de Acero (paveses de hierro brotan del suelo y paran las flechas; el pulso dorado da Fuerza), Postura Firme
+(en un acantilado con tormenta el escudo se clava en la roca; con su sangre, un segundo rombo), Tajo Brutal (con su sangre
+en la hoja, un tajo carmesí corta el estandarte enemigo, que vuelve a desenrollarse) y Vendaje (una venda se enrolla en su
+corazón agrietado y lo sella; el pulso del escudo cura más). Poco comunes: Fortaleza Interior (su corazón en la ventana de
+una torre sobre el círculo; la cura cae dentro y las almenas levantan un rombo), Grito de Batalla (su cuerno suena en la
+muralla y dos cartas salen del sonido), Grito de Guerra (el grito de su estandarte llega a tres sigilos y cada uno le
+devuelve un cristal de maná), Hachazo Temerario (el hacha alzada gotea su sangre y parte un tótem enemigo; sale otro),
+Puño de Hierro (el guantelete golpea un bloque marcado; cheurones desde los nudillos), Respiro (campamento: las brasas se
+vuelven verdes y llenan el corazón; el escudo apoyado en la espada da un rombo), Rugido (su yelmo en un poste en la arena;
+con su sangre la visera se enciende carmesí y ruge: tres cheurones), Sangre Hirviente (un cáliz de su sangre sobre el
+círculo; gira el reloj, hierve, se derrama una gota y sube un cheurón del vapor), Sangría (su sangre corre por el canal de
+un altar hasta la espada clavada, que se llena de carmesí desde la punta; tres cheurones) y Sed de Batalla (en un
+cementerio la espada atraviesa un sigilo y su vida vuelve por la hoja a su corazón). Raras: Conjuro de Combate (en un
+círculo de menhires la punta dibuja un anillo de runas y dispara un rayo; rombo en el escudo), Coraza Viva (lo que le falta
+al corazón fluye a su coraza y le crecen escamas), Golpe Pesado (en una cantera un golpe lento parte un bloque; la magia
+enemiga lo vuelve a juntar), Golpe Total (en un cruce de caminos la espada da una vuelta entera por tres sigilos), Golpe de
+Escudo (en un puente con niebla el rombo se pliega en el escudo, que embiste y estalla en azul), Martillo Sísmico (el
+martillo golpea el cañón, las grietas corren y la roca brota bajo tres sigilos; el pulso dorado da dos cheurones), Pacto de
+Hierro (su sangre en la tablilla, las runas arden, caen las cadenas y sube un cristal de maná), Regeneración (enredaderas
+florecen alrededor del corazón en unas ruinas; gira el reloj y cura), Represalia (un rayo enemigo le saca sangre, que se
+duplica en la hoja y vuelve como tajo carmesí), Sacrificio (bajo un ventanal rojo el corazón vierte su sangre en la espada,
+que vuela contra un sigilo; con Furia sube una carta), Segunda Piel (su corazón en una malla de acero; cuando pierde una
+gota la malla da un rombo), Torbellino de Acero (en dunas de noche la espada gira como un disco por tres sigilos; con Furia,
+una cruz verde por golpe), Torre (bloques de piedra se apilan en una torre tras el escudo) y Transfusión (el rombo se vacía
+como luz azul por un serpentín de vidrio hasta el corazón y se vuelve verde). Épicas y legendarias, a lo grande: Baluarte
+(seis escudos de luz se traban alrededor del suyo en un paso nevado), Furia Desatada (entre ruinas en llamas cuatro cortes
+y, con Furia, dos más en carmesí), Gran Golpe (la espada alzada llama a una hoja colosal de luz que cae sobre un sigilo),
+Gran Muralla (una muralla con torres se alza en ola por la llanura), Ira Carmesí (bajo un sol negro su sangre arde en la
+espada; la mitad vuelve en verde), Piel de Acero (se acaba el reloj y el acero líquido cubre su coraza), Bastión (un
+castillo entero se alza tras el escudo, ondean las banderas), Berserker (cada gota sobre su yelmo pintado de guerra
+enciende la visera y sube un cheurón), Doblar Escudo (sobre un lago helado el reflejo del escudo sale del hielo y el rombo
+se duplica), Ejecución (un tajo vacía la barra de vida enemiga, se enciende la calavera y su vida vuelve al corazón),
+Escudo Impenetrable (una flecha, una bola de fuego y un hacha se rompen contra la cúpula), Golpe Vampírico (el tajo manda un
+enjambre de murciélagos de sangre al corazón, que se llena), Muralla Infranqueable (en una ventisca el rombo se sella en oro
+y no se va al girar el reloj) y Voluntad de Hierro (su corazón enjaulado en hierro: las gotas grandes se rompen en los
+barrotes y solo pasa una gota pequeña).
+
 ---
 
 ### 3.1 Personajes, enemigos y sus animaciones: método y diseño obligatorios
@@ -650,7 +706,8 @@ python Tools/VfxLab/map_icons.py --check                                       #
 1. Dibujar/ajustar en el módulo de arte, mirar el GIF fotograma a fotograma.
 2. Exportar al juego y mirar las capturas reales: pruebas PlayMode `RogueCardArtTests` → `TestResults/rogue-hand-*.png`,
    `MageCardArtTests` → `TestResults/mage-hand-*.png`, `WarriorCardArtTests` → `TestResults/warrior-hand-*.png` y
-   `RogueLootCardArtTests` → `TestResults/rogue-loot-*.png` (mano, carta sostenida, mazo). Para una pieza nueva, una prueba
+   `RogueLootCardArtTests` → `TestResults/rogue-loot-*.png`, `WarriorLootCardArtTests` → `TestResults/warrior-loot-*.png`
+   (mano, carta sostenida, mazo). Para una pieza nueva, una prueba
    igual con capturas.
 3. Pruebas EditMode y PlayMode completas (AGENTS.md).
 

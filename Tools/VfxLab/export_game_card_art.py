@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Exports the animated card illustrations to the game (Last Wish, Unity port): the rogue's basic cards (rogue_art.py,
 the VFX Lab art) and all her loot cards (rogue_pool_art.py .. rogue_pool_art_6.py), the mage's (mage_art.py) and the
-warrior's (warrior_art.py).
+warrior's (warrior_art.py) basic cards, and the warrior's loot cards (warrior_pool_art.py ..).
 
 The game draws cards on its own canvas without HDR or bloom, so each illustration is baked into two sheets:
   Assets/Resources/Game/Cards/Anim/<card id>.png       colour frames, already lit (base + emissive, hot cores to white), x2
@@ -37,6 +37,10 @@ import rogue_pool_art_4  # noqa: E402
 import rogue_pool_art_5  # noqa: E402
 import rogue_pool_art_6  # noqa: E402
 import warrior_art  # noqa: E402
+import warrior_pool_art  # noqa: E402
+import warrior_pool_art_2  # noqa: E402
+import warrior_pool_art_3  # noqa: E402
+import warrior_pool_art_4  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 FPS = 12
@@ -120,6 +124,53 @@ CARDS = [
     (rogue_pool_art_6, 'ritmo_letal', 'r_ritmo_letal', 0, (244, 220, 156), (79, 149, 230)),
     (rogue_pool_art_6, 'tormenta_de_acero', 'r_tormenta_de_acero', 6, (150, 240, 255), (199, 155, 255)),  # still: rain
     (rogue_pool_art_6, 'tormenta_de_veneno', 'ep_tormenta_veneno', 12, (226, 255, 176), (143, 224, 74)),  # still: rain
+    (warrior_pool_art, 'corte_sangriento', 'wr_corte_sangriento', 0, (255, 116, 100), (199, 155, 255)),
+    (warrior_pool_art, 'embate_firme', 'wr_embate_firme', 0, (244, 220, 156), (143, 196, 230)),
+    (warrior_pool_art, 'escudo_sangre', 'wr_escudo_sangre', 0, (194, 228, 255), (255, 116, 100)),
+    (warrior_pool_art, 'golpe_doble', 'wr_golpe_doble', 0, (150, 240, 255), (255, 224, 176)),
+    (warrior_pool_art, 'herida_abierta', 'wr_herida_abierta', 0, (255, 116, 100), (199, 155, 255)),
+    (warrior_pool_art, 'muro_acero', 'wr_muro_acero', 0, (169, 200, 242), (255, 116, 100)),
+    (warrior_pool_art, 'postura_firme', 'wr_postura_firme', 0, (194, 228, 255), (255, 116, 100)),
+    (warrior_pool_art, 'tajo_brutal', 'wr_tajo_brutal', 0, (255, 116, 100), (199, 155, 255)),
+    (warrior_pool_art, 'vendaje', 'wr_vendaje', 0, (120, 236, 120), (255, 224, 176)),
+    (warrior_pool_art_2, 'fortaleza_interior', 'wr_fortaleza_interior', 0, (120, 236, 120), (124, 196, 255)),
+    (warrior_pool_art_2, 'grito_batalla', 'wr_grito_batalla', 0, (244, 220, 156), (255, 116, 100)),
+    (warrior_pool_art_2, 'grito_guerra', 'm_grito_de_guerra', 0, (195, 231, 255), (255, 116, 100)),
+    (warrior_pool_art_2, 'hachazo_temerario', 'wr_hachazo_temerario', 0, (150, 240, 255), (255, 116, 100)),
+    (warrior_pool_art_2, 'puno_hierro', 'wr_puno_hierro', 0, (255, 224, 176), (255, 116, 100)),
+    (warrior_pool_art_2, 'respiro', 'wr_respiro', 0, (120, 236, 120), (255, 179, 94)),
+    (warrior_pool_art_2, 'rugido', 'wr_rugido', 0, (255, 116, 100), (255, 224, 176)),
+    (warrior_pool_art_2, 'sangre_hirviente', 'wr_sangre_hirviente', 0, (255, 116, 100), (244, 220, 156)),
+    (warrior_pool_art_2, 'sangria', 'wr_sangria', 0, (255, 116, 100), (199, 155, 255)),
+    (warrior_pool_art_2, 'sed_batalla', 'wr_sed_batalla', 0, (255, 116, 100), (120, 236, 120)),
+    (warrior_pool_art_3, 'conjuro_combate', 'm_conjuro', 0, (150, 240, 255), (124, 196, 255)),
+    (warrior_pool_art_3, 'coraza_viva', 'wr_coraza_viva', 0, (169, 200, 242), (124, 196, 255)),
+    (warrior_pool_art_3, 'golpe_pesado', 'a_golpe_pesado', 0, (150, 240, 255), (255, 224, 176)),
+    (warrior_pool_art_3, 'golpe_total', 'a_golpe_total', 0, (150, 240, 255), (205, 213, 236)),
+    (warrior_pool_art_3, 'golpe_escudo', 'wr_golpe_escudo', 0, (194, 228, 255), (124, 196, 255)),
+    (warrior_pool_art_3, 'martillo_sismico', 'wr_martillo_sismico', 0, (150, 240, 255), (255, 116, 100)),
+    (warrior_pool_art_3, 'pacto_hierro', 'wr_pacto_hierro', 0, (255, 116, 100), (195, 231, 255)),
+    (warrior_pool_art_3, 'regeneracion', 'wr_regeneracion', 0, (120, 236, 120), (255, 208, 230)),
+    (warrior_pool_art_3, 'represalia', 'wr_represalia', 0, (255, 116, 100), (199, 155, 255)),
+    (warrior_pool_art_3, 'sacrificio', 'wr_sacrificio', 0, (255, 116, 100), (199, 155, 255)),
+    (warrior_pool_art_3, 'segunda_piel', 'wr_segunda_piel', 0, (194, 228, 255), (255, 116, 100)),
+    (warrior_pool_art_3, 'torbellino_acero', 'wr_torbellino_acero', 0, (150, 240, 255), (120, 236, 120)),
+    (warrior_pool_art_3, 'torre', 'e_torre', 0, (194, 228, 255), (205, 213, 236)),
+    (warrior_pool_art_3, 'transfusion', 'wr_transfusion', 0, (124, 196, 255), (120, 236, 120)),
+    (warrior_pool_art_4, 'baluarte', 'e_baluarte', 0, (169, 200, 242), (232, 238, 255)),
+    (warrior_pool_art_4, 'furia_desatada', 'wr_furia_desatada', 0, (255, 116, 100), (255, 176, 74)),
+    (warrior_pool_art_4, 'gran_golpe', 'a_gran_golpe', 0, (150, 240, 255), (205, 213, 236)),
+    (warrior_pool_art_4, 'gran_muralla', 'e_gran_muralla', 0, (194, 228, 255), (205, 213, 236)),
+    (warrior_pool_art_4, 'ira_carmesi', 'wr_ira_carmesi', 0, (255, 116, 100), (120, 236, 120)),
+    (warrior_pool_art_4, 'piel_acero', 'wr_piel_acero', 0, (169, 200, 242), (242, 179, 94)),
+    (warrior_pool_art_4, 'bastion', 'ep_bastion', 0, (194, 228, 255), (244, 220, 156)),
+    (warrior_pool_art_4, 'berserker', 'wr_berserker', 0, (255, 116, 100), (200, 58, 64)),
+    (warrior_pool_art_4, 'doblar_escudo', 'wr_doblar_escudo', 0, (194, 228, 255), (106, 166, 200)),
+    (warrior_pool_art_4, 'ejecucion', 'ep_ejecucion', 0, (255, 116, 100), (120, 236, 120)),
+    (warrior_pool_art_4, 'escudo_impenetrable', 'ep_escudo_impenet', 0, (194, 228, 255), (255, 176, 74)),
+    (warrior_pool_art_4, 'golpe_vampirico', 'wr_golpe_vampirico', 0, (255, 116, 100), (120, 236, 120)),
+    (warrior_pool_art_4, 'muralla_infranqueable', 'wr_muralla_infranqueable', 0, (244, 220, 156), (232, 238, 255)),
+    (warrior_pool_art_4, 'voluntad_hierro', 'wr_voluntad_hierro', 0, (169, 200, 242), (255, 116, 100)),
 ]
 
 def lit(base, glow):
