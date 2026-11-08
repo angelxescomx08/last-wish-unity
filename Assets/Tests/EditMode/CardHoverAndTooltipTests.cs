@@ -260,6 +260,7 @@ namespace LastWish.Tests
                 var offers = OneOfEach().Skip(2).ToList();
                 var relic = withRelic ? new RelicOffer(RunContent.Relics.First(), ChromaKind.None) : null;
                 var scene = new CombatRewardScene(g, run, 30, offers, relic);
+                scene.SkipIntro();       // the gold step plays first (2026-11-08): the cards are the second step
                 Frame(g, scene);
                 Assert.That(scene.RarityTags.Count, Is.EqualTo(offers.Count));
                 for (var i = 0; i < offers.Count; i++)

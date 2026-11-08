@@ -485,6 +485,92 @@ and `UpgradeDiscount` (Martillo del Herrero) for the price list.
 * Tests: `WarlockLayoutTests` (EditMode, 18) — see below. The README capture `docs/screenshots/warlock.png` was rendered
   with the offline renderer.
 
+## Treasure interface (beyond the original, 2026-11-07)
+
+User: "mejora el diseño y la interfaz [de los tesoros] para que encaje con el juego". The old room was a flat colour, plain
+rectangles with the relic's name and text (no picture of the relic) and flat "Tomar" / "Omitir" boxes. `TreasureScene`
+(now in its own file, `Presentation/Scenes/TreasureScene.cs`) draws the room with the language of the shop, gachapón, events
+and El Brujo; the rules are unchanged (`RunState.PickTreasureRelics`, Llave Maestra, and the scene manager acquiring
+`ChosenRelic` when the room clears).
+
+* **Room:** the dungeon backdrop under a warm focus and vignette; title band "Sala del Tesoro" in the bold face (gold, drop
+  shadow, warm glow) and the crimson ribbon "Una reliquia te espera" / "Elige una de las N reliquias" / "El cofre está
+  vacío"; the relic counter plate left of the pause buttons (`RelicCounter`, like the shop and the gachapón).
+* **The chest** (`TreasureChest`, code-drawn in native pixels ×2 with the `docs/art-style.md` rules and the look of the map's
+  treasure icon): dark oak planks, a domed lid, two gold straps with rivets, a gold rim, a lock plate with its keyhole, iron
+  feet. Four complete frames, each one label map with one ink outline: closed, ajar (lid lifted 2 and 5 px, gold light in the
+  gap) and open (the lid stands back showing its inner face, lit from below by a heap of coins); the body never moves. Paint
+  + light layers; a contact shadow, warm floor light and a soft column of light (`TreasureChest.Beam`) rising to the cards.
+* **The show** (`Phase.Intro`): the lock glints, the chest rattles harder, the lid opens in two beats (`OpenAt`) with a
+  flash, a burst of coins and sparks; each relic rises out of the chest along an arc with a trail in its rarity colour
+  (`RiseT`, `Stagger`) and lands in its card with a burst; its card fades in as it arrives. Warm motes keep rising from the
+  open chest. Any click or key only hurries the show to its end (it never takes or skips).
+* **Cards** (`Layout()` → `TreasureLayout` with `RelicCardView`s from `RelicCards.Build`, shared with the victory rewards since
+  2026-11-08; 360 / 330 / 300 / 262 px wide for 1–4 relics): iron panel; the relic
+  at 96 px (×3) floating and bobbing in a niche lit in its rarity colour, with a pool of light under it and four-point stars;
+  the name in one size for the whole row (the chunky 20 when every name fits, else bold 16); tags with a gem for the rarity,
+  the chroma ("Dorada ×2") and the class ("Solo Pícara") centred in one row; the rule text colour-coded with the glossary
+  (`RichText`), centred; every card as tall as the longest text. Golden / diamond relics keep their halo, the sheen in the
+  niche and a pulsing frame with stars. With several relics each card has its key cap (1–N); the chosen one gets a pulsing
+  gold frame and a bobbing gold arrow, the others step back under a veil, and "Elegida: <name>" sits left of the buttons.
+  Hovering a card shows the relic tooltip beside it only when it adds something (glossary terms, a class relic), never the
+  "Estado" line of owned relics.
+* **Choosing:** click a card or press 1–N / ← → / Tab to pick; "Tomar" (gold kit button, bag icon, Enter) takes the chosen
+  relic: it flies to the relic counter (`FlyT`, the number ticks up and the plate flashes) while the others sink back into
+  the chest and the lid closes; "Omitir" (bronze, O) leaves them all. A click or Enter while leaving ends the room at once.
+  An empty chest (no relic left in the pool) says so and only offers "Continuar".
+* **Pico de Minero / Ganzúa:** the gold they added when the room was entered (`RunState.EnterRoomRelics`) shows in a plate
+  beside the chest ("+45 oro", the relics' names).
+* Sounds reuse the gachapón cues that fit: `gacha_open` when the lid opens, `gacha_tier` (best rarity) when the first relic
+  lands, `gacha_golden` for golden offers, `gacha_keep` / `gacha_stash` for taking, `gacha_thunk` when the lid closes,
+  `cancel` for skipping, `nav` for hover and picking.
+* Tests: `TreasureLayoutTests` (EditMode, 15) — see below. The README capture `docs/screenshots/treasure.png` was rendered
+  with the offline renderer.
+
+## Victory rewards by steps (beyond the original, 2026-11-08)
+
+User: "en los élites que se mejore la interfaz por pasos para elegir la carta y la reliquia tomarla si quieres porque la
+interfaz como que está rara y no se entiende al ganar; supongo que podría estar igual en los jefes". The old elite reward put
+"¡VICTORIA!", the gold, a flat "RELIQUIA OBTENIDA" box and the cards on one plain green page (the relic was always given);
+the boss reward was three bare phases on dark red. Both are now one stepped screen, `VictoryRewardScene`
+(`Presentation/Scenes/VictoryReward.cs`), with two thin subclasses in `RewardScenes.cs`: `CombatRewardScene` (normal fights
+and elites; `BossRewardScene` moved there from `BossAndWarlockScenes.cs`). Normal fights use it too, so every reward looks
+the same.
+
+* **Room:** dungeon backdrop with a coloured focus (gold for normal fights, crimson for elites, deep red for bosses), title
+  band "¡Victoria!" / "¡Élite derrotada!" / "¡Jefe derrotado!" in the bold face, ribbon "Paso 2 de 3 · Elige una carta";
+  the relic plate (`RelicCounter`) and a new deck plate (`DeckCounter`, "Mazo N") in the top left corner, where taken relics
+  and cards land.
+* **Step tracker** under the ribbon: one plate per step joined by dotted links with a chevron — "Oro → Carta" (normal),
+  "Oro → Carta → Reliquia" (elite; no relic step when the elite's relic pool is empty), "Oro → Sobre épico → Reliquia"
+  (boss). Each plate has the step's icon in a badge, its number and name, and a line under it: what to do (current, gold
+  frame that pulses), "Pendiente" (upcoming), or what came of it once done (green tick: "+45 oro +4 interés", the card or
+  relic taken, "Omitida"). Hovering a done card / relic plate shows that card / relic.
+* **Gold** (`Phase.Intro`, `IntroT`): already counted by the domain; its plate pops and six coins fly to the gold counter,
+  then the next step comes in. A click or key only hurries any arrival, never picks or skips.
+* **Card step:** heading "Elige una carta para tu mazo" + one line (elite: "más probabilidad de ser raras"); the cards at
+  1.0 with the rarity chip and the key cap (1–N) under each, the luck badge bottom left. A click picks a card (it lifts with
+  a gold frame and arrow, the others are tinted darker), a second click or Enter adds it ("Añadir al mazo", gold, deck
+  icon; off and grey — "Elige una carta" — until one is picked, a refused press says why and shakes the cards); Enter with
+  nothing picked picks the first; ← → Tab change; "Omitir" (bronze, O) skips. The added card flies to the deck plate
+  (`FlyT`), whose number goes up.
+* **Relic step:** the relic cards of the treasure room (`RelicCards`, extracted from `TreasureScene`: niche lit in the
+  rarity colour, name, rarity / chroma / class tags, colour-coded text; golden halo and frame). Elite: "Trofeo de la élite —
+  Tómala o déjala: es opcional", already picked, "Tomar reliquia" (Enter) or "Omitir" (O): **the elite's relic is optional
+  now** (`CombatRewardScene.TookRelic`; the scene manager acquires it only when taken). Boss: pick 1 of 3 (click, 1–3) and
+  take it, or "Omitir": **the boss relic can be left too**. The taken relic flies to the relic plate.
+* **Pack step (boss):** the epic pack floats in violet light with rising stars; "Abrir sobre" (Enter, or a click on the
+  pack) sets `OpenPackRequested`; the scene manager opens `PackOpeningScene` and, when it closes, calls
+  `BossRewardScene.PackDone(chosenCards)`: the tracker shows the card kept (or "Omitida") and the deck plate flashes.
+* **Leaving:** the screen closes by itself when the last step ends (`Cleared`); the scene manager adds the chosen card
+  (`ChosenCard`), the relic if taken, and for bosses advances the floor as before. Empty offers say so and only offer
+  "Continuar".
+* Sounds: `purchase` (gold), `card` (cards arrive / land), `reward` (card taken), `gacha_tier` / `gacha_golden` (relics
+  arrive), `gacha_keep` / `gacha_stash` (relic taken / lands), `open_pack`, `cancel`, `nav`, `error`.
+* Tests: `VictoryRewardTests` (EditMode, 22) — see below. `CardHoverAndTooltipTests.TheCombatRewardShowsTheRarityUnderEveryCard`
+  now hurries the gold step first. README captures `docs/screenshots/reward.png` (elite, card picked) and
+  `docs/screenshots/boss-reward.png` (boss relic step) were rendered with the offline renderer.
+
 ## Golden replay shows every cast (beyond the original, 2026-11-04)
 
 * User: "La carta de veneno a todos los enemigos no se está aplicando en dorada dos veces" (and asked whether other ×2/×3
@@ -629,6 +715,21 @@ Tracks the power of cards, relics and encounters from real runs and stores it in
   three ways, no gold (shake, "no", exactly enough), goodbye after the last upgrade, toggle / scrolling / exit, the scene
   manager (pause button hidden while the panel is open, Escape closes it first), occasional hover comments, beard stroking
   when quiet, every state drawn.
+* `TreasureLayoutTests` (15 EditMode cases): the treasure room — every relic (156) × chroma fits its card with 1–4 relics on
+  offer (whole name, rarity first, tags in one row, every word of the rule text inside the card), one name size and height
+  per room, non-overlapping boxes (cards over the open chest, arrow under the ribbon, buttons, the Pico de Minero / Ganzúa
+  plate), the chest opens closed → ajar → ajar → open before you can choose and a click or key only hurries it, picking and
+  taking with the mouse and the keys (1–N, ← → Tab, Enter, O), skipping, leaving at once, the scene manager gives the taken
+  relic once (and none when skipping), the empty chest, the bonus gold (golden ×2), useful tooltips only, every phase drawn,
+  and the chest art rules (transparent corners, one ink outline, one silhouette, the body never moves, light only on paint).
+* `VictoryRewardTests` (22 EditMode cases): the stepped victory rewards — the steps of normal fights, elites (with and
+  without a relic) and bosses with the gold done from the start; clicks and keys during the intro only hurry it and a choice
+  never times out; a click picks a card and a second click adds it, the gold button stays off until a pick, 1–N / ← → / Tab
+  / Enter / O, Enter with nothing picked picks the first, skipping, hurrying the flight; the elite's relic preselected and
+  optional (taken or left, by key, button or click); the boss pack request, `PackDone` with a card / with none, choosing or
+  leaving the boss relic; empty offers only continue; the real `SceneManager` adds exactly the card and (only if taken) the
+  relic, opens the boss pack, comes back and advances the floor; layout (1–7 cards, every relic × chroma × 1–3 above the
+  buttons, tracker under the title); every phase drawn with and without data; 1 000 random inputs per scene.
 * `CardHoverAndTooltipTests` (17 EditMode cases): every card of the game composed at ×1 and ×2 draws the same pieces at
   twice the place (same glyphs, fonts, colours); `ResFor`; `DrawAt` resizes the face it was told to lay out; a real
   `CombatScene` hovering every card, aiming and cancelling never shows a face laid out at 1.1/1.3 (only 1.0, ×1 or ×2) and the
@@ -668,6 +769,8 @@ Tracks the power of cards, relics and encounters from real runs and stores it in
 ## Known differences
 
 * Python's `hash()`-salted event text is replaced by CRC32 of the room id (stable).
+* Victory rewards (2026-11-08): the elite's relic and the boss relic are optional ("Omitir"); the original always gave the
+  elite's relic and made you take a boss relic.
 * Resizing the window behaves like the original viewport (aspect-fit, letterbox).
 * `docs/performance/README.md` measured the previous uGUI version and is kept as history.
 

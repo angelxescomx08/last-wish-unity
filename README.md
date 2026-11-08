@@ -322,6 +322,14 @@ Habla y reacciona como el Mercader (saluda, comenta, niega si falta oro, se acar
 
 ![El Brujo](docs/screenshots/warlock.png)
 
+La sala del tesoro (07-11-2026) tiene su interfaz propia: un cofre dibujado por código que tiembla, se abre con un
+destello dorado y deja subir las reliquias hasta sus tarjetas (la reliquia flotando en un nicho del color de su rareza, su
+nombre, etiquetas de rareza, croma y clase, y su texto con los colores del glosario). Se elige con clic, 1–N o ← →, «Tomar»
+(Enter) la lleva volando al contador de reliquias y «Omitir» (O) las deja todas; el Pico de Minero y la Ganzúa muestran el
+oro que dieron.
+
+![Sala del tesoro](docs/screenshots/treasure.png)
+
 Cartas (04-11-2026): al pasar el ratón por una carta de la mano crece sin cambiar de texto (misma letra, mismas líneas,
 mismo coste y daño; se dibuja al doble de resolución para que se vea nítida). La explicación de la carta es opaca, con el
 nombre y el marco del color de su rareza y fichas con la rareza («Legendaria»…), el tipo y el coste; la clase va a la
@@ -329,7 +337,16 @@ derecha del nombre. En las recompensas y al abrir sobres cada carta lleva su rar
 
 ![Carta en la mano con su explicación](docs/screenshots/card-hover.png)
 
-![Recompensa con la rareza de cada carta](docs/screenshots/reward.png)
+Recompensas por pasos (08-11-2026): al ganar, una fila de pasos bajo el título dice qué hay y por dónde vas —«Oro →
+Carta» en combates normales, «Oro → Carta → Reliquia» en élites y «Oro → Sobre épico → Reliquia» en jefes— y cada paso sale
+solo: el oro se cuenta y sus monedas vuelan al contador; un clic elige una carta y otro (o Enter) la añade al mazo, que
+tiene su placa arriba a la izquierda, u «Omitir» (O); después la reliquia, que es opcional: «Tomar reliquia» (Enter) la
+lleva al contador de reliquias y «Omitir» la deja. En los jefes el sobre épico se abre como siempre y la carta elegida
+aparece en su paso; luego eliges una de las tres reliquias o ninguna.
+
+![Recompensa de élite: elegir carta](docs/screenshots/reward.png)
+
+![Recompensa de jefe: elegir reliquia](docs/screenshots/boss-reward.png)
 
 ## Eventos con decisiones
 

@@ -261,7 +261,7 @@ namespace LastWish.Presentation
                     var relic = run.PickEliteRelic(room);
                     var cards = run.PickRewardCards(room, luckBonus: RunState.EliteCardLuck);
                     cardChoice = game.Track(p => p.OfferCards(run, "elite_reward", cards.Select(c => c.Card)));
-                    Push(new CombatRewardScene(game, run, gold, cards, relic));
+                    Push(new CombatRewardScene(game, run, gold, cards, relic, elite: true));
                 }
                 else
                 {
@@ -285,7 +285,8 @@ namespace LastWish.Presentation
             if (!scene.Cleared) return;
             scene.Cleared = false;
             var run = Run;
-            if (scene.Relic != null) { run.AcquireRelic(scene.Relic); game.Track(p => p.RelicGained(run, scene.Relic.Definition, "elite")); }
+            // the elite's relic is optional (2026-11-08): only a taken one is acquired
+            if (scene.TookRelic && scene.Relic != null) { run.AcquireRelic(scene.Relic); game.Track(p => p.RelicGained(run, scene.Relic.Definition, "elite")); }
             if (scene.ChosenCard != null) { run.AddCard(scene.ChosenCard); var choice = cardChoice; game.Track(p => p.Pick(choice, scene.ChosenCard.Id)); }
             cardChoice = null;
             Pop(); Pop();
@@ -335,7 +336,7 @@ namespace LastWish.Presentation
             foreach (var card in scene.ChosenCards) { Run.AddCard(card); game.Track(p => p.Pick(choice, card.Id)); }
             cardChoice = null;
             Pop();
-            if (Top is BossRewardScene boss) boss.PackDone();
+            if (Top is BossRewardScene boss) boss.PackDone(scene.ChosenCards);
         }
 
         private void TEvent(EventScene scene)
