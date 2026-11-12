@@ -198,6 +198,11 @@ namespace LastWish.Presentation
         public Tex BladeTexture { get; }
         public int BladeSize { get; }
         public int BladeRotations { get; }
+        /// <summary>Soft light of the sheet's emissive layer, same cells (enemies drawn by code in Tools/VfxLab/enemies/*.html
+        /// have one; the older sheets do not). Added over the sprite, the game has no bloom.</summary>
+        public Tex HaloTexture { get; }
+        public float HaloGain { get; }
+        public bool HasHalo => HaloTexture != null;
         public Dictionary<string, object> Meta { get; }
 
         public EnemySheet(string id, string json, Func<string, Tex> load)
@@ -234,6 +239,12 @@ namespace LastWish.Presentation
                 BladeTexture = load("Enemies/" + System.IO.Path.GetFileNameWithoutExtension(Json.Str(blade.Get("sheet"))));
                 BladeSize = Json.Int(blade.Get("size")); BladeRotations = Json.Int(blade.Get("rotations"));
             }
+            var halo = Json.Obj(Meta.Get("halo"));
+            if (Json.Str(halo?.Get("sheet")) != null)
+            {
+                HaloTexture = load("Enemies/" + System.IO.Path.GetFileNameWithoutExtension(Json.Str(halo.Get("sheet"))));
+                HaloGain = (float)Json.Num(halo.Get("gain"), 0.55);
+            }
         }
 
         public float Seconds(string animation) => Animations.TryGetValue(animation, out var a) ? a.Total : 0f;
@@ -243,6 +254,14 @@ namespace LastWish.Presentation
             var anim = Animations[name];
             var frame = anim.FrameAt(elapsed);
             return new Sprite(Texture, frame * CellW, anim.Row * CellH, CellW, CellH);
+        }
+        /// <summary>The halo cell of <paramref name="animation"/> at <paramref name="elapsed"/> (default when the sheet has none).</summary>
+        public Sprite Halo(string animation, float elapsed)
+        {
+            if (HaloTexture == null) return default;
+            var name = Animations.ContainsKey(animation) ? animation : "idle";
+            var anim = Animations[name];
+            return new Sprite(HaloTexture, anim.FrameAt(elapsed) * CellW, anim.Row * CellH, CellW, CellH);
         }
         public Sprite Portrait()
         {

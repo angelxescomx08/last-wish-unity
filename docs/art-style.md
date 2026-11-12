@@ -29,6 +29,7 @@ Referencias aprobadas (mirarlas antes de dibujar):
 | **Personajes y enemigos: método y diseño obligatorios (§3.1)** — ábrelo en el navegador | `Tools/VfxLab/mage_hero.html` → `Assets/Resources/Game/Heroes/mage*` |
 | La Guerrera en combate: mismo método (yelmo con visera en T, escudo, sin capa) | `Tools/VfxLab/warrior_hero.html` → `Assets/Resources/Game/Heroes/warrior*` |
 | La Pícara en combate: hecha por piezas, pendiente de rehacer con el método del Mago | `Tools/VfxLab/rogue_hero_art.py` |
+| **Enemigos: el Espectro** (primer enemigo con el método; mangas y garras escritas fotograma a fotograma) | `Tools/VfxLab/enemies/wraith.html` → `Assets/Resources/Game/Enemies/wraith_*` (`export_enemy_art.py`) |
 
 ---
 
@@ -580,7 +581,61 @@ dibujos a mano ni piezas montadas.
 2. Abrirlo en el navegador y mirarlo fotograma a fotograma.
 3. **Enseñar al usuario una pose de prueba** (la página publicada vale) y esperar su visto bueno antes de la hoja entera.
 4. Exportar con un adaptador como `mage_hero_html.py` (Node) desde `export_hero_art.py`, y pruebas como
-   `MageHeroArtTests`.
+   `MageHeroArtTests`. **Enemigos:** una página por enemigo en `Tools/VfxLab/enemies/<id de hoja>.html` (plantilla:
+   `wraith.html`, con `<script id="<id>-art">`) y `python Tools/VfxLab/export_enemy_art.py --enemy <id>`, que escribe
+   `<id>_sheet.png`, `<id>_halo.png` y `<id>_sheet.json` en el formato de hoja de enemigo que ya lee el juego; pruebas
+   como `WraithArtTests`.
+
+#### Fotograma a fotograma de verdad: brazos y mangas sin pinta de pieza (regla del usuario, 12-11-2026)
+
+Al ver la primera prueba del Espectro: «el brazo sí parece como pieza movible […] quiero evitar que parezcan como muñecos
+con piezas movibles, me gustaría más frame por frame». La manga era una banda recta del hombro a la mano que giraba
+alrededor del hombro: aunque fuera parte del mapa de zonas, se leía como una pieza de muñeco. Desde entonces:
+
+- **Cada fotograma escribe la forma de cada brazo**, no un ángulo: la manga es un lomo curvo (cuatro puntos por
+  fotograma) con su grosor en el hombro, en medio y en la campana, la tela que cuelga del lado de abajo y el **arrastre**
+  de la campana (`fa`/`ba` en `POSES`: `p`, `w`, `sag`, `drag`). Se dibuja como discos a lo largo del lomo, sin barra
+  recta ni pivote visible: la manga sale del cuerpo sin junta.
+- **Cada dedo se escribe por fotograma** (ángulo, gancho y largo propios; `f`): la mano cambia de forma de un fotograma
+  a otro (se cierra al cargar, se abre en abanico al golpear, se curva después), no es un abanico rígido que gira.
+- **Principios de animación a mano:** anticipación, fotograma de barrido (*smear*: la manga se estira y adelgaza a lo
+  largo del golpe con los dedos detrás), impacto, y tela que llega tarde, se pasa y se asienta (*overlap* /
+  *follow-through*). Cuando la tela se queda atrás asoma la muñeca de hueso entre la campana y la mano.
+- En el reposo, el brazo no se mueve en bloque: la campana se retrasa respecto al cuerpo con saltos enteros y un dedo se
+  flexiona de vez en cuando.
+- Vale para todo personaje y enemigo nuevo (y para lo que lleven en la mano: armas, bastones, colas, alas).
+
+#### Lecciones de la revisión del Espectro (12-11-2026)
+
+Lo que salió mal en los primeros renders y cómo se corrigió; revisarlo antes de dar por buena cualquier figura nueva.
+
+- **Lo pequeño que cuelga tiene que leerse a ×2.** El grillete con su cadena en la muñeca parecía un palo o un bastón;
+  la cadena cruzada en el pecho ensuciaba. Se quitaron: a este tamaño basta un detalle con identidad (la llama del alma).
+- **Garras finas y separadas.** Dedos gruesos con hueso claro se fundían en un guante blanco. Ahora cada dedo es un trazo
+  fino (radio de 0,85 a 0,3), hueso más oscuro con luz solo en la punta, y la punta se fuerza 4-conectada.
+- **Una manga del mismo color que el cuerpo desaparece.** Rampa propia algo más clara, pliegue de arriba iluminado, borde
+  de abajo oscuro y línea de tinta donde cruza el cuerpo, pero no en el hombro: ahí se vería una junta.
+- **Nada de transparencia tramada a bajo alfa encima de la pintura.** El ectoplasma del bajo salió como una línea
+  punteada. Se pinta con una rampa continua (tela → ectoplasma), como los jirones.
+- **La cara se queda limpia.** La luz rebotada abajo del vacío parecía una boca sonriente, y las motas que la capucha
+  aspira dibujaban una sonrisa dentro. El vacío es negro con los ojos; los efectos no se pintan dentro de la cara.
+- **Los efectos no tapan la cara ni parecen interfaz.** El destello del Lamento centrado en la cara la ocultaba; va en el
+  borde delantero de la capucha. Los anillos alrededor del pecho parecían una mira: en el cuerpo, estrellas y chispas.
+- **La luz de lo que está detrás no atraviesa la figura.** La capa de luz es aditiva: antes de pintar se borra la luz que
+  quede bajo la silueta (las medialunas detrás de la capucha se transparentaban).
+- **Sin contornos fantasma de la pose anterior.** La imagen residual dibujada como contorno parecía garabatos; el barrido
+  (*smear*) y las líneas de velocidad bastan.
+- **La disolución no es una línea recta.** Con solo el tramado salía una raya; el borde se ondula a dos frecuencias más el
+  tramado, solo brillan los píxeles del borde de verdad, y las motas nacen en un fotograma y suben en los siguientes (no
+  aparecen al azar en cada uno).
+- **Conectividad.** Las puntas de 1 px (capucha, garras) se soltaban: grosor mínimo de 0,62 y trazos 4-conectados. La
+  comprobación de «una sola masa» se siembra desde un píxel del centro del cuerpo, no desde toda la capa: una mota
+  arrancada del bajo cuenta como suelta. Los jirones muy doblados se rompían en puntos: cada fila se compara con el tramo
+  hasta la siguiente.
+- **Cuando la tela se queda atrás, la mano no se separa:** asoma una muñeca de hueso desde dentro de la campana.
+- **Tamaño y celda.** La primera versión (~70 px de alto) se veía pequeña junto a los héroes: escala del cuerpo `Z = 1.1`
+  para quedar a la altura del Mago. Las chispas, las medialunas y las ondas de un enemigo que se lanza llegaban al borde de
+  96 px: celda de 128×96 con sitio delante, y el círculo de runas a dos filas del borde de abajo.
 
 **Estado (31-10-2026):** El Mago y la Guerrera, hechos con este método y en el juego (`mage_hero.html`,
 `warrior_hero.html`). **El Mercader** (vendedor de la tienda, 04-11-2026): `Tools/VfxLab/merchant.html` +
@@ -596,8 +651,21 @@ runas, frasco verde y bastón nudoso (lo sostiene la mano lejana, que es parte d
 y una llama fantasma verde. Reposo 24, hablar 12, saludar (llamita en la palma), conjurar 18 (alza el bastón; el destello
 del fotograma 8 es el evento `cast` que la sala usa para lanzar el rayo), negar y pensar (se acaricia la barba). El
 exportador mide los pies con las babuchas y el bajo, no con el bastón. Se enseñó la pose de prueba al usuario antes de la
-hoja. Pendientes de rehacer con él: la Pícara (su hoja actual es por piezas) y los enemigos, cuando el
-usuario lo pida.
+hoja. **El Espectro** (12-11-2026, el primer enemigo): `Tools/VfxLab/enemies/wraith.html` +
+`export_enemy_art.py` → `Resources/Game/Enemies/wraith_sheet|halo.png` y `wraith_sheet.json` (sustituye a la hoja vieja de
+la versión Python). Capucha con la punta doblada hacia atrás, vacío con ojos de ectoplasma, esclavina rasgada, capa que se
+deshace en siete jirones que gotean, llama del alma en el pecho, mangas de campana y garras de hueso; mira al héroe (borde
+cian delante, violeta detrás) y flota. Celda 128×96 (necesita sitio delante para la estocada y el lamento), sombra en la
+fila 93. Reposo 24, ataque 10 (Zarpazo Espectral, golpe en el 4), daño 7, habilidad 12 (Lamento, en el 6), muerte 17
+que se disuelve y acaba vacía. El usuario aprobó el diseño con la pose de prueba y pidió los brazos fotograma a fotograma
+(arriba). Pendientes de rehacer con el método: la Pícara (su hoja actual es por piezas) y los otros 65 enemigos.
+
+**Enemigos con el método (12-11-2026):** miran hacia el héroe, así que el borde cian va en su lado izquierdo y el violeta
+detrás; los que flotan no pisan: la sombra del juego va en la fila 93 y el bajo flota encima. Celda de 96×96 si basta y
+más ancha o alta si un golpe o un hechizo la necesita (todo dentro, nada toca el borde). Las acciones acaban en el
+fotograma 0 del reposo; la muerte termina en un fotograma vacío (el juego deja de dibujar al enemigo al acabarla). El
+halo (`<id>_halo.png`) lo suma `EnemyAnimator.DrawHalo`; los puntos de partículas de `EnemyAnimator.Styles` salen de
+`export_enemy_art.py --styles`.
 
 **Cara cubierta (regla del usuario, 31-10-2026):** la cara en sombra con ojos que brillan solo tiene sentido si algo la
 cubre (el sombrero del Mago, la capucha de la Pícara, el yelmo con visera de la Guerrera). Una cara descubierta y oscura
@@ -701,6 +769,9 @@ python Tools/VfxLab/export_hero_art.py --hero mage                              
 # Tools/VfxLab/mage_hero.html: ábrelo en el navegador para ver el Mago animado; es la fuente de su hoja
 python Tools/VfxLab/export_hero_art.py --check                                 # hoja = generador; una sola masa
 python Tools/VfxLab/map_icons.py --check                                       # iconos del mapa = generador
+python Tools/VfxLab/export_enemy_art.py --enemy wraith --preview TestResults/enemy-preview   # enemigos HTML (Node)
+python Tools/VfxLab/export_enemy_art.py --check                                # hojas = páginas; una sola masa
+python Tools/VfxLab/export_enemy_art.py --styles                               # puntos para EnemyAnimator.Styles
 ```
 
 1. Dibujar/ajustar en el módulo de arte, mirar el GIF fotograma a fotograma.

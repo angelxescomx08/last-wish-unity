@@ -394,3 +394,20 @@ python Tools/GenerateEnemyArtFloor3.py --check
 ```
 
 Nunca toca las hojas originales ni las de héroes.
+
+### Enemigos redibujados con el método HTML (`docs/art-style.md` §3.1)
+
+| Enemigo | Página | Hoja | Desde |
+|---|---|---|---|
+| Espectro | `Tools/VfxLab/enemies/wraith.html` | `wraith_sheet.png` + `wraith_halo.png`, celda 128×96 | 12-11-2026 |
+
+Cada página es a la vez el visor (ábrela en el navegador) y la fuente de la hoja. Los brazos, mangas y dedos se escriben
+fotograma a fotograma (regla del usuario del 12-11-2026). Animaciones: reposo 24, ataque 10, daño 7, habilidad 12 y
+muerte 17, a 12 fps, con eventos de golpe y halo.
+
+```powershell
+python Tools/VfxLab/export_enemy_art.py                  # todas las páginas de Tools/VfxLab/enemies (necesita Node)
+python Tools/VfxLab/export_enemy_art.py --enemy wraith   # una
+python Tools/VfxLab/export_enemy_art.py --check          # las hojas del repositorio coinciden con las páginas
+python Tools/VfxLab/export_enemy_art.py --styles         # puntos de partículas para EnemyAnimator.Styles
+```

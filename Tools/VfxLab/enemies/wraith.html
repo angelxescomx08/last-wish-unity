@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprite del Espectro</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one stage (the sprite at 4x on the dungeon night), the animation picker beside it, the frame strip below. */
+  :root {
+    --bg: #0f0d1a; --panel: #17142a; --line: #2b2648; --fg: #e8e4f8; --muted: #9d97bd;
+    --accent: #74f2cc; --gold: #d9b26a; --stage: #1c1932; --stage-floor: #120f22;
+    --font-display: "Pixelify Sans", "Silkscreen", ui-monospace, monospace;
+    --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { background: var(--bg); color: var(--fg); }
+  body { font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .page { max-width: 980px; margin: 0 auto; padding-block: 28px 40px; display: grid; gap: 22px; }
+  header { display: grid; gap: 6px; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 6vw, 44px); line-height: 1; margin: 0;
+    letter-spacing: 0.02em; text-wrap: balance; }
+  h1 span { color: var(--accent); }
+  .lede { color: var(--muted); max-width: 64ch; margin: 0; }
+  .work { display: grid; grid-template-columns: minmax(0, 512px) minmax(0, 1fr); gap: 22px; align-items: start; }
+  @media (max-width: 720px) { .work { grid-template-columns: minmax(0, 1fr); } }
+  .stage { position: relative; width: 100%; max-width: 512px; aspect-ratio: 4 / 3; border: 1px solid var(--line);
+    background: var(--stage); }
+  .stage canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+  .side { display: grid; gap: 16px; min-width: 0; }
+  .label { font-family: var(--font-display); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .picker { display: flex; flex-wrap: wrap; gap: 8px; }
+  .picker button, .controls button { font: 600 14px/1 var(--font-body); color: var(--fg); background: var(--panel);
+    border: 1px solid var(--line); padding: 10px 12px; cursor: pointer; }
+  .picker button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+  .picker button:hover, .controls button:hover { border-color: var(--muted); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .controls label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 14px; }
+  .readout { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .readout b { color: var(--fg); font-weight: 500; }
+  .note { border-left: 2px solid var(--gold); padding: 2px 0 2px 12px; color: var(--muted); font-size: 14px; margin: 0; }
+  .note strong { color: var(--fg); font-weight: 600; }
+  .strip-wrap { display: grid; gap: 8px; }
+  .strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+  .strip figure { margin: 0; display: grid; gap: 4px; flex: 0 0 auto; }
+  .strip canvas { width: 256px; height: 192px; image-rendering: pixelated; background: var(--stage); border: 1px solid var(--line); cursor: pointer; display: block; }
+  .strip figure[data-on="true"] canvas { border-color: var(--accent); }
+  .strip figcaption { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+  .strip figcaption .ev { color: var(--gold); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+  <header>
+    <h1>El <span>Espectro</span></h1>
+    <p class="lede">Enemigo de Last Wish dibujado con código, con el método y el diseño de los héroes. En cada fotograma la figura entera —capucha, capa, jirones, mangas y garras— es una sola silueta con un único contorno: no hay piezas encima ni partes que giren. Mira hacia el héroe. 12 fotogramas por segundo, celdas de 128×96 px.</p>
+  </header>
+  <div class="work">
+    <div class="stage"><canvas id="stage" width="512" height="384" aria-label="El Espectro animado"></canvas></div>
+    <div class="side">
+      <div class="label">Animación</div>
+      <div class="picker" id="picker" role="group" aria-label="Animación"></div>
+      <div class="controls">
+        <button id="play" type="button">Pausa</button>
+        <button id="prev" type="button" aria-label="Fotograma anterior">◀</button>
+        <button id="next" type="button" aria-label="Fotograma siguiente">▶</button>
+        <label><input id="halo" type="checkbox" checked> Halo de luz</label>
+      </div>
+      <div class="readout" id="readout"></div>
+      <p class="note" id="note"></p>
+    </div>
+  </div>
+  <div class="strip-wrap">
+    <div class="label">Fotogramas a tamaño de combate</div>
+    <div class="strip" id="strip"></div>
+  </div>
+</div>
+
+<script id="wraith-art">
+/* El Espectro drawn by code (docs/art-style.md section 3.1: the mandatory method for characters and enemies). Every frame
+   computes the WHOLE figure as one silhouette: the hood with its bent tip, the void face, the tattered capelet, the cloak,
+   the strands its hem frays into, both bell sleeves, and the bony claws are zones of
+   the same label map, with one outline around everything. Nothing is drawn as a separate piece on top and nothing is
+   rotated between frames: each frame has its own complete pose (the tables below), like frame-by-frame pixel art.
+   Two layers per frame: paint (readable alone) and emissive light (only the magic: eyes, soul flame, ectoplasm).
+   128x96 cells (room in front for its lunge and its wail), the shadow line on row 93; it hovers, faces left (towards the hero): cyan rim in front, violet behind. */
+(function (root) {
+  'use strict';
+  const CW = 128, CH = 96, N = CW * CH, GROUND = 93, ROOT_X = 84, FPS = 12, LOOP = 24, Z = 1.1;  // Z: drawing scale of the body
+  // heights above the strand tips (d): strands 0..HEM, cloak HEM..ROBE_TOP, capelet, hood circle and its tip
+  const HEM = 13, ROBE_TOP = 37, CAPE_LO = 32.5, CAPE_HI = 42, HC = 50.5, HR = 10.2, TIP_LO = 55, TIP_HI = 70;
+  const ANIMATIONS = [['idle', 24, true], ['attack', 10, false], ['hurt', 7, false], ['cast', 12, false], ['death', 17, false]];
+  const STRIKE_FRAME = 4, CAST_FRAME = 6;
+
+  // ---------------------------------------------------------------------------------------------- palette
+  const hex = h => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
+  const ramp = a => a.map(hex);
+  const K = {};
+  for (const [k, v] of Object.entries({
+    ink: '#07050c', void1: '#04020a', body0: '#0c0814', rimc: '#58dcff', rimv: '#3a2163',
+    cyan1: '#137ea3', cyan2: '#2fc4e6', cyan3: '#8ff1ff', cyan4: '#e6feff',
+    violet0: '#2d1346', violet1: '#55248a', violet2: '#8a47cf', violet3: '#c79bff', white: '#ffffff',
+    steel3: '#cdd5ec'
+  })) K[k] = hex(v);
+  const RAMP = {
+    cloak: ramp(['#08060f', '#120b20', '#1c1332', '#291d49', '#3b2a64']),
+    inner: ramp(['#040209', '#0a0614', '#130c22']),
+    sleeve: ramp(['#120b20', '#1d1434', '#2b1f4e', '#3e2d6c', '#54408e']),
+    bone: ramp(['#2e2838', '#554d66', '#8a829e', '#c9c2d8']),
+    iron: ramp(['#1d1924', '#38323f', '#5d5568', '#958ca2']),
+    rust: ramp(['#47231b', '#753a23', '#a45d2d'])
+  };
+  // its accent: ectoplasm (eyes, soul flame, the strands' ends, its claw slashes)
+  const ECTO = ramp(['#0a2a2b', '#106058', '#1fac92', '#72f1cb', '#dcfff3']);
+  const LIGHT = { ecto: [0.3, 1.0, 0.76], cyan: [0.25, 0.85, 1.0], white: [1, 1, 1], violet: [0.6, 0.3, 1.0] };
+  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  const STRAND_RAMP = [RAMP.cloak[1], RAMP.cloak[2], RAMP.cloak[3], ECTO[0], ECTO[1], ECTO[2], ECTO[3]];
+
+  // ---------------------------------------------------------------------------------------------- tiny raster kit
+  const BAY = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  const B = new Float32Array(N);
+  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) B[y * CW + x] = (BAY[y % 4][x % 4] + 0.5) / 16;
+  const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+  const smooth = (e0, e1, d) => clamp01((d - e0) / (e1 - e0));
+  const frac = v => v - Math.floor(v);
+
+  class Cv { constructor() { this.px = new Float32Array(N * 4); } }
+  const val = (a, i) => typeof a === 'number' ? a : typeof a === 'function' ? a(i) : a[i];
+  function put(c, m, col, a = 1) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      if (B[i] < val(a, i)) { const o = i * 4; c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1; }
+    }
+  }
+  function add(g, m, light, a = 1) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      const al = val(a, i), o = i * 4;
+      g.px[o] += light[0] * al; g.px[o + 1] += light[1] * al; g.px[o + 2] += light[2] * al; g.px[o + 3] = 1;
+    }
+  }
+  const idx = (x, y) => { x = Math.floor(x); y = Math.floor(y); return x < 0 || y < 0 || x >= CW || y >= CH ? -1 : y * CW + x; };
+  function putPx(c, x, y, col, a = 1) {
+    const i = idx(x, y); if (i < 0 || B[i] >= a) return;
+    const o = i * 4; c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+  }
+  function addPx(g, x, y, light, a = 1) {
+    const i = idx(x, y); if (i < 0) return;
+    const o = i * 4; g.px[o] += light[0] * a; g.px[o + 1] += light[1] * a; g.px[o + 2] += light[2] * a; g.px[o + 3] = 1;
+  }
+  const mask = fn => { const m = new Uint8Array(N); for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) { const i = y * CW + x; if (fn(x + 0.5, y + 0.5, i, x, y)) m[i] = 1; } return m; };
+  const at = (m, x, y) => x >= 0 && y >= 0 && x < CW && y < CH ? m[y * CW + x] : 0;
+  function dilate(m, diag = false) {
+    const o = new Uint8Array(N);
+    for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+      const i = y * CW + x;
+      o[i] = m[i] || at(m, x - 1, y) || at(m, x + 1, y) || at(m, x, y - 1) || at(m, x, y + 1) ||
+        (diag && (at(m, x - 1, y - 1) || at(m, x + 1, y - 1) || at(m, x - 1, y + 1) || at(m, x + 1, y + 1))) ? 1 : 0;
+    }
+    return o;
+  }
+  const outline = m => { const d = dilate(m); for (let i = 0; i < N; i++) d[i] = d[i] && !m[i] ? 1 : 0; return d; };
+  const nb = (m, dx, dy) => { const o = new Uint8Array(N); for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) o[y * CW + x] = at(m, x + dx, y + dy); return o; };
+  const and = (...ms) => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) { let v = 1; for (const m of ms) if (!m[i]) { v = 0; break; } o[i] = v; } return o; };
+  const or = (...ms) => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) { for (const m of ms) if (m[i]) { o[i] = 1; break; } } return o; };
+  const not = m => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) o[i] = m[i] ? 0 : 1; return o; };
+  function line(x0, y0, x1, y1) {
+    x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+    const pts = []; const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx + dy;
+    for (;;) { pts.push([x0, y0]); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x0 += sx; } if (e2 <= dx) { err += dx; y0 += sy; } }
+    return pts;
+  }
+  function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const uni = (r, a, b) => a + (b - a) * r();
+
+  function toneIdx(i, light, n, amp) { return Math.max(0, Math.min(n - 1, Math.floor(light * (n - 1) + 0.5 + (B[i] - 0.5) * amp))); }
+  function paintZone(c, m, rp, light, amp = 0.55) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      const col = rp[toneIdx(i, val(light, i), rp.length, amp)], o = i * 4;
+      c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------- labels
+  const L_ = {}; ['EMPTY', 'SLEEVE_B', 'CUFF_B', 'CLAW_B', 'STRAND', 'ROBE', 'FLAME', 'CAPELET', 'HOOD', 'FACE', 'SLEEVE',
+    'CUFF', 'CLAW'].forEach((k, i) => { L_[k] = i; });
+  // where the strands hang from the hem (front positive), how long they are, their waving
+  const STRANDS = [[11.0, 9, 1.5, 1, 0.0], [7.2, 12, 1.7, 2, 1.1], [3.4, 10, 1.6, 1, 2.3], [-0.4, 13, 1.8, 2, 3.0],
+    [-4.2, 11, 1.7, 1, 4.1], [-8.0, 13, 1.6, 2, 5.0], [-11.8, 10, 1.4, 1, 5.9]];
+
+  // ---------------------------------------------------------------------------------------------- the pose
+  // x/y: offset (y < 0 rises); hover: height of the strand tips above the shadow line; stretch: tall/squashed; lean/nod:
+  // the top leans towards the hero; trail: the strands and hem stream back; sweep: the cloak flares back (lunges);
+  // tipback: the hood's point is blown back; eyes, flame: glow; mouth: the void widens; fade: it dissolves from below.
+  // fa / ba: the front and the far arm OF THIS FRAME, drawn like an animator draws a sleeve, not posed like a puppet:
+  //   p: the sleeve's spine, four points [u (towards the hero), d (height)] in body units from the shoulder line;
+  //   w: its half widths at the shoulder, the middle and the bell; sag: how much cloth hangs on the lower side;
+  //   drag: where the bell's cloth trails [du, dd] (it lags behind the hand and catches up);
+  //   f: each finger [angle in degrees (0 back, 90 down, 180 towards the hero, 270 up), hook, length]
+  const IDLE = { x: 0, y: 0, hover: 7, stretch: 1, lean: 0, nod: 0, phase: 0, wind: 1, trail: 1, sweep: 0, hoodwind: 1,
+    tipback: 0, eyes: 1, blink: 0, flame: 1, flash: 0, fade: 0, mouth: 0, fa: null, ba: null };
+  const ROOT_D = 37;
+
+  /** The whole figure of a pose as ONE label map. */
+  function figure(p) {
+    const lab = new Int8Array(N), D = new Float32Array(N), U = new Float32Array(N), T = new Float32Array(N);
+    const V = new Float32Array(N), AL = new Float32Array(N);
+    const gx = ROOT_X + p.x, base = GROUND - p.hover + p.y, ph = p.phase;
+    const fwd = dd => p.lean * Math.pow(smooth(HEM, TIP_HI, dd), 1.2) + p.nod * smooth(40, TIP_HI, dd);
+    const cxAt = dd => gx - fwd(dd);                       // facing left: forward is -x
+    const yAt = dd => base - dd * p.stretch * Z;
+    const sway = p.hoodwind * 1.2 * Math.sin(ph + 0.7) + p.hoodwind * 0.5 * Math.sin(2 * ph);
+    for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+      const i = y * CW + x, px = x + 0.5, py = y + 0.5, hl = base - py;
+      const d = hl / (p.stretch * Z), cxl = cxAt(d), u = (cxl - px) / Z;  // u > 0: towards the hero (body units)
+      D[i] = d; U[i] = u;
+      if (hl <= 0) continue;
+      let L = 0;
+      // the strands the hem frays into: they taper, wave and stream back
+      if (d <= HEM + 2) {
+        for (const [pos, len, w0, cyc, off] of STRANDS) {
+          const top = HEM + 2, k = clamp01((top - d) / len);
+          if (d < top - len) continue;
+          const cAt = kk => pos - p.trail * 2.3 * Math.pow(kk, 1.4) - p.sweep * 3.8 * kk * kk + p.wind * 1.5 * Math.sin(ph * cyc + off - kk * 2.6) * kk;
+          const c1 = cAt(clamp01(k - 0.5 / len)), c2 = cAt(clamp01(k + 0.5 / len)), w = w0 * (1 - k) + 0.6;
+          if (u >= Math.min(c1, c2) - w && u <= Math.max(c1, c2) + w) { L = L_.STRAND; T[i] = k; }
+        }
+      }
+      // the cloak: a bell that widens to the hem; its lower edge is torn into points
+      if (d >= HEM - 2 && d < ROBE_TOP + 1) {
+        const kk = Math.pow(smooth(ROBE_TOP, HEM, d), 1.25);
+        const fe = 7.2 + 6.6 * kk + p.sweep * -1.5 * kk;
+        const be = 8.2 + 6.4 * kk + p.sweep * 7 * kk * kk + p.trail * 1.2 * kk + p.wind * 0.8 * Math.sin(ph * 2 + d * 0.35) * kk;
+        const hemT = HEM - 1.2 + 2.4 * Math.abs(Math.sin((u + p.trail * 1.5) * 0.6 + 0.5 * Math.sin(ph)));
+        if (u <= fe && u >= -be && d >= hemT) L = L_.ROBE;
+      }
+      // the tattered capelet over the shoulders
+      if (d >= CAPE_LO - 2.2 && d < CAPE_HI) {
+        const sc = smooth(CAPE_LO, CAPE_HI, d);
+        const cfe = 10.8 - sc * 3.4, cbe = 11.8 - sc * 3.2 + p.sweep * 3 * (1 - sc) + p.wind * 0.5 * Math.sin(ph + 1.3) * (1 - sc);
+        const rag = CAPE_LO - 2.2 + 2.4 * Math.abs(Math.sin(u * 0.78 + 0.35 * Math.sin(ph + 1)));
+        if (u <= cfe && u >= -cbe && d >= rag) L = L_.CAPELET;
+      }
+      // the hood: a round cowl whose point bends back and sways
+      if (((u - 1.0) / HR) ** 2 + ((d - HC) / HR) ** 2 <= 1) L = L_.HOOD;
+      if (d >= TIP_LO && d <= TIP_HI) {
+        const q = smooth(TIP_LO, TIP_HI, d), tc = 0.6 - (10.5 + 4 * p.tipback) * Math.pow(q, 2.0) + sway * q * q;
+        if (Math.abs(u - tc) <= 8.4 * Math.pow(1 - q, 1.05) + 0.62) L = L_.HOOD;
+      }
+      // the void under the hood (it opens towards the hero, a lip of cloth all round)
+      const fru = 4.9 + p.mouth * 0.8, frd = 5.7 + p.mouth * 1.2;
+      if (L === L_.HOOD && ((u - 4.9) / fru) ** 2 + ((d - (HC - 0.9 - p.mouth * 0.5)) / frd) ** 2 <= 1) L = L_.FACE;
+      // the soul flame, seen through a rent in the chest
+      const fl = (1 + 0.25 * Math.sin(ph * 3)) * Math.min(1.6, 0.75 + 0.25 * p.flame);
+      if (L === L_.ROBE && p.flame > 0.05 && Math.abs(u - 1.2) / (2.2 * Math.min(1.5, 0.8 + 0.2 * p.flame)) + Math.abs(d - 27.5) / (3.2 * fl) <= 1) L = L_.FLAME;
+      lab[i] = L;
+    }
+    // both arms belong to the body: their shoulders lean with it, the far one only shows where nothing is in front
+    const lx = fwd(ROOT_D), world = (u, d) => [gx - lx - u * Z, yAt(d)];
+    const far = p.ba ? drawArm(lab, T, V, AL, p.ba, true, world) : null;
+    const front = drawArm(lab, T, V, AL, p.fa, false, world);
+    // one figure: anything not 4-connected to the cloak is dropped
+    const reach = new Uint8Array(N), stack = [];
+    // (seeded from the middle of the cloak, so a speck torn off the hem counts as loose too)
+    const seed = idx(cxAt(24), yAt(24));
+    if (seed >= 0 && lab[seed]) { reach[seed] = 1; stack.push(seed); }
+    while (stack.length) {
+      const i = stack.pop(), x = i % CW, y = (i / CW) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const j = idx(x + dx, y + dy); if (j >= 0 && !reach[j] && lab[j]) { reach[j] = 1; stack.push(j); }
+      }
+    }
+    let lost = 0;
+    for (let i = 0; i < N; i++) if (!reach[i] && lab[i]) { lab[i] = 0; lost++; }
+    // death: it comes apart from the bottom up, along a ragged (dithered) line
+    const level = p.fade > 0 ? p.fade * (TIP_HI + 7) - 3 : -99;
+    const ragged = i => { const x = i % CW; return 2.2 * Math.sin(x * 0.55 + 1.3) + 1.4 * Math.sin(x * 1.37) + (B[i] - 0.5) * 3; };
+    if (p.fade > 0) for (let i = 0; i < N; i++) if (lab[i] && D[i] < level + ragged(i)) lab[i] = 0;
+    const fcx = cxAt(HC);
+    return {
+      p, lab, D, U, T, V, AL, gx, base, lost, level, shoulder: world(4, ROOT_D), hand: front.wrist, tips: front.tips,
+      tipsB: far ? far.tips : [], mouthB: far ? far.wrist : null,
+      eyes: [[fcx - 7.4 * Z, yAt(HC - 0.8)], [fcx - 2.6 * Z, yAt(HC - 0.8)]], chest: [cxAt(27.5) - 1.2 * Z, yAt(27.5)],
+      face: [fcx - 5 * Z, yAt(HC - 1.5)], mouthFront: [fcx - 10.5 * Z, yAt(HC - 1.8)], cxAt, yAt
+    };
+  }
+
+  /** One sleeve, as the cloth of THIS frame: discs along a curved spine (no straight bar, no pivot), wider where the cloth
+      hangs, the bell trailing by `drag`, cut square at the mouth; then each finger as a hooked bone stroke. Written into
+      the label map: the far arm only where nothing is in front of it, the front one over everything but the face. */
+  function drawArm(lab, T, V, AL, a, far, world) {
+    const LS = far ? L_.SLEEVE_B : L_.SLEEVE, LC = far ? L_.CUFF_B : L_.CUFF, LK = far ? L_.CLAW_B : L_.CLAW;
+    const free = i => far ? lab[i] === 0 : lab[i] !== L_.FACE;
+    const P = a.p.map(([u, d]) => world(u, d));
+    const bez = t => { const s = 1 - t, k0 = s * s * s, k1 = 3 * s * s * t, k2 = 3 * s * t * t, k3 = t * t * t; return [k0 * P[0][0] + k1 * P[1][0] + k2 * P[2][0] + k3 * P[3][0], k0 * P[0][1] + k1 * P[1][1] + k2 * P[2][1] + k3 * P[3][1]]; };
+    const dw = [-a.drag[0] * Z, -a.drag[1] * Z], [w0, w1, w2] = a.w, NS = 56;
+    const C = [], R = [], TS = [], NN = [];
+    for (let k = 0; k <= NS; k++) {
+      const t = k / NS, q = bez(t), q0 = bez(Math.max(0, t - 0.02)), q1 = bez(Math.min(1, t + 0.02));
+      let tx = q1[0] - q0[0], ty = q1[1] - q0[1]; const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
+      let nx = -ty, ny = tx; if (ny < 0 || (Math.abs(ny) < 0.2 && nx < 0)) { nx = -nx; ny = -ny; }   // n: the side that hangs
+      const r = (w0 * (1 - t) * (1 - t) + 2 * w1 * t * (1 - t) + w2 * t * t) * Z, sg = a.sag * t * t * Math.max(0.25, ny) * Z;
+      C.push([q[0] + dw[0] * t * t * t + nx * sg * 0.5, q[1] + dw[1] * t * t * t + ny * sg * 0.5]); R.push(r + sg * 0.5); TS.push(t); NN.push([nx, ny]);
+    }
+    const pe = bez(1), pb = bez(0.94); let ex = pe[0] - pb[0], ey = pe[1] - pb[1]; const el = Math.hypot(ex, ey) || 1; ex /= el; ey /= el;
+    const M = [pe[0] + dw[0], pe[1] + dw[1]];
+    let x0 = 99, y0 = 99, x1 = 0, y1 = 0;
+    C.forEach(([cx, cy], k) => { x0 = Math.min(x0, cx - R[k]); x1 = Math.max(x1, cx + R[k]); y0 = Math.min(y0, cy - R[k]); y1 = Math.max(y1, cy + R[k]); });
+    for (let y = Math.max(0, Math.floor(y0) - 1); y <= Math.min(CH - 1, Math.ceil(y1) + 1); y++)
+      for (let x = Math.max(0, Math.floor(x0) - 1); x <= Math.min(CW - 1, Math.ceil(x1) + 1); x++) {
+        const i = y * CW + x, px = x + 0.5, py = y + 0.5;
+        let best = 1e9, bk = 0;
+        for (let k = 0; k <= NS; k++) { const dd = Math.hypot(px - C[k][0], py - C[k][1]) - R[k]; if (dd < best) { best = dd; bk = k; } }
+        if (best > 0 || !free(i)) continue;
+        const along = (px - M[0]) * ex + (py - M[1]) * ey;
+        if (along > 0.5) continue;
+        lab[i] = along > -2.4 * Z ? LC : LS; T[i] = TS[bk]; AL[i] = along;
+        V[i] = ((px - C[bk][0]) * NN[bk][0] + (py - C[bk][1]) * NN[bk][1]) / Math.max(0.5, R[bk]);
+      }
+    // the claws come out of the bell, each finger drawn on its own
+    const tips = [], nE = [-ey, ex], rEnd = R[NS];
+    const mark = (xx, yy, v) => { const i = idx(xx, yy); if (i >= 0 && (free(i) || lab[i] === LC || lab[i] === LS || lab[i] === LK)) { const was = lab[i] === LK; lab[i] = LK; T[i] = was ? Math.max(T[i], v) : v; } };
+    // when the cloth trails behind, the bony wrist shows between the bell and the hand
+    const wa = [M[0] - ex * 1.5, M[1] - ey * 1.5], wl = Math.hypot(pe[0] - wa[0], pe[1] - wa[1]);
+    for (let s = 0; s <= wl; s += 0.25) {
+      const cx = wa[0] + (pe[0] - wa[0]) * s / Math.max(wl, 1e-6), cy = wa[1] + (pe[1] - wa[1]) * s / Math.max(wl, 1e-6), w = 1.15 * Z;
+      for (let yy = Math.floor(cy - w - 1); yy <= cy + w + 1; yy++) for (let xx = Math.floor(cx - w - 1); xx <= cx + w + 1; xx++)
+        if ((xx + 0.5 - cx) ** 2 + (yy + 0.5 - cy) ** 2 <= w * w) { const i = idx(xx, yy); if (i >= 0 && lab[i] !== LS && lab[i] !== LC) mark(xx, yy, 0); }
+    }
+    a.f.forEach(([deg, hook, len], j) => {
+      const off = (j - (a.f.length - 1) / 2) * 0.42 * rEnd;
+      let cx = pe[0] + ex * 0.4 + nE[0] * off, cy = pe[1] + ey * 0.4 + nE[1] * off, prev = null;
+      const L = len * Z * (far ? 0.82 : 1), a0 = deg * Math.PI / 180, step = 0.2;
+      for (let s = 0; s <= L; s += step) {
+        const v = s / L, ang = a0 + hook * Math.pow(v, 1.6), w = (0.85 * (1 - v) + 0.3) * Z;
+        for (let yy = Math.floor(cy - w - 1); yy <= cy + w + 1; yy++) for (let xx = Math.floor(cx - w - 1); xx <= cx + w + 1; xx++)
+          if ((xx + 0.5 - cx) ** 2 + (yy + 0.5 - cy) ** 2 <= w * w) mark(xx, yy, v);
+        const pxl = [Math.floor(cx), Math.floor(cy)];   // the bone stays one 4-connected line however thin the tip gets
+        mark(pxl[0], pxl[1], v);
+        if (prev && pxl[0] !== prev[0] && pxl[1] !== prev[1]) mark(pxl[0], prev[1], v);
+        prev = pxl; cx += Math.cos(ang) * step; cy += Math.sin(ang) * step;
+      }
+      tips.push([cx, cy]);
+    });
+    return { tips, wrist: pe, mouth: M, dir: [ex, ey] };
+  }
+
+  // ---------------------------------------------------------------------------------------------- painting
+  function paint(c, g, F, t, pulse) {
+    const { p, lab, D, U, T, V, AL } = F;
+    const is = (...ls) => { const s = new Set(ls); const m = new Uint8Array(N); for (let i = 0; i < N; i++) if (s.has(lab[i])) m[i] = 1; return m; };
+    const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = lab[i] ? 1 : 0;
+    const fade = p.fade, live = 1 - fade;
+    // the figure is opaque: light from effects drawn behind it must not shine through
+    const mo = dilate(m);
+    for (let i = 0; i < N; i++) if (mo[i]) { const o = i * 4; g.px[o] = g.px[o + 1] = g.px[o + 2] = 0; }
+    put(c, outline(m), K.ink);
+    // light from the upper left of the world (the hero's side): a falloff to the back and down, and soft folds
+    const light = new Float32Array(N);
+    for (let i = 0; i < N; i++) { const W = i % CW + 0.5 - F.gx; light[i] = 0.70 - 0.030 * W / Z - 0.0075 * (TIP_HI - D[i]) + 0.07 * Math.cos(U[i] * 0.9 + D[i] * 0.15 + 0.4 * Math.sin(p.phase)); }
+    const up = mm => nb(mm, 0, -1), down = mm => nb(mm, 0, 1), left = mm => nb(mm, -1, 0), right = mm => nb(mm, 1, 0);
+
+    // the far sleeve and its claws, in the dark behind the body
+    const slB = is(L_.SLEEVE_B), cuB = is(L_.CUFF_B), clB = is(L_.CLAW_B);
+    const armB = or(slB, cuB);
+    paintZone(c, armB, RAMP.cloak, i => 0.5 - 0.12 * T[i] - 0.2 * V[i]);
+    put(c, and(armB, not(up(armB))), RAMP.cloak[3]);
+    put(c, and(cuB, mask((x, y, i) => V[i] > -0.25 && AL[i] > -1.3 * Z)), RAMP.inner[1]);
+    paintZone(c, clB, RAMP.bone, i => 0.2 + 0.3 * T[i]);
+    // the hood, its seam and the lip of cloth round the void
+    const hood = is(L_.HOOD), face = is(L_.FACE);
+    paintZone(c, hood, RAMP.cloak, i => light[i] + 0.12 + 0.05 * Math.sin(D[i] * 0.8));
+    put(c, and(hood, mask((x, y, i) => D[i] > HC + 1 && Math.abs(U[i] - (-1.4 - (D[i] - HC) * 0.42)) < 0.55)), RAMP.cloak[1]);
+    const lip = and(hood, dilate(face, true));
+    put(c, and(lip, mask((x, y, i) => D[i] > HC - 2.5 || U[i] > 7)), RAMP.cloak[4]);
+    put(c, and(lip, mask((x, y, i) => D[i] <= HC - 2.5 && U[i] <= 7)), RAMP.cloak[1]);
+    put(c, face, K.void1);
+    // the tattered capelet and its shadow on the cloak
+    const cap = is(L_.CAPELET), robe = is(L_.ROBE);
+    paintZone(c, cap, RAMP.cloak, i => light[i] + 0.06);
+    put(c, and(cap, not(down(cap)), not(down(robe))), RAMP.cloak[1]);
+    put(c, and(robe, up(cap)), RAMP.cloak[0]);
+    // the cloak: deep folds, a darker lining at the torn hem, ectoplasm seeping out of the hem
+    paintZone(c, robe, RAMP.cloak, i => light[i] - 0.02 + (Math.abs(Math.sin(U[i] * 0.7 + 0.4 + 0.25 * Math.sin(p.phase))) < 0.26 ? 0.08 : 0) - (Math.abs(Math.sin(U[i] * 0.7 + 1.9)) < 0.18 ? 0.1 : 0));
+    const seep = and(robe, mask((x, y, i) => D[i] < HEM + 3.5));
+    paintZone(c, seep, STRAND_RAMP, i => 0.1 + 0.32 * clamp01((HEM + 3.5 - D[i]) / 5) + 0.06 * (light[i] - 0.5), 0.6);
+    add(g, seep, LIGHT.ecto, i => 0.06 * clamp01((HEM + 3.5 - D[i]) / 4) * live);
+    // the strands: cloth darkening into ectoplasm, the tips glowing a little
+    const st = is(L_.STRAND);
+    paintZone(c, st, STRAND_RAMP, i => 0.12 + 0.9 * T[i] + 0.05 * (light[i] - 0.5), 0.6);
+    add(g, and(st, mask((x, y, i) => T[i] > 0.45)), LIGHT.ecto, i => 0.35 * (T[i] - 0.45) * live * pulse);
+    // the soul flame
+    const flame = is(L_.FLAME), fk = p.flame * live;
+    put(c, flame, mix(ECTO[0], ECTO[2], Math.min(1, fk)));
+    const flameIn = and(flame, not(dilate(not(flame))));
+    put(c, flameIn, mix(ECTO[1], ECTO[3], Math.min(1, fk)));
+    const core = and(flameIn, mask((x, y, i) => Math.abs(D[i] - 26.5 - Math.sin(p.phase * 3) * 0.5) < 1.2));
+    put(c, core, mix(ECTO[2], ECTO[4], Math.min(1, fk)));
+    add(g, flame, LIGHT.ecto, 0.8 * fk * pulse); add(g, core, LIGHT.white, 0.35 * fk * pulse);
+    // the front sleeve: cloth shading, its upper fold catching the light, the open bell (dark inside), its shadow
+    const sl = is(L_.SLEEVE), cuff = is(L_.CUFF), claw = is(L_.CLAW);
+    const arm = or(sl, cuff);
+    // cloth: lit on the upper side, the hanging side in shadow, folds across it where it bends, the bell open and dark
+    paintZone(c, arm, RAMP.sleeve, i => 0.74 - 0.14 * T[i] - 0.24 * V[i] + 0.06 * (light[i] - 0.6));
+    put(c, and(arm, mask((x, y, i) => T[i] > 0.25 && V[i] > -0.3 && Math.abs(frac(T[i] * 2.6 + 0.2) - 0.5) < 0.07)), RAMP.sleeve[1]);
+    put(c, and(arm, not(up(arm)), mask((x, y, i) => T[i] > 0.12)), RAMP.sleeve[4]);
+    put(c, and(arm, not(down(arm)), not(down(claw))), RAMP.sleeve[0]);
+    const open = and(cuff, mask((x, y, i) => V[i] > -0.3 && AL[i] > -1.4 * Z));
+    put(c, open, RAMP.inner[1]); put(c, and(open, mask((x, y, i) => AL[i] > -0.6 * Z)), RAMP.inner[0]);
+    put(c, and(cuff, not(open), mask((x, y, i) => AL[i] > -1.0 * Z)), RAMP.sleeve[4]);
+    // where the sleeve crosses the body it casts a dark edge (not at the shoulder: the cloth just flows out of it)
+    const bodyM = is(L_.ROBE, L_.CAPELET, L_.STRAND, L_.HOOD, L_.FLAME);
+    const sep = new Uint8Array(N);
+    for (let i = 0; i < N; i++) {
+      if (!bodyM[i]) continue;
+      const x = i % CW, y = (i / CW) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const j = idx(x + dx, y + dy);
+        if (j >= 0 && ((arm[j] && T[j] > 0.22) || claw[j])) { sep[i] = 1; break; }
+      }
+    }
+    put(c, sep, K.ink);
+    // the claws: bone lit from the upper left, darker at the knuckles
+    paintZone(c, claw, RAMP.bone, i => 0.34 + 0.5 * T[i] + 0.08 * (light[i] - 0.6));
+    put(c, and(claw, not(up(claw)), mask((x, y, i) => T[i] > 0.35)), RAMP.bone[3]);
+    put(c, and(claw, not(down(claw)), mask((x, y, i) => T[i] < 0.6)), RAMP.bone[0]);
+    // rim light on the outer edges: cyan in front (towards the hero) and on top, violet behind
+    const fig = and(m, not(face), not(claw), not(flame), not(clB));
+    // the dissolving edge burns ectoplasm
+    const edge = p.fade > 0 ? and(m, or(not(down(m)), nb(not(m), 0, 2)), mask((x, y, i) => D[i] < F.level + 9)) : new Uint8Array(N);
+    const topEdge = and(not(up(m)), right(m), mask((x, y, i) => U[i] > -5));
+    const rimC = and(fig, or(not(left(m)), topEdge));
+    const rimV = and(fig, not(right(m)), not(rimC));
+    put(c, rimV, K.rimv, 0.8);
+    const low = mask((x, y, i) => D[i] < HEM + 3);
+    put(c, and(rimC, not(low)), mix(K.rimc, RAMP.cloak[2], fade));
+    put(c, and(rimC, low), mix(ECTO[2], RAMP.cloak[2], fade));
+    add(g, and(rimC, not(low)), LIGHT.cyan, 0.45 * live);
+    add(g, and(rimC, low), LIGHT.ecto, 0.2 * live);
+    // eyes: two slanted embers in the void
+    const ek = p.eyes * live;
+    if (ek > 0.02) {
+      F.eyes.forEach(([ex, ey], k) => {
+        const pts = p.blink > 0.5 ? [[0, 0], [1, 0], [-1, 0]] : k === 0 ? [[-1, -1], [0, 0], [1, 0], [0, 1]] : [[1, -1], [0, 0], [-1, 0], [0, 1]];
+        if (p.eyes > 1.3) pts.push(k === 0 ? [-2, -1] : [2, -1]);
+        pts.forEach(([dx, dy], j) => {
+          const i = idx(ex + dx, ey + dy);
+          if (i < 0 || lab[i] !== L_.FACE) return;
+          const hot = j === 1 || (j === 0 && p.blink > 0.5);
+          putPx(c, ex + dx, ey + dy, hot ? mix(ECTO[3], ECTO[4], clamp01(ek - 0.6)) : mix(ECTO[1], ECTO[2], Math.min(1, ek)));
+          addPx(g, ex + dx, ey + dy, LIGHT.ecto, (hot ? 1.0 : 0.55) * ek);
+        });
+      });
+    }
+    if (p.fade > 0) {
+      put(c, edge, ECTO[3]); put(c, and(edge, not(down(m)), mask((x, y, i) => B[i] < 0.5)), ECTO[4]);
+      add(g, edge, LIGHT.ecto, 0.9);
+    }
+    if (p.flash > 0) {
+      const fv = hex('#e6fff6');
+      for (let i = 0; i < N; i++) if (m[i]) { const w = p.flash * 0.85, o = i * 4; c.px[o] = c.px[o] * (1 - w) + fv[0] * w; c.px[o + 1] = c.px[o + 1] * (1 - w) + fv[1] * w; c.px[o + 2] = c.px[o + 2] * (1 - w) + fv[2] * w; }
+    }
+    return m;
+  }
+
+  // ---------------------------------------------------------------------------------------------- effects (its moves' vocabulary)
+  const EC = { core: K.white, col: ECTO[3], edge: ECTO[2], light: LIGHT.ecto };
+  function star4(c, g, x, y, arm, o = {}) {
+    const core = o.core || K.white, col = o.col || ECTO[3], edge = o.edge || ECTO[2], light = o.light || LIGHT.ecto, gain = o.gain ?? 1, diag = o.diag ?? true;
+    x = Math.floor(x); y = Math.floor(y);
+    for (let i = 1; i <= arm; i++) {
+      const k = i / (arm + 0.5), colr = k < 0.55 ? col : edge;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { putPx(c, x + dx * i + 0.5, y + dy * i + 0.5, colr); addPx(g, x + dx * i + 0.5, y + dy * i + 0.5, light, gain * (1 - k) * 0.9); }
+    }
+    if (diag && arm >= 3) for (const [dx, dy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) for (let i = 1; i <= Math.max(1, Math.floor(arm / 3)); i++) { putPx(c, x + dx * i + 0.5, y + dy * i + 0.5, edge); addPx(g, x + dx * i + 0.5, y + dy * i + 0.5, light, gain * 0.35); }
+    putPx(c, x + 0.5, y + 0.5, core); addPx(g, x + 0.5, y + 0.5, LIGHT.white, gain * 1.2);
+  }
+  function motes(c, g, t, seed, count, area, gain = 0.6) {
+    const r = rng(seed); const [x0, y0, x1, y1] = area;
+    for (let i = 0; i < count; i++) {
+      const px = uni(r, x0, x1), phase = r(), cycles = r() < 0.7 ? 1 : 2, wob = uni(r, 1.0, 2.5);
+      const u = frac(t * cycles + phase), y = y1 - u * (y1 - y0), x = px + Math.sin((u * 2 + phase) * Math.PI * 2) * wob, a = Math.sin(u * Math.PI);
+      if (a < 0.2) continue;
+      const vio = i % 3 === 0, col = vio ? K.violet3 : ECTO[3], lt = vio ? LIGHT.violet : LIGHT.ecto;
+      putPx(c, x, y, col, Math.min(1, a * 1.4)); addPx(g, x, y, lt, gain * a);
+      if (a > 0.85 && i % 4 === 1) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { putPx(c, x + dx, y + dy, col, 0.6); addPx(g, x + dx, y + dy, lt, gain * 0.3); }
+    }
+  }
+  const ambient = (c, g, t, gain = 0.55) => motes(c, g, t, 23, 7, [ROOT_X - 26, 20, ROOT_X + 20, GROUND - 4], gain);
+  /** Ectoplasm dripping from the strand tips: a drop forms, falls and fades before the shadow line. */
+  function drips(c, g, t, F, gain = 1) {
+    const r = rng(77);
+    for (let i = 0; i < 3; i++) {
+      const born = r(), cyc = 1, pos = STRANDS[1 + Math.floor(r() * 5)][0];
+      const u = frac(t * cyc + born), x = F.cxAt(0) - pos * Z, y0 = F.base + 1;
+      if (u > 0.45) continue;
+      const k = u / 0.45, y = y0 + k * k * 6, a = 1 - k;
+      putPx(c, x, y, k < 0.3 ? ECTO[3] : ECTO[2], Math.min(1, a * 1.5)); addPx(g, x, y, LIGHT.ecto, 0.5 * a * gain);
+    }
+  }
+  function sparks(c, g, ox, oy, age, seed, count, speed, ang, spread, o = {}) {
+    if (age <= 0) return;
+    const grav = o.grav ?? 0.14, life = o.life ?? 7, ve = o.violetEvery ?? 0;
+    const r = rng(seed);
+    for (let i = 0; i < count; i++) {
+      const a0 = ang + uni(r, -spread, spread), spd = uni(r, speed * 0.45, speed), lf = life * uni(r, 0.7, 1.0);
+      if (age > lf) continue;
+      const x = ox + Math.cos(a0) * spd * age, y = oy + Math.sin(a0) * spd * age + grav * age * age, k = 1 - age / (lf + 1);
+      const vio = ve && i % ve === 0;
+      putPx(c, x, y, vio ? K.violet3 : age < 2.5 ? ECTO[4] : ECTO[2]); addPx(g, x, y, vio ? LIGHT.violet : LIGHT.ecto, k);
+      if (age < 4) for (const [qx, qy] of line(x, y, x - Math.cos(a0) * spd * 0.9, y - Math.sin(a0) * spd * 0.9 - grav * age * 1.5).slice(1)) { putPx(c, qx + 0.5, qy + 0.5, vio ? K.violet1 : ECTO[1], k); addPx(g, qx + 0.5, qy + 0.5, vio ? LIGHT.violet : LIGHT.ecto, 0.3 * k); }
+    }
+  }
+  function speedLines(c, g, x, y, ux, uy, k, seed, count = 6, spread = 8, len = [7, 12], start = 4) {
+    if (k <= 0) return;
+    const r = rng(seed), vx = -uy, vy = ux;
+    for (let i = 0; i < count; i++) {
+      const off = uni(r, -spread, spread), st = start + uni(r, 0, 6), ln = uni(r, len[0], len[1]) * (0.6 + 0.4 * k);
+      const sx = x - ux * st + vx * off, sy = y - uy * st + vy * off;
+      for (const [qx, qy] of line(sx, sy, sx - ux * ln, sy - uy * ln)) { putPx(c, qx + 0.5, qy + 0.5, i % 2 === 0 ? ECTO[3] : K.steel3, Math.min(1, k * 1.6)); addPx(g, qx + 0.5, qy + 0.5, LIGHT.ecto, 0.45 * k); }
+    }
+  }
+  function ring(c, g, cx, cy, r, k, ry, gain = 0.8) {
+    if (k <= 0.02) return;
+    ry = ry ?? r;
+    const m = mask((x, y) => Math.abs(Math.hypot((x - cx) / Math.max(r, 0.5), (y - cy) / Math.max(ry, 0.5)) - 1) * Math.max(r, ry) < 0.6);
+    put(c, m, ECTO[3], k); add(g, m, LIGHT.ecto, gain * k);
+  }
+  /** Claw slashes: crescents round (cx, cy) from angle a0 (tail) to a1 (head); the head is thick and white, the tail
+      thins into ectoplasm. `from`..`to` (0..1) is the part of the arc that is drawn. */
+  function slash(c, g, cx, cy, r, a0, a1, from, to, k, wmax = 1.8) {
+    if (k <= 0.02 || to <= from) return;
+    const steps = Math.ceil(Math.abs(a1 - a0) * r * 3);
+    for (let s = 0; s <= steps; s++) {
+      const v = s / steps; if (v < from || v > to) continue;
+      const w = (v - from) / Math.max(1e-6, to - from), a = a0 + (a1 - a0) * v, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+      const rad = 0.35 + wmax * Math.pow(w, 1.6);
+      for (let yy = Math.floor(y - rad - 1); yy <= y + rad + 1; yy++) for (let xx = Math.floor(x - rad - 1); xx <= x + rad + 1; xx++) {
+        const dd = Math.hypot(xx + 0.5 - x, yy + 0.5 - y); if (dd > rad) continue;
+        const wk = w * k, hot = wk > 0.8 && dd < rad * 0.6, col = hot ? K.white : wk > 0.5 ? ECTO[3] : wk > 0.22 ? ECTO[2] : ECTO[1];
+        putPx(c, xx + 0.5, yy + 0.5, col, wk > 0.1 ? 1 : 0.5);
+        addPx(g, xx + 0.5, yy + 0.5, hot ? LIGHT.white : LIGHT.ecto, k * (0.15 + 0.7 * w));
+      }
+    }
+  }
+
+  /** Ectoplasm sound waves of the Lamento: arcs that open towards the hero and fade as they travel. */
+  function wail(c, g, cx, cy, age, count = 3) {
+    for (let j = 0; j < count; j++) {
+      const a = age - j * 0.85; if (a <= 0) continue;
+      const r = 4 + a * 6.2, k = 1 - a / 5.2; if (k <= 0.05) continue;
+      const n = Math.ceil(r * 2.4);
+      for (let s = 0; s <= n; s++) {
+        const v = s / n, ang = Math.PI * (0.72 + 0.56 * v), edgeK = Math.sin(Math.PI * v);
+        if (edgeK < 0.25) continue;
+        const x = cx + Math.cos(ang) * r, y = cy + Math.sin(ang) * r * 0.9, vio = j % 2 === 1;
+        putPx(c, x, y, k > 0.6 && edgeK > 0.8 ? ECTO[4] : vio ? K.violet3 : ECTO[3], Math.min(1, k * 1.6 * edgeK));
+        addPx(g, x, y, vio ? LIGHT.violet : LIGHT.ecto, 0.8 * k * edgeK);
+      }
+    }
+  }
+  /** A ring of spectral runes on the shadow line (back half first, front half after the figure). */
+  function runeCircle(c, g, cx, cy, t, k, front) {
+    if (k <= 0.02) return;
+    const n = 36, rx = 20, ry = 3.0;
+    for (let i = 0; i < n; i++) {
+      const a = i / n * 2 * Math.PI - t * 2 * Math.PI / 3, sy = Math.sin(a);
+      if (front === true && sy < 0 || front === false && sy >= 0 || i / n > k) continue;
+      const hot = i % 4 === 0, x = cx + Math.cos(a) * rx, y = cy + sy * ry;
+      putPx(c, x, y, hot ? ECTO[3] : ECTO[1]); addPx(g, x, y, LIGHT.ecto, (hot ? 0.7 : 0.25) * Math.min(1, k * 1.3));
+      if (hot && i % 8 === 0) { putPx(c, x, y - 1, ECTO[2]); addPx(g, x, y - 1, LIGHT.ecto, 0.3 * k); }
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------- the frames
+  // Every action frame below is its own drawing: the body pose AND both sleeves and every finger are written for that
+  // frame (anticipation, smear, impact, follow-through, overlap), nothing is interpolated or rotated at play time.
+  const A = (p, w, sag, drag, f) => ({ p, w, sag, drag, f });
+  const FW = [3, 3, 4], BW = [2.8, 2.8, 3.6];
+  function idleArms(t) {
+    const s1 = Math.sin(2 * Math.PI * t - 0.9), lag = s1 > 0.45 ? 1 : s1 < -0.45 ? -1 : 0;
+    const s2 = Math.sin(2 * Math.PI * t - 1.5), lagB = s2 > 0.45 ? 1 : s2 < -0.45 ? -1 : 0;
+    const tw = j => Math.sin(4 * Math.PI * t + j * 2.1) > 0.75 ? 7 : 0;   // now and then a finger flexes
+    const dr = Math.sin(2 * Math.PI * t - 1.6) > 0 ? -0.9 : -0.3;
+    return {
+      fa: A([[4, ROOT_D], [7.5, 33], [11, 28.5 + lag * 0.5], [13.5, 24 + lag * 0.9]], FW, 2.0, [dr, 0.3 * lag],
+        [[104 + tw(0), 0.7, 8.6], [120 + tw(1), 0.8, 10.2], [137 + tw(2), 0.9, 8.6]]),
+      ba: A([[-5, ROOT_D], [-8, 33], [-10.5, 29 + lagB * 0.5], [-12, 25.5 + lagB * 0.9]], BW, 1.6, [0.4, 0.3 * lagB],
+        [[78, 0.6, 7.4], [92, 0.6, 8.6], [106, 0.5, 7.4]])
+    };
+  }
+  const IDLE_BA = idleArms(0).ba;
+  const POSES = {
+    attack: [
+      { y: -1, lean: -1.5, trail: 0.5, eyes: 1.2, hoodwind: 1.4,
+        fa: A([[4, 37.5], [8, 32], [8, 27], [4.5, 26.5]], [3, 3, 3.8], 1.8, [1.6, 0.4], [[95, 1.1, 8.2], [108, 1.2, 9.6], [122, 1.2, 8.2]]),
+        ba: A([[-5, 37.5], [-7.5, 33], [-9.5, 29], [-10.5, 26]], BW, 1.6, [0.2, 0], [[80, 0.6, 7.4], [94, 0.6, 8.6], [108, 0.5, 7.4]]) },
+      { y: -3, lean: -3.5, nod: -1, trail: -0.4, eyes: 1.5, hoodwind: 1.8, flame: 1.3,
+        fa: A([[3.5, 38], [3, 33], [-3, 32], [-9, 35]], [3, 2.8, 3.8], 1.6, [3.0, -0.4], [[20, -0.6, 8.6], [38, -0.6, 10], [56, -0.5, 8.6]]),
+        ba: A([[-5, 38], [-6.5, 34], [-7, 30], [-6.5, 27]], BW, 1.4, [-0.5, 0], [[88, 0.5, 7.4], [100, 0.5, 8.6], [112, 0.5, 7.4]]) },
+      { y: -4, lean: -4.5, nod: -1.5, trail: -0.8, eyes: 1.9, hoodwind: 2.0, flame: 1.6,
+        fa: A([[3.5, 39], [1, 38], [-6, 40], [-11.5, 44]], [3, 2.8, 4.0], 1.4, [3.4, -1.2], [[-48, -0.7, 9.2], [-24, -0.8, 10.8], [0, -0.7, 9.2]]),
+        ba: A([[-5, 38.5], [-6, 34], [-6, 30], [-5, 27]], BW, 1.4, [-0.6, 0], [[90, 0.5, 7.4], [102, 0.5, 8.6], [114, 0.5, 7.4]]) },
+      // the smear: the sleeve stretches thin along the swing, the cloth and the fingers trail behind
+      { x: -6, y: -1, lean: 5, nod: 1, trail: 2.6, sweep: 0.7, eyes: 1.9, hoodwind: 0.6, flame: 1.5,
+        fa: A([[4, 38], [9, 45], [16, 47], [22.5, 43]], [2.6, 2.0, 3.2], 0.8, [-4.2, -2.0], [[-26, 0.15, 9.6], [-14, 0.15, 11.6], [-2, 0.15, 9.6]]),
+        ba: A([[-5, 37.5], [-9, 34], [-13, 31], [-16, 29]], [2.8, 2.6, 3.4], 1.0, [-1.5, 0.5], [[20, 0.3, 7], [34, 0.3, 8.2], [48, 0.3, 7]]) },
+      // impact: the claws rake down in front, wide open; the cloth is still behind
+      { x: -9, lean: 7.5, nod: 2, trail: 3.2, sweep: 1.0, eyes: 1.8, hoodwind: 0.4, flame: 1.4,
+        fa: A([[4.5, 37.5], [12, 37], [19, 34], [24.5, 30]], [3, 2.8, 4.4], 1.4, [-3.0, 1.2], [[118, 0.5, 9.2], [142, 0.5, 11], [166, 0.4, 9.2]]),
+        ba: A([[-5, 37.5], [-9.5, 33], [-13.5, 30], [-16.5, 28]], [2.8, 2.6, 3.4], 1.0, [-1.2, 0.6], [[30, 0.3, 7], [45, 0.3, 8.2], [60, 0.3, 7]]) },
+      { x: -9, lean: 7, nod: 2, trail: 2.8, sweep: 0.8, eyes: 1.5, hoodwind: 0.6, flame: 1.3,
+        fa: A([[4.5, 37.5], [11, 34], [17.5, 29], [23, 23.5]], [3, 2.9, 4.2], 1.9, [-1.4, 2.4], [[100, 1.0, 8.8], [118, 1.1, 10.4], [136, 1.1, 8.8]]),
+        ba: A([[-5, 37.5], [-9, 33], [-12.5, 29.5], [-15, 27]], [2.8, 2.7, 3.5], 1.2, [-0.6, 0.4], [[50, 0.4, 7.2], [64, 0.4, 8.4], [78, 0.4, 7.2]]) },
+      // follow-through: the bell overshoots forward, then settles
+      { x: -6, lean: 4.5, nod: 1, trail: 2.0, sweep: 0.5, eyes: 1.3, flame: 1.15,
+        fa: A([[4.3, 37.5], [9.5, 33], [15, 28], [19.5, 23]], [3, 3, 4.1], 2.0, [0.9, 0.9], [[100, 0.9, 8.6], [116, 1.0, 10.2], [133, 1.0, 8.6]]),
+        ba: A([[-5, 37.5], [-8.5, 33], [-11.5, 29.5], [-13.5, 26.5]], BW, 1.4, [0.2, 0.2], [[66, 0.5, 7.4], [80, 0.5, 8.6], [94, 0.5, 7.4]]) },
+      { x: -3, lean: 2, nod: 0.5, trail: 1.5, sweep: 0.25, eyes: 1.1,
+        fa: A([[4, 37.5], [8.5, 33], [13, 28.5], [16, 23.5]], FW, 2.0, [0.9, 0.2], [[102, 0.8, 8.6], [118, 0.85, 10.2], [135, 0.9, 8.6]]),
+        ba: A([[-5, 37], [-8, 33], [-10.5, 29], [-12, 25.5]], BW, 1.6, [0.5, 0], [[74, 0.6, 7.4], [88, 0.6, 8.6], [102, 0.5, 7.4]]) },
+      { x: -1, lean: 0.5, trail: 1.1,
+        fa: A([[4, 37], [7.5, 33], [11.3, 28.5], [13.8, 23.5]], FW, 2.0, [-0.2, 0], [[104, 0.7, 8.6], [120, 0.8, 10.2], [137, 0.9, 8.6]]), ba: IDLE_BA }
+    ],
+    hurt: [
+      // struck from the front: the body is knocked back, the sleeves are left behind and fly forward
+      { x: 4, y: -1, lean: -5, nod: -1.5, stretch: 0.95, trail: -1.2, hoodwind: 2, eyes: 1.4, blink: 1, flash: 0.85,
+        fa: A([[4, 37], [9, 38], [13.5, 40], [16.5, 42.5]], [3, 2.9, 4.0], 1.0, [2.4, -0.6], [[200, -0.4, 8.6], [218, -0.4, 10.2], [236, -0.4, 8.6]]),
+        ba: A([[-5, 37.5], [-9, 40], [-12.5, 43], [-14.5, 46]], [2.8, 2.7, 3.5], 0.8, [-0.8, -0.8], [[-70, 0.3, 7.2], [-52, 0.3, 8.4], [-34, 0.3, 7.2]]) },
+      { x: 5, y: -1, lean: -6, nod: -2, stretch: 0.96, trail: -1.5, hoodwind: 2, eyes: 1.4, blink: 1, flash: 0.4,
+        fa: A([[4, 37], [9.5, 39], [14, 42], [16.5, 45.5]], [3, 2.9, 4.0], 0.9, [2.0, 0.4], [[205, -0.5, 8.6], [222, -0.5, 10.2], [240, -0.5, 8.6]]),
+        ba: A([[-5, 38], [-9.5, 41], [-13, 44.5], [-15, 48]], [2.8, 2.7, 3.5], 0.8, [-0.6, -0.2], [[-74, 0.3, 7.2], [-56, 0.3, 8.4], [-38, 0.3, 7.2]]) },
+      { x: 4, lean: -4, nod: -1, stretch: 0.98, trail: -0.6, hoodwind: 1.6, eyes: 1.2, blink: 1, flash: 0.12,
+        fa: A([[4, 37], [9, 36], [13.5, 36], [16.5, 36]], FW, 1.4, [0.6, 1.6], [[160, 0.2, 8.6], [178, 0.2, 10.2], [196, 0.2, 8.6]]),
+        ba: A([[-5, 37.5], [-9, 37], [-12.5, 35], [-14.5, 33]], BW, 1.2, [0.2, 0.6], [[0, 0.4, 7.2], [16, 0.4, 8.4], [32, 0.4, 7.2]]) },
+      { x: 2, lean: -2, nod: -0.5, trail: 0.3, eyes: 1.1,
+        fa: A([[4, 37], [8.5, 34], [12.5, 31], [15, 28.5]], FW, 1.8, [-0.4, 1.4], [[125, 0.5, 8.6], [142, 0.6, 10.2], [160, 0.6, 8.6]]),
+        ba: A([[-5, 37], [-8.5, 34], [-11.5, 30.5], [-13, 28]], BW, 1.4, [0.4, 0.4], [[50, 0.5, 7.4], [66, 0.5, 8.6], [82, 0.5, 7.4]]) },
+      { x: 1, lean: 0.5, trail: 0.9,
+        fa: A([[4, 37], [7.8, 33], [11.5, 28.5], [14, 25]], FW, 2.0, [-0.8, 0.4], [[108, 0.7, 8.6], [124, 0.8, 10.2], [140, 0.8, 8.6]]),
+        ba: A([[-5, 37], [-8, 33], [-10.5, 29], [-12, 25.8]], BW, 1.6, [0.5, 0.1], [[72, 0.6, 7.4], [88, 0.6, 8.6], [104, 0.5, 7.4]]) },
+      { trail: 1.0,
+        fa: A([[4, 37], [7.5, 33], [11.2, 28.5], [13.6, 23.6]], FW, 2.0, [-0.4, 0], [[104, 0.7, 8.6], [120, 0.8, 10.2], [137, 0.9, 8.6]]), ba: IDLE_BA }
+    ],
+    cast: [
+      // Lamento: it rises with its arms spread, the void opens, then the wail
+      { lean: -0.5, eyes: 1.1,
+        fa: A([[4, 37], [8, 33.5], [12, 30.5], [15.5, 29]], FW, 1.8, [-0.3, -0.3], [[120, 0.6, 8.6], [138, 0.6, 10.2], [156, 0.6, 8.6]]),
+        ba: A([[-5, 37], [-8.5, 34], [-11.5, 31], [-14, 29.5]], BW, 1.4, [0.3, -0.3], [[60, 0.5, 7.4], [76, 0.5, 8.6], [92, 0.5, 7.4]]) },
+      { y: -1, lean: -1.5, nod: -1, eyes: 1.2, flame: 1.15,
+        fa: A([[4, 37.5], [9, 35], [13.5, 34], [17, 35]], FW, 1.4, [-0.8, -1.0], [[150, 0.3, 8.6], [170, 0.3, 10.2], [190, 0.3, 8.6]]),
+        ba: A([[-5, 37.5], [-9, 35.5], [-13, 35], [-16, 36]], BW, 1.0, [0.6, -0.8], [[20, 0.3, 7.4], [38, 0.3, 8.6], [56, 0.3, 7.4]]) },
+      { y: -2, lean: -2.5, nod: -1.5, stretch: 1.02, mouth: 0.3, eyes: 1.4, flame: 1.3,
+        fa: A([[4, 38], [9.5, 38], [14, 40], [17, 43]], [3, 2.9, 4], 1.0, [-0.8, -1.6], [[185, 0, 8.6], [205, 0, 10.2], [225, 0, 8.6]]),
+        ba: A([[-5, 38], [-9.5, 38.5], [-13.5, 41], [-16, 44]], BW, 0.8, [0.6, -1.4], [[-20, 0, 7.4], [0, 0, 8.6], [20, 0, 7.4]]) },
+      { y: -3, lean: -3, nod: -2, stretch: 1.04, mouth: 0.6, eyes: 1.6, flame: 1.5, hoodwind: 1.4,
+        fa: A([[4, 38.5], [9, 41], [13, 45], [15.5, 49]], [3, 2.9, 4], 0.8, [-0.5, -1.6], [[215, -0.2, 8.8], [235, -0.2, 10.6], [255, -0.2, 8.8]]),
+        ba: A([[-5, 38.5], [-9, 41.5], [-12.5, 46], [-14.5, 50]], BW, 0.6, [0.4, -1.4], [[-55, 0, 7.2], [-35, 0, 8.4], [-15, 0, 7.2]]) },
+      { y: -3, lean: -3, nod: -2, stretch: 1.05, mouth: 0.8, eyes: 1.75, flame: 1.6, hoodwind: 1.2,
+        fa: A([[4, 38.5], [8.8, 41.5], [12.6, 46], [15, 50.5]], [3, 2.9, 4], 0.8, [-0.2, -1.0], [[212, -0.3, 8.8], [234, -0.3, 10.6], [256, -0.3, 8.8]]),
+        ba: A([[-5, 38.5], [-8.8, 42], [-12.2, 46.5], [-14.2, 51]], BW, 0.6, [0.2, -1.0], [[-58, 0, 7.2], [-38, 0, 8.4], [-18, 0, 7.2]]) },
+      { x: 1, y: -3, lean: -3, nod: -2, stretch: 1.05, mouth: 1.0, eyes: 1.9, flame: 1.7, hoodwind: 1.0,
+        fa: A([[4, 38.5], [8.8, 41.8], [12.5, 46.5], [14.8, 51]], [3, 2.9, 4], 0.8, [0, -0.6], [[210, -0.45, 8.8], [232, -0.45, 10.6], [254, -0.45, 8.8]]),
+        ba: A([[-5, 38.5], [-8.7, 42.2], [-12, 47], [-14, 51.5]], BW, 0.6, [0, -0.6], [[-60, -0.2, 7.2], [-40, -0.2, 8.4], [-20, -0.2, 7.2]]) },
+      // the wail: it throws itself forward, the void gapes, the hood's point and the strands are blown back
+      { x: -1, y: -2, lean: 3, nod: 2, stretch: 0.97, mouth: 1.6, eyes: 2.1, flame: 1.8, trail: 3, tipback: 1, hoodwind: 0.3,
+        fa: A([[4.5, 38], [11, 40], [17, 41], [22, 40]], [3, 2.8, 4.2], 1.0, [-2.5, 0.6], [[170, -0.3, 9], [190, -0.3, 10.8], [210, -0.3, 9]]),
+        ba: A([[-5, 38], [-9, 40], [-13, 43], [-16, 45]], BW, 0.8, [-1.5, 0.5], [[-40, 0, 7.2], [-22, 0, 8.4], [-4, 0, 7.2]]) },
+      { x: -1, y: -2, lean: 2.5, nod: 1.6, stretch: 0.98, mouth: 1.4, eyes: 1.8, flame: 1.6, trail: 2.4, tipback: 0.8, hoodwind: 0.5,
+        fa: A([[4.5, 38], [10.5, 39], [16, 39], [21, 37.5]], [3, 2.8, 4.2], 1.2, [-1.6, 1.0], [[160, -0.1, 9], [180, -0.1, 10.6], [200, -0.1, 9]]),
+        ba: A([[-5, 38], [-9, 39], [-13, 41], [-15.5, 42]], BW, 1.0, [-1.0, 0.6], [[-20, 0.1, 7.2], [-2, 0.1, 8.4], [16, 0.1, 7.2]]) },
+      { x: -1, y: -1, lean: 1.5, nod: 1, mouth: 1.0, eyes: 1.5, flame: 1.4, trail: 1.8, tipback: 0.5,
+        fa: A([[4.3, 37.5], [9.5, 36.5], [14.5, 34.5], [19, 32]], [3, 2.9, 4.1], 1.6, [-0.6, 1.2], [[140, 0.3, 8.8], [160, 0.3, 10.4], [180, 0.3, 8.8]]),
+        ba: A([[-5, 37.5], [-8.8, 36], [-12.3, 34], [-14.5, 32]], BW, 1.2, [-0.3, 0.6], [[20, 0.3, 7.4], [38, 0.3, 8.6], [56, 0.3, 7.4]]) },
+      { lean: 0.5, mouth: 0.5, eyes: 1.25, flame: 1.2, trail: 1.4, tipback: 0.2,
+        fa: A([[4, 37], [8.5, 34], [13, 30], [16.5, 27]], FW, 1.8, [0.4, 0.6], [[118, 0.6, 8.6], [136, 0.7, 10.2], [154, 0.7, 8.6]]),
+        ba: A([[-5, 37], [-8.3, 34], [-11, 30.5], [-13, 27.5]], BW, 1.4, [0.3, 0.3], [[56, 0.5, 7.4], [72, 0.5, 8.6], [88, 0.5, 7.4]]) },
+      { mouth: 0.1, eyes: 1.05, trail: 1.1,
+        fa: A([[4, 37], [7.8, 33.2], [11.5, 28.8], [14, 24]], FW, 2.0, [0.2, 0.1], [[106, 0.7, 8.6], [122, 0.8, 10.2], [139, 0.9, 8.6]]),
+        ba: A([[-5, 37], [-8, 33.2], [-10.6, 29.2], [-12, 25.2]], BW, 1.6, [0.4, 0], [[74, 0.6, 7.4], [90, 0.6, 8.6], [104, 0.5, 7.4]]) }
+    ],
+    death: [
+      { x: 4, y: -1, lean: -5, nod: -1.5, stretch: 0.95, trail: -1.2, hoodwind: 2, eyes: 1.6, blink: 1, flash: 0.9,
+        fa: A([[4, 37], [9, 38], [13.5, 40], [16.5, 42.5]], [3, 2.9, 4.0], 1.0, [2.4, -0.6], [[200, -0.4, 8.6], [218, -0.4, 10.2], [236, -0.4, 8.6]]),
+        ba: A([[-5, 37.5], [-9, 40], [-12.5, 43], [-14.5, 46]], [2.8, 2.7, 3.5], 0.8, [-0.8, -0.8], [[-70, 0.3, 7.2], [-52, 0.3, 8.4], [-34, 0.3, 7.2]]) },
+      { x: 6, y: -2, lean: -7, nod: -2.5, mouth: 0.7, eyes: 2.3, trail: -1.6, hoodwind: 2, flash: 0.45, flame: 1.5,
+        fa: A([[4, 38], [8.5, 42], [12, 47], [14, 52]], [3, 2.9, 4], 0.8, [1.2, -1.4], [[220, -0.6, 9], [240, -0.6, 10.8], [260, -0.6, 9]]),
+        ba: A([[-5, 38], [-8.5, 42], [-11.5, 47], [-13, 52]], BW, 0.6, [-0.4, -1.2], [[-80, 0, 7.2], [-62, 0, 8.4], [-44, 0, 7.2]]) },
+      { x: 6, y: -3, lean: -6, nod: -2.5, mouth: 1.2, eyes: 2.6, trail: -1.2, hoodwind: 1.8, flash: 0.15, flame: 1.9,
+        fa: A([[4, 38.5], [9, 43], [13, 49], [15.5, 54]], [3, 2.9, 4], 0.8, [0.8, -1.6], [[225, -0.8, 9], [245, -0.8, 10.8], [265, -0.8, 9]]),
+        ba: A([[-5, 38.5], [-9, 43], [-12, 48.5], [-13.5, 54]], BW, 0.6, [-0.3, -1.4], [[-85, -0.2, 7.2], [-66, -0.2, 8.4], [-47, -0.2, 7.2]]) },
+      // it clutches at the soul flame, which swells and cracks...
+      { x: 5, y: -3, lean: -3, nod: -1, mouth: 1.0, eyes: 2.2, trail: -0.4, flame: 2.6,
+        fa: A([[4, 37.5], [8, 34], [7, 30], [3.5, 28.5]], [3, 3, 3.8], 1.6, [1.4, 0.6], [[-10, 1.0, 8], [8, 1.0, 9.6], [26, 1.0, 8]]),
+        ba: A([[-5, 37.5], [-6, 34], [-4, 30.5], [-1, 29]], BW, 1.2, [-0.4, 0.4], [[150, 1.0, 7], [170, 1.0, 8.2], [190, 1.0, 7]]) },
+      { x: 4, y: -2, lean: -2, nod: -1, mouth: 1.1, eyes: 2.0, trail: 0, flame: 3.2,
+        fa: A([[4, 37.5], [8, 34], [7.2, 30.2], [3.8, 28.6]], [3, 3, 3.8], 1.6, [1.0, 0.4], [[-6, 1.3, 7.8], [12, 1.3, 9.4], [30, 1.3, 7.8]]),
+        ba: A([[-5, 37.5], [-6, 34], [-4.2, 30.6], [-1.2, 29.2]], BW, 1.2, [-0.3, 0.3], [[154, 1.2, 7], [174, 1.2, 8.2], [194, 1.2, 7]]) },
+      // ...and bursts: its arms are flung out
+      { x: 5, y: -2, lean: -4, nod: -2, mouth: 1.5, eyes: 1.2, flame: 0, trail: -1, hoodwind: 1.6,
+        fa: A([[4, 38], [10, 39], [15.5, 39.5], [20, 39]], [3, 2.8, 4.2], 1.0, [-1.5, 0.5], [[170, -0.5, 9], [190, -0.5, 10.6], [210, -0.5, 9]]),
+        ba: A([[-5, 38], [-10, 39], [-15, 40], [-19, 40]], BW, 0.8, [0.8, 0.4], [[-20, -0.3, 7.2], [-2, -0.3, 8.4], [16, -0.3, 7.2]]) },
+      // the empty cloak sags, the hood drops, the arms hang limp
+      { x: 5, hover: 5, stretch: 0.93, lean: 1, nod: 2, flame: 0, eyes: 0.7, mouth: 0.6, trail: 0.5, wind: 0.6, hoodwind: 0.6,
+        fa: A([[4, 36], [9, 33], [13, 28], [15, 23]], FW, 2.0, [0.8, 1.4], [[95, 0.4, 8.6], [108, 0.4, 10.2], [121, 0.4, 8.6]]),
+        ba: A([[-5, 36], [-9, 33], [-12.5, 29], [-14, 25]], BW, 1.6, [0.4, 0.8], [[80, 0.4, 7.4], [92, 0.4, 8.6], [104, 0.4, 7.4]]) },
+      { x: 5, hover: 3.5, stretch: 0.86, lean: 2, nod: 3, flame: 0, eyes: 0.5, mouth: 0.3, trail: 0.6, wind: 0.4, hoodwind: 0.4,
+        fa: A([[4, 35], [7, 30], [9, 24], [10, 18]], [3, 3, 3.8], 2.2, [0.3, 0.6], [[88, 0.2, 8.4], [98, 0.2, 10], [108, 0.2, 8.4]]),
+        ba: A([[-5, 35], [-7.5, 30], [-9, 24.5], [-9.5, 19.5]], BW, 1.8, [0.2, 0.4], [[84, 0.2, 7.2], [94, 0.2, 8.4], [104, 0.2, 7.2]]) }
+    ]
+  };
+  // the last frames of the death: the collapsed cloak dissolves from the bottom up into ectoplasm, then nothing is left
+  const SLUMP = { x: 5, hover: 2, stretch: 0.8, lean: 2.5, nod: 3.5, flame: 0, eyes: 0.4, mouth: 0.2, trail: 0.6, wind: 0.3, hoodwind: 0.3,
+    fa: A([[4, 34], [6.5, 29], [8.5, 23], [9, 17]], [3, 3, 3.8], 2.2, [0.1, 0.3], [[86, 0.15, 8.4], [96, 0.15, 10], [106, 0.15, 8.4]]),
+    ba: A([[-5, 34], [-7, 29], [-8.5, 24], [-9, 19]], BW, 1.8, [0.1, 0.2], [[84, 0.15, 7.2], [94, 0.15, 8.4], [104, 0.15, 7.2]]) };
+  POSES.death.push(SLUMP);
+  [[0.08, 0.35], [0.2, 0.3], [0.34, 0.25], [0.48, 0.2], [0.62, 0.12], [0.78, 0.05], [0.92, 0], [1.0, 0]].forEach(([fade, eyes], k) =>
+    POSES.death.push(Object.assign({}, SLUMP, { hover: Math.max(1, 2 - k * 0.5), stretch: Math.max(0.76, 0.8 - k * 0.01), fade, eyes })));
+  const N_OF = { idle: 24, attack: 10, hurt: 7, cast: 12, death: 17 };
+
+  const clock = (f, n) => frac((f - (n - 1)) / LOOP);
+  const withP = (p, o) => Object.assign({}, p, o);
+  function idlePose(t) {
+    const s = Math.sin(t * 2 * Math.PI), arms = idleArms(t);
+    return withP(IDLE, { y: Math.round(-1.5 * s - 0.5), phase: t * 2 * Math.PI, trail: 1 + 0.4 * Math.cos(t * 2 * Math.PI), fa: arms.fa, ba: arms.ba });
+  }
+  const pose = (name, f) => name === 'idle' ? idlePose(f / LOOP) : withP(IDLE, POSES[name][Math.min(f, POSES[name].length - 1)]);
+  /** The pose shown at frame f (the last frame of every action but the death is idle frame 0). */
+  const poseAt = (name, f) => name === 'idle' ? idlePose(f / LOOP) : name !== 'death' && f >= N_OF[name] - 1 ? idlePose(0) : pose(name, f);
+  const silhouette = p => { const F = figure(p); const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = F.lab[i] ? 1 : 0; return m; };
+
+  function idleFrame(f) {
+    const t = f / LOOP, p = withP(idlePose(t), { blink: f === 15 || f === 16 ? 1 : 0 });
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    paint(c, g, F, t, 0.85 + 0.15 * Math.sin(t * 6 * Math.PI));
+    drips(c, g, t, F);
+    ambient(c, g, t);
+    return [c, g];
+  }
+  const strikePoint = () => figure(pose('attack', STRIKE_FRAME)).tips[1];
+  const castPoint = () => figure(pose('cast', CAST_FRAME)).mouthFront;
+
+  function attackFrame(f) {
+    const n = N_OF.attack; if (f === n - 1) return idleFrame(0);
+    const t = clock(f, n), p = withP(pose('attack', f), { phase: t * 2 * Math.PI });
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    // the three claw marks follow the swing: from behind, over the hood, down in front, ending at the claws of the hit
+    const F4 = figure(pose('attack', STRIKE_FRAME)), S = F4.shoulder, [sx, sy] = F4.tips[1];
+    const r0 = Math.hypot(sx - S[0], sy - S[1]), a1 = Math.atan2(sy - S[1], sx - S[0]), a0 = a1 + 3.0;
+    if (f >= 3 && f <= 6) {
+      const prog = { 3: [0.1, 0.5, 0.55], 4: [0.32, 1.0, 1.0], 5: [0.7, 1.0, 0.6], 6: [0.9, 1.0, 0.3] }[f];
+      for (let j = -1; j <= 1; j++) slash(c, g, S[0], S[1], r0 + j * 3.6, a0 + j * 0.04, a1 + j * 0.05, prog[0], prog[1], prog[2], j === 0 ? 1.2 : 0.9);
+    }
+    if (f >= 3 && f <= 5) speedLines(c, g, F.hand[0], F.hand[1], -0.7, 0.7, { 3: 0.8, 4: 1.0, 5: 0.4 }[f], 31 + f, 5, 9, [5, 10], 3);
+    paint(c, g, F, t, 1.0);
+    // the claws gather ectoplasm while it winds up
+    if (f <= 2) {
+      const r = rng(13), kk = [0.25, 0.55, 0.9][f], h = F.hand;
+      F.tips.forEach(tp => { putPx(c, tp[0], tp[1], ECTO[3], kk); addPx(g, tp[0], tp[1], LIGHT.ecto, 0.9 * kk); });
+      for (let i = 0; i < 8; i++) {
+        const q = uni(r, 0, 2 * Math.PI) + kk * 1.4, r0_ = uni(r, 8, 14) * (1 - kk) + 2.5;
+        putPx(c, h[0] + Math.cos(q) * r0_, h[1] + Math.sin(q) * r0_, i % 3 ? ECTO[3] : K.violet3);
+        addPx(g, h[0] + Math.cos(q) * r0_, h[1] + Math.sin(q) * r0_, i % 3 ? LIGHT.ecto : LIGHT.violet, 0.8 * kk);
+      }
+      if (f === 2) star4(c, g, F.tips[1][0], F.tips[1][1], 3, { gain: 1.0 });
+    }
+    if (f === 4) { star4(c, g, sx, sy, 6, { gain: 1.5 }); ring(c, g, sx, sy, 4.0, 0.9, 3.0, 0.9); }
+    else if (f === 5) { star4(c, g, sx, sy, 3, { gain: 1.0 }); ring(c, g, sx, sy, 7.0, 0.45, 5.0, 0.6); }
+    else if (f === 6) star4(c, g, sx, sy, 1, { gain: 0.6, diag: false });
+    sparks(c, g, sx, sy, f - STRIKE_FRAME, 5, 11, 2.3, Math.PI * 0.85, 0.8, { grav: 0.18, life: 6, violetEvery: 3 });
+    drips(c, g, t, F);
+    ambient(c, g, t);
+    return [c, g];
+  }
+
+  function hurtFrame(f) {
+    const n = N_OF.hurt; if (f === n - 1) return idleFrame(0);
+    const t = clock(f, n), p = withP(pose('hurt', f), { phase: t * 2 * Math.PI });
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    paint(c, g, F, t, 1.0);
+    // the hit tears ectoplasm out of its chest: it sprays back, away from the hero
+    const ch = figure(pose('hurt', 0)).chest;
+    sparks(c, g, ch[0] - 2, ch[1] - 2, f + 0.8, 13, 13, 2.5, -0.15, 1.0, { grav: 0.14, life: 5.5, violetEvery: 3 });
+    if (f === 0) star4(c, g, ch[0] - 4, ch[1] - 3, 4, { core: K.white, col: K.violet3, edge: K.violet2, light: LIGHT.violet, gain: 1.0 });
+    drips(c, g, t, F);
+    ambient(c, g, t);
+    return [c, g];
+  }
+
+  function castFrame(f) {
+    const n = N_OF.cast; if (f === n - 1) return idleFrame(0);
+    const t = clock(f, n), p = withP(pose('cast', f), { phase: t * 2 * Math.PI });
+    const c = new Cv(), g = new Cv();
+    const ck = [0, 0.3, 0.65, 1, 1, 1, 1, 0.9, 0.65, 0.35, 0.1][f], fx = ROOT_X + p.x;
+    runeCircle(c, g, fx, GROUND - 2, t, ck, false);
+    const F = figure(p);
+    paint(c, g, F, t, 1.0);
+    runeCircle(c, g, fx, GROUND - 2, t, ck, true);
+    const [fcx, fcy] = F.face;
+    // the void breathes in: motes are sucked into the hood
+    if (f >= 1 && f <= 5) {
+      const r = rng(61), kk = [0, 0.3, 0.5, 0.7, 0.85, 1][f];
+      for (let i = 0; i < 12; i++) {
+        const q = uni(r, 0, 2 * Math.PI) + f * 0.5, rr = uni(r, 10, 22) * (1.15 - kk);
+        const x = fcx + Math.cos(q) * rr, y = fcy + Math.sin(q) * rr * 0.8, j = idx(x, y);
+        if (j < 0 || F.lab[j]) continue;
+        putPx(c, x, y, i % 3 ? ECTO[3] : K.violet3, 0.9); addPx(g, x, y, i % 3 ? LIGHT.ecto : LIGHT.violet, 0.7);
+      }
+    }
+    // the wail: a burst at the mouth, then the waves travel towards the hero
+    const [px, py] = castPoint();
+    if (f >= 6 && f <= 9) star4(c, g, px - 1, py, { 6: 6, 7: 4, 8: 2, 9: 1 }[f], { gain: 1.4 });
+    if (f >= 6) wail(c, g, px - 2, py, f - 5.4);
+    if (f >= 2 && f <= 9) motes(c, g, t * 2, 47, 8, [fx - 20, GROUND - 30, fx + 20, GROUND - 2], 0.7 * ck);
+    drips(c, g, t, F);
+    ambient(c, g, t);
+    return [c, g];
+  }
+
+  function deathFrame(f) {
+    const n = N_OF.death, c = new Cv(), g = new Cv();
+    if (f === n - 1) return [c, g];   // nothing left: the death holds an empty frame
+    const t = frac(f / LOOP), p = withP(pose('death', f), { phase: t * 2 * Math.PI }), F = figure(p);
+    paint(c, g, F, t, 1.0);
+    const ch0 = figure(pose('death', 0)).chest;
+    sparks(c, g, ch0[0] - 2, ch0[1] - 2, f + 0.8, 13, 13, 2.5, -0.15, 1.0, { grav: 0.14, life: 5.5, violetEvery: 3 });
+    if (f === 0) star4(c, g, ch0[0] - 4, ch0[1] - 3, 4, { core: K.white, col: K.violet3, edge: K.violet2, light: LIGHT.violet });
+    if (f === 2) F.eyes.forEach(([ex, ey]) => star4(c, g, ex, ey, 2, { gain: 0.9, diag: false }));
+    // the soul flame swells (rings pulse round it) and bursts
+    const ch = F.chest;
+    if (f === 3 || f === 4) sparks(c, g, ch[0], ch[1], 1.2 + (f - 3) * 0.8, 31 + f, 8, 1.6, -Math.PI / 2, Math.PI, { grav: 0, life: 4 });
+    const burst = figure(pose('death', 5)).chest;
+    if (f === 5) star4(c, g, burst[0], burst[1], 8, { gain: 1.6 });
+    if (f === 6) star4(c, g, burst[0], burst[1], 4, { gain: 1.0 });
+    sparks(c, g, burst[0], burst[1], f - 4.6, 71, 18, 2.4, -Math.PI / 2, Math.PI, { grav: 0.1, life: 7, violetEvery: 3 });
+    // dissolving: motes rise off the ragged edge
+    if (f >= 9) {
+      const r = rng(90);
+      for (let i = 0; i < 22; i++) {
+        const born = 9 + uni(r, 0, 6), x0 = uni(r, F.gx - 15, F.gx + 13), age = f - born, y0 = GROUND - 3 - (born - 9) * 8.5;
+        if (age < 0 || age > 5) continue;
+        const k = 1 - age / 6, x = x0 + Math.sin(age * 1.3 + i) * 1.2, y = y0 - age * 2.6;
+        putPx(c, x, y, i % 3 ? ECTO[3] : K.violet3, Math.min(1, 1.4 * k)); addPx(g, x, y, i % 3 ? LIGHT.ecto : LIGHT.violet, 0.7 * k);
+      }
+    }
+    return [c, g];
+  }
+
+  const FRAME = { idle: idleFrame, attack: attackFrame, hurt: hurtFrame, cast: castFrame, death: deathFrame };
+  const durationsMs = n => Array.from({ length: n }, (_, i) => Math.round((i + 1) * 1000 / FPS) - Math.round(i * 1000 / FPS));
+  /** The silhouette of frame f (the whole figure: body, sleeves and claws), for the one-region check. */
+  const silhouetteOf = (name, f) => name === 'death' && f === N_OF.death - 1 ? new Uint8Array(N) : silhouette(poseAt(name, f));
+  const lostOf = (name, f) => name === 'death' && f === N_OF.death - 1 ? 0 : figure(poseAt(name, f)).lost;
+  /** Frames that may come apart (the dissolving death). */
+  const dissolving = (name, f) => name === 'death' && (f === N_OF.death - 1 || poseAt(name, f).fade > 0);
+  const EVENTS = { attack: { strikes: [STRIKE_FRAME] }, cast: { strikes: [CAST_FRAME] } };
+  /** Where the game's particles burst (EnemyAnimator.Styles): chest, eyes and body on idle frame 0, the claws at the hit. */
+  const points = () => { const F = figure(idlePose(0)); return { chest: F.chest, eyes: [(F.eyes[0][0] + F.eyes[1][0]) / 2, F.eyes[0][1]], body: [F.gx, F.yAt(26)], claw: strikePoint() }; };
+  const api = { CW, CH, GROUND, FPS, LOOP, ROOT_X, ANIMATIONS, STRIKE_FRAME, CAST_FRAME, EVENTS, FRAME, durationsMs, strikePoint, castPoint,
+    silhouetteOf, lostOf, dissolving, points };
+  root.WraithArt = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const A = window.WraithArt;
+  const INFO = {
+    idle: ['Reposo', 'Bucle de 2 s: flota, los jirones del bajo ondean y gotean ectoplasma, la punta de la capucha se mece, las mangas se quedan un poco atrás al subir y bajar, un dedo se flexiona de vez en cuando y la llama del alma late.'],
+    attack: ['Ataque', 'Zarpazo Espectral: recoge la garra y la lleva atrás cargando ectoplasma, la manga se estira en un barrido por encima de la capucha, la garra baja abierta en tres medialunas (golpe en el fotograma 5) y la tela llega tarde, se pasa y se asienta.'],
+    hurt: ['Daño', 'El golpe lo echa atrás con un destello; las mangas se quedan atrás y salen despedidas hacia delante, le arranca ectoplasma del pecho y vuelve a su sitio.'],
+    cast: ['Habilidad', 'Lamento: se eleva abriendo los brazos sobre un círculo de runas, la capucha aspira motas, y en el fotograma 7 se lanza hacia delante con el vacío abierto y salen las ondas del lamento hacia el héroe.'],
+    death: ['Muerte', 'Retrocede con los brazos en alto, se agarra la llama del alma, que se hincha y estalla; la capa vacía se desploma y se deshace de abajo arriba en ectoplasma. Termina en un fotograma vacío.']
+  };
+  const EVENTS = { attack: { [A.STRIKE_FRAME]: 'golpe' }, cast: { [A.CAST_FRAME]: 'lamento' } };
+  const cache = {};
+  function toCanvases(c, g) {
+    const lit = document.createElement('canvas'), glow = document.createElement('canvas');
+    lit.width = glow.width = A.CW; lit.height = glow.height = A.CH;
+    const L = lit.getContext('2d').createImageData(A.CW, A.CH), G = glow.getContext('2d').createImageData(A.CW, A.CH);
+    for (let i = 0; i < A.CW * A.CH; i++) {
+      const o = i * 4;
+      let r = c.px[o] + Math.min(4, g.px[o]) * 0.6, gg = c.px[o + 1] + Math.min(4, g.px[o + 1]) * 0.6, b = c.px[o + 2] + Math.min(4, g.px[o + 2]) * 0.6;
+      const hot = Math.max(0, Math.max(r, gg, b) - 1) * 0.5;
+      r = Math.min(1, Math.min(1, r) + hot); gg = Math.min(1, Math.min(1, gg) + hot); b = Math.min(1, Math.min(1, b) + hot);
+      L.data[o] = r * 255 + 0.5; L.data[o + 1] = gg * 255 + 0.5; L.data[o + 2] = b * 255 + 0.5; L.data[o + 3] = c.px[o + 3] > 0.01 ? 255 : 0;
+      G.data[o] = Math.min(1, g.px[o] / 2.5) * 255; G.data[o + 1] = Math.min(1, g.px[o + 1] / 2.5) * 255; G.data[o + 2] = Math.min(1, g.px[o + 2] / 2.5) * 255; G.data[o + 3] = 255;
+    }
+    lit.getContext('2d').putImageData(L, 0, 0); glow.getContext('2d').putImageData(G, 0, 0);
+    return { lit, glow };
+  }
+  function frames(name) {
+    if (!cache[name]) { const n = A.ANIMATIONS.find(a => a[0] === name)[1]; cache[name] = Array.from({ length: n }, (_, f) => toCanvases(...A.FRAME[name](f))); }
+    return cache[name];
+  }
+  const stage = document.getElementById('stage');
+  const strip = document.getElementById('strip'), readout = document.getElementById('readout'), note = document.getElementById('note');
+  const playBtn = document.getElementById('play'), haloBox = document.getElementById('halo');
+  let name = 'idle', frame = 0, playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches, acc = 0, last = 0, rest = 0;
+  function paint(target, fr, scale, withHalo) {
+    const t = target.getContext('2d'), sw = A.CW * scale, s = A.CH * scale, css = getComputedStyle(document.documentElement);
+    t.fillStyle = css.getPropertyValue('--stage').trim() || '#1c1932'; t.fillRect(0, 0, sw, s);
+    t.fillStyle = css.getPropertyValue('--stage-floor').trim() || '#120f22'; t.fillRect(0, A.GROUND * scale, sw, s - A.GROUND * scale);
+    // the contact shadow the game draws under every figure (Presentation/Fx/GroundShadow.cs), here as a flat ellipse
+    t.fillStyle = 'rgba(10, 6, 18, 0.75)'; t.beginPath(); t.ellipse(A.ROOT_X * scale, (A.GROUND - 0.5) * scale, 17 * scale, 2.2 * scale, 0, 0, Math.PI * 2); t.fill();
+    t.imageSmoothingEnabled = false; t.drawImage(fr.lit, 0, 0, sw, s);
+    if (!withHalo) return;
+    t.save(); t.globalCompositeOperation = 'lighter'; t.imageSmoothingEnabled = true;
+    t.filter = `blur(${1.4 * scale}px)`; t.globalAlpha = 0.55 * 0.9; t.drawImage(fr.glow, 0, 0, sw, s);
+    t.filter = `blur(${4 * scale}px)`; t.globalAlpha = 0.55 * 1.1; t.drawImage(fr.glow, 0, 0, sw, s);
+    t.restore();
+  }
+  function render() {
+    const fr = frames(name);
+    paint(stage, fr[frame], 4, haloBox.checked);
+    const n = fr.length, ev = (EVENTS[name] || {})[frame];
+    readout.innerHTML = `Fotograma <b>${frame + 1}</b> / ${n} · ${A.durationsMs(n)[frame]} ms${ev ? ` · <b>${ev}</b>` : ''}`;
+    strip.querySelectorAll('figure').forEach((el, i) => { el.dataset.on = String(i === frame); });
+  }
+  function buildStrip() {
+    strip.textContent = '';
+    frames(name).forEach((fr, i) => {
+      const fig = document.createElement('figure'), cv = document.createElement('canvas'), cap = document.createElement('figcaption');
+      cv.width = 256; cv.height = 192; paint(cv, fr, 2, true);
+      cv.addEventListener('click', () => { frame = i; setPlaying(false); render(); });
+      const ev = (EVENTS[name] || {})[i];
+      cap.innerHTML = String(i + 1) + (ev ? ` <span class="ev">${ev}</span>` : '');
+      fig.append(cv, cap); strip.append(fig);
+    });
+  }
+  function select(n) {
+    name = n; frame = 0; acc = 0; rest = 0;
+    picker.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.anim === n)));
+    note.innerHTML = `<strong>${INFO[n][0]}.</strong> ${INFO[n][1]}`;
+    buildStrip(); render();
+  }
+  function setPlaying(v) { playing = v; playBtn.textContent = v ? 'Pausa' : 'Reproducir'; }
+  const picker = document.getElementById('picker');
+  A.ANIMATIONS.forEach(([n]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.anim = n; b.textContent = INFO[n][0];
+    b.addEventListener('click', () => select(n)); picker.append(b);
+  });
+  playBtn.addEventListener('click', () => setPlaying(!playing));
+  document.getElementById('prev').addEventListener('click', () => { setPlaying(false); const n = frames(name).length; frame = (frame - 1 + n) % n; render(); });
+  document.getElementById('next').addEventListener('click', () => { setPlaying(false); frame = (frame + 1) % frames(name).length; render(); });
+  haloBox.addEventListener('change', render);
+  function tick(now) {
+    const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
+    if (playing) {
+      const fr = frames(name), n = fr.length, loop = A.ANIMATIONS.find(a => a[0] === name)[2];
+      if (rest > 0) { rest -= dt; if (rest <= 0) { frame = 0; acc = 0; render(); } }
+      else {
+        acc += dt;
+        const dur = A.durationsMs(n)[frame] / 1000;
+        if (acc >= dur) {
+          acc -= dur;
+          if (frame === n - 1 && !loop) { rest = name === 'death' ? 1.6 : 0.6; }
+          else { frame = (frame + 1) % n; render(); }
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  setPlaying(playing);
+  select('idle');
+  requestAnimationFrame(tick);
+})();
+</script>

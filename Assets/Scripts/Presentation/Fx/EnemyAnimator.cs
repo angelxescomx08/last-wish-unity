@@ -90,7 +90,8 @@ namespace LastWish.Presentation
 
         public static readonly Dictionary<string, EnemyFxStyle> Styles = new Dictionary<string, EnemyFxStyle>
         {
-            ["wraith"] = new EnemyFxStyle(),
+            // drawn by code in Tools/VfxLab/enemies/wraith.html (points printed by `python Tools/VfxLab/export_enemy_art.py --styles`)
+            ["wraith"] = new EnemyFxStyle { Chest = (-3, -74), Eyes = (-11, -123), Body = (0, -71), Claw = (-99, -69), ShadowW = 104 },
             ["mycelid"] = new EnemyFxStyle { Wisp = Spore, Ecto = Tox, Spark = Tox, Shreds = CapBits, Glow = C(60, 120, 30), Chest = (0, -126), Eyes = (0, -116), Body = (0, -96), Claw = (-292, -14), ShadowW = 210, AmbientRise = 0.55f },
             ["weaver"] = new EnemyFxStyle { Wisp = Silk, Ecto = Ichor, Spark = Ichor, Shreds = Chitin, Glow = C(120, 24, 70), Chest = (30, -96), Eyes = (-70, -92), Body = (10, -84), Claw = (-120, -64), ShadowW = 230, AmbientRise = 0.4f, AmbientHeavy = true },
             ["knight"] = new EnemyFxStyle { Wisp = EmberPal, Ecto = EmberPal, Spark = Steel, Shreds = Ash, Glow = C(150, 60, 16), Chest = (-6, -124), Eyes = (0, -178), Body = (0, -110), Claw = (-120, -100), ShadowW = 170, Blades = true },
@@ -472,6 +473,18 @@ namespace LastWish.Presentation
 
         // ------------------------------------------------------------------ drawing
         public Sprite CurrentFrame() => Action != null ? Sheet.Frame(Action, actionTime) : Sheet.Frame("idle", idleTime);
+        public Sprite CurrentHalo() => Action != null ? Sheet.Halo(Action, actionTime) : Sheet.Halo("idle", idleTime);
+
+        /// <summary>The sheet's light (eyes, magic, its glowing parts) added over the frame drawn at (x, y); additive light
+        /// ignores the canvas alpha, so it is scaled by hand (and by the arrival fade).</summary>
+        public void DrawHalo(Canvas canvas, float x, float y, float alpha = 1f)
+        {
+            var s = CurrentHalo();
+            if (!s.Valid) return;
+            var v = MathX.Round(255 * MathX.Clamp01(canvas.Alpha) * MathX.Clamp01(alpha) * Sheet.HaloGain);
+            if (v <= 2) return;
+            canvas.BlitFlipped(s, new RectF(x, y, Sheet.CellW * Sheet.Scale, Sheet.CellH * Sheet.Scale), false, false, new Rgba(v, v, v), Blend.Add);
+        }
 
         /// <summary>_shadow(w, 26): concentric SRCALPHA ellipses (each overwrites).</summary>
         public void Draw(Canvas canvas, Art art, (float x, float y) anchorPoint)
@@ -502,6 +515,7 @@ namespace LastWish.Presentation
                 var frame = CurrentFrame(); var (w, h) = Sheet.Anchor;
                 if (appearFade < 1f) canvas.Blit(frame, ax - w, ay - h, Sheet.Scale, Rgba.White.WithAlpha((int)(255 * appearFade)));
                 else canvas.Blit(frame, ax - w, ay - h, Sheet.Scale);
+                DrawHalo(canvas, ax - w, ay - h, appearFade);
             }
             if (st.Blades) DrawBlades(canvas, true);
             Particles.Draw(canvas, art);

@@ -239,6 +239,21 @@ python Tools/VfxLab/export_hero_art.py --check
 
 Pruebas: `WarriorHeroArtTests` (EditMode y PlayMode, capturas `TestResults/warrior-hero-*.png`).
 
+### Enemigos dibujados con código en HTML
+
+Los enemigos se rehacen con el mismo método que los héroes, una página por enemigo en `Tools/VfxLab/enemies/`. El primero
+es **el Espectro** (12-11-2026, `wraith.html`): una sola silueta por fotograma con capucha, vacío con ojos de ectoplasma,
+capa que se deshace en jirones, llama del alma y mangas de campana con garras de hueso; las mangas y los dedos tienen su
+propia forma en cada fotograma (barrido, tela que llega tarde), nada de piezas que giran. Reposo, Zarpazo Espectral,
+daño, Lamento y muerte que se disuelve, con halo. Los demás enemigos siguen con sus hojas anteriores hasta rehacerlos.
+
+```powershell
+python Tools/VfxLab/export_enemy_art.py --enemy wraith --preview TestResults/enemy-preview   # necesita Node
+python Tools/VfxLab/export_enemy_art.py --check
+```
+
+Pruebas: `WraithArtTests` (EditMode).
+
 ## VFX Lab (prueba de efectos y cartas de la Pícara)
 
 Escena aislada en `Assets/VfxLab` para validar partículas brillantes en pixel art (inspiración Core Keeper/Noita)

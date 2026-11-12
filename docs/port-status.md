@@ -168,6 +168,26 @@ Small domain additions for presentation (rules unchanged, tests green):
   replaces the old 72-column sheet. CombatScene's UI/enemy idle clock no longer reads the warrior's idle length: it is
   the original's fixed 1.6 s (`IdleCycle`). HeroFx keeps her warm palette with the authored guard/kneel cues.
 
+## Enemies drawn by code (beyond the original, 2026-11-12)
+
+* Enemies are being redrawn with the heroes' HTML method (docs/art-style.md 3.1), one page per enemy in
+  `Tools/VfxLab/enemies/<sheet id>.html`. The first is El Espectro (`wraith.html`): one label map per frame, one outline,
+  facing the hero (cyan rim in front, violet behind), hovering over the shadow line (row 93), 128x96 cells. Its sleeves
+  and fingers are written frame by frame (a curved spine with widths, hanging cloth and a trailing bell, each finger's
+  angle and hook; smear, overlap and follow-through): the user rejected a sleeve that swings round the shoulder like a
+  puppet piece. Clips at 12 fps: idle 24, attack 10 (strike on frame 4), hurt 7, cast 12 (Lamento, strike on frame 6),
+  death 17 dissolving into an empty frame.
+* `Tools/VfxLab/export_enemy_art.py` runs the page's script with Node and writes the usual enemy sheet
+  (`<id>_sheet.png` native cells, `<id>_sheet.json` with anchor, rows, durations, strike events, top and portrait box)
+  plus `<id>_halo.png` (same cells). It validates every frame (inside the cell, above the shadow line, one 4-connected
+  mass except the dissolving death, actions ending on idle frame 0, the death ending empty); `--check`, `--preview`,
+  `--styles` (cue points for `EnemyAnimator.Styles`).
+* `EnemySheet` reads an optional `halo` (`HaloTexture`, `HaloGain`, `Halo(animation, elapsed)`); `EnemyAnimator.Draw`
+  adds it over the frame (`DrawHalo`, additive, scaled by the canvas alpha and the arrival fade). Older sheets have no
+  halo and draw exactly as before. The wraith's `EnemyAnimator.Styles` points follow the new art.
+* Tests: `WraithArtTests` (EditMode, 7). EditMode 490/490 with the offline .NET 8 NUnit runner; PlayMode not run yet
+  (Unity was closed).
+
 ## Contact shadows (beyond the original)
 
 * Heroes and enemies stand on a pixel-art contact shadow (`Presentation/Fx/GroundShadow.cs`, 2026-10-31): a flat
