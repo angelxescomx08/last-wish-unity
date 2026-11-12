@@ -1,115 +1,139 @@
 {
- "cell_w": 144,
- "cell_h": 108,
- "columns": 15,
+ "cell_w": 128,
+ "cell_h": 96,
+ "columns": 24,
  "anchor": [
-  96,
-  102
+  80,
+  93
  ],
  "scale": 2,
  "sheet": "worm_sheet.png",
+ "halo": {
+  "sheet": "worm_halo.png",
+  "gain": 0.55
+ },
  "animations": {
   "idle": {
    "row": 0,
-   "frames": 12,
+   "frames": 24,
    "durations_ms": [
-    110,
-    110,
-    110,
-    110,
-    110,
-    110,
-    110,
-    110,
-    110,
-    110,
-    110,
-    110
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83
    ],
    "loop": true
   },
   "attack": {
    "row": 1,
-   "frames": 9,
+   "frames": 10,
    "durations_ms": [
-    100,
-    120,
-    100,
-    55,
-    65,
-    90,
-    90,
-    95,
-    100
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83
    ],
    "loop": false
   },
   "burrow": {
    "row": 2,
-   "frames": 9,
+   "frames": 12,
    "durations_ms": [
-    80,
-    70,
-    90,
-    120,
-    120,
-    80,
-    90,
-    90,
-    100
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83
    ],
    "loop": false
   },
   "cast": {
    "row": 3,
-   "frames": 11,
+   "frames": 12,
    "durations_ms": [
-    100,
-    100,
-    90,
-    80,
-    60,
-    60,
-    60,
-    65,
-    75,
-    80,
-    100
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83
    ],
    "loop": false
   },
   "hurt": {
    "row": 4,
-   "frames": 6,
+   "frames": 7,
    "durations_ms": [
-    60,
-    70,
-    80,
-    90,
-    95,
-    100
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83
    ],
    "loop": false
   },
   "death": {
    "row": 5,
-   "frames": 15,
+   "frames": 17,
    "durations_ms": [
-    70,
-    80,
-    80,
-    80,
-    85,
-    85,
-    85,
-    85,
-    85,
-    85,
-    85,
-    85,
-    85,
-    85,
-    120
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84
    ],
    "loop": false
   }
@@ -117,7 +141,7 @@
  "events": {
   "attack": {
    "strikes": [
-    3
+    4
    ]
   }
  },
@@ -127,11 +151,13 @@
   "bile": "cast",
   "vengeance": "cast"
  },
- "top_native": 29,
+ "top_native": 28,
  "idle_bbox_native": [
-  65,
-  29,
-  129,
-  103
- ]
+  55,
+  28,
+  109,
+  94
+ ],
+ "style": "docs/art-style.md",
+ "generator": "Tools/VfxLab/enemies/worm.html"
 }

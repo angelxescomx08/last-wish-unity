@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprite del Cráneo Ígneo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one stage (the sprite at 4x on the dungeon night), the animation picker beside it, the frame strip below. */
+  :root {
+    --bg: #0f0d1a; --panel: #17142a; --line: #2b2648; --fg: #e8e4f8; --muted: #9d97bd;
+    --accent: #f5973a; --gold: #d9b26a; --stage: #1c1932; --stage-floor: #120f22;
+    --font-display: "Pixelify Sans", "Silkscreen", ui-monospace, monospace;
+    --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { background: var(--bg); color: var(--fg); }
+  body { font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .page { max-width: 980px; margin: 0 auto; padding-block: 28px 40px; display: grid; gap: 22px; }
+  header { display: grid; gap: 6px; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 6vw, 44px); line-height: 1; margin: 0;
+    letter-spacing: 0.02em; text-wrap: balance; }
+  h1 span { color: var(--accent); }
+  .lede { color: var(--muted); max-width: 64ch; margin: 0; }
+  .work { display: grid; grid-template-columns: minmax(0, 512px) minmax(0, 1fr); gap: 22px; align-items: start; }
+  @media (max-width: 720px) { .work { grid-template-columns: minmax(0, 1fr); } }
+  .stage { position: relative; width: 100%; max-width: 512px; aspect-ratio: 4 / 3; border: 1px solid var(--line);
+    background: var(--stage); }
+  .stage canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+  .side { display: grid; gap: 16px; min-width: 0; }
+  .label { font-family: var(--font-display); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .picker { display: flex; flex-wrap: wrap; gap: 8px; }
+  .picker button, .controls button { font: 600 14px/1 var(--font-body); color: var(--fg); background: var(--panel);
+    border: 1px solid var(--line); padding: 10px 12px; cursor: pointer; }
+  .picker button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+  .picker button:hover, .controls button:hover { border-color: var(--muted); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .controls label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 14px; }
+  .readout { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .readout b { color: var(--fg); font-weight: 500; }
+  .note { border-left: 2px solid var(--gold); padding: 2px 0 2px 12px; color: var(--muted); font-size: 14px; margin: 0; }
+  .note strong { color: var(--fg); font-weight: 600; }
+  .strip-wrap { display: grid; gap: 8px; }
+  .strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+  .strip figure { margin: 0; display: grid; gap: 4px; flex: 0 0 auto; }
+  .strip canvas { width: 256px; height: 192px; image-rendering: pixelated; background: var(--stage); border: 1px solid var(--line); cursor: pointer; display: block; }
+  .strip figure[data-on="true"] canvas { border-color: var(--accent); }
+  .strip figcaption { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+  .strip figcaption .ev { color: var(--gold); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+  <header>
+    <h1>El <span>Cráneo Ígneo</span></h1>
+    <p class="lede">Enemigo de Last Wish dibujado con código, con el método y el diseño de los héroes. En cada fotograma la figura entera —el cráneo, la mandíbula, el yelmo roto con sus cuernos y las cuencas en sombra con brasas por ojos— es una sola silueta con un único contorno, y cada lengua de la melena de fuego se calcula de nuevo en cada fotograma: no hay piezas encima ni partes que giren. Mira hacia el héroe. 12 fotogramas por segundo, celdas de 128×96 px.</p>
+  </header>
+  <div class="work">
+    <div class="stage"><canvas id="stage" width="512" height="384" aria-label="El Cráneo Ígneo animado"></canvas></div>
+    <div class="side">
+      <div class="label">Animación</div>
+      <div class="picker" id="picker" role="group" aria-label="Animación"></div>
+      <div class="controls">
+        <button id="play" type="button">Pausa</button>
+        <button id="prev" type="button" aria-label="Fotograma anterior">◀</button>
+        <button id="next" type="button" aria-label="Fotograma siguiente">▶</button>
+        <label><input id="halo" type="checkbox" checked> Halo de luz</label>
+      </div>
+      <div class="readout" id="readout"></div>
+      <p class="note" id="note"></p>
+    </div>
+  </div>
+  <div class="strip-wrap">
+    <div class="label">Fotogramas a tamaño de combate</div>
+    <div class="strip" id="strip"></div>
+  </div>
+</div>
+
+<script id="skull-art">
+/* El Cráneo Ígneo drawn by code (docs/art-style.md section 3.1: the mandatory method for characters and enemies). Every
+   frame computes the WHOLE figure as one label map: the cranium and the face of the skull, its jaw (how far it hangs open
+   is written for that frame), the broken iron helm with its two horns, and the eye sockets in shadow under the brow with
+   an ember in each. One outline around everything; nothing is a separate piece and nothing is tweened at play time. The
+   fire of its mane is drawn behind it without an outline (mage_art.KM: its edge is the dithered dark red), every tongue
+   computed again for each frame. Two layers: paint (readable alone) and light (only the fire: mane, eyes, breath, embers).
+   128x96 cells, the shadow line on row 93; it hovers and faces left (towards the hero): cyan rim in front, violet behind. */
+(function (root) {
+  'use strict';
+  const CW = 128, CH = 96, N = CW * CH, GROUND = 93, ROOT_X = 86, FPS = 12, LOOP = 24, Z = 1.3;  // Z: drawing scale of the skull
+
+  // ---------------------------------------------------------------------------------------------- palette
+  const hex = h => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
+  const ramp = a => a.map(hex);
+  const K = {};
+  for (const [k, v] of Object.entries({
+    ink: '#07050c', void1: '#04020a', rimc: '#58dcff', rimv: '#3a2163', white: '#ffffff',
+    violet1: '#55248a', violet2: '#8a47cf', violet3: '#c79bff', steel3: '#cdd5ec', smoke0: '#2a2233', smoke1: '#3d3348'
+  })) K[k] = hex(v);
+  const RAMP = {
+    bone: ramp(['#26212e', '#433c4e', '#6a6279', '#9a92a9', '#cbc4d6']),
+    iron: ramp(['#0e0d17', '#191827', '#272639', '#3a3a52', '#53546f', '#767a96']),
+    horn: ramp(['#120d12', '#221a1f', '#382b2d', '#54413d', '#7a6152']),
+    inner: ramp(['#040209', '#0a0614', '#130c22'])
+  };
+  // its accent: fire (mage_art.KM: dark red edge to a white core), the only thing that glows
+  const FIRE = ramp(['#3d0f14', '#8f2419', '#d9531e', '#f5973a', '#ffd47a', '#fff6dc']);
+  const LIGHT = { fire: [1.0, 0.42, 0.1], ember: [1.0, 0.68, 0.3], cyan: [0.25, 0.85, 1.0], white: [1, 1, 1], violet: [0.6, 0.3, 1.0] };
+  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+  // ---------------------------------------------------------------------------------------------- tiny raster kit
+  const BAY = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  const B = new Float32Array(N);
+  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) B[y * CW + x] = (BAY[y % 4][x % 4] + 0.5) / 16;
+  const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+  const smooth = (e0, e1, d) => clamp01((d - e0) / (e1 - e0));
+  const frac = v => v - Math.floor(v);
+
+  class Cv { constructor() { this.px = new Float32Array(N * 4); } }
+  const val = (a, i) => typeof a === 'number' ? a : typeof a === 'function' ? a(i) : a[i];
+  function put(c, m, col, a = 1) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      if (B[i] < val(a, i)) { const o = i * 4; c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1; }
+    }
+  }
+  function add(g, m, light, a = 1) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      const al = val(a, i), o = i * 4;
+      g.px[o] += light[0] * al; g.px[o + 1] += light[1] * al; g.px[o + 2] += light[2] * al; g.px[o + 3] = 1;
+    }
+  }
+  const idx = (x, y) => { x = Math.floor(x); y = Math.floor(y); return x < 0 || y < 0 || x >= CW || y >= CH ? -1 : y * CW + x; };
+  function putPx(c, x, y, col, a = 1) {
+    const i = idx(x, y); if (i < 0 || B[i] >= a) return;
+    const o = i * 4; c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+  }
+  function addPx(g, x, y, light, a = 1) {
+    const i = idx(x, y); if (i < 0) return;
+    const o = i * 4; g.px[o] += light[0] * a; g.px[o + 1] += light[1] * a; g.px[o + 2] += light[2] * a; g.px[o + 3] = 1;
+  }
+  const mask = fn => { const m = new Uint8Array(N); for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) { const i = y * CW + x; if (fn(x + 0.5, y + 0.5, i, x, y)) m[i] = 1; } return m; };
+  const at = (m, x, y) => x >= 0 && y >= 0 && x < CW && y < CH ? m[y * CW + x] : 0;
+  function dilate(m, diag = false) {
+    const o = new Uint8Array(N);
+    for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+      const i = y * CW + x;
+      o[i] = m[i] || at(m, x - 1, y) || at(m, x + 1, y) || at(m, x, y - 1) || at(m, x, y + 1) ||
+        (diag && (at(m, x - 1, y - 1) || at(m, x + 1, y - 1) || at(m, x - 1, y + 1) || at(m, x + 1, y + 1))) ? 1 : 0;
+    }
+    return o;
+  }
+  const outline = m => { const d = dilate(m); for (let i = 0; i < N; i++) d[i] = d[i] && !m[i] ? 1 : 0; return d; };
+  const nb = (m, dx, dy) => { const o = new Uint8Array(N); for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) o[y * CW + x] = at(m, x + dx, y + dy); return o; };
+  const and = (...ms) => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) { let v = 1; for (const m of ms) if (!m[i]) { v = 0; break; } o[i] = v; } return o; };
+  const or = (...ms) => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) { for (const m of ms) if (m[i]) { o[i] = 1; break; } } return o; };
+  const not = m => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) o[i] = m[i] ? 0 : 1; return o; };
+  function line(x0, y0, x1, y1) {
+    x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+    const pts = []; const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx + dy;
+    for (;;) { pts.push([x0, y0]); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x0 += sx; } if (e2 <= dx) { err += dx; y0 += sy; } }
+    return pts;
+  }
+  function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const uni = (r, a, b) => a + (b - a) * r();
+  const h2 = (x, y) => { let h = Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+  const vnoise = (x, y) => {
+    const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+    const a = h2(xi, yi), b = h2(xi + 1, yi), c = h2(xi, yi + 1), d = h2(xi + 1, yi + 1);
+    return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+  };
+
+  function toneIdx(i, light, n, amp) { return Math.max(0, Math.min(n - 1, Math.floor(light * (n - 1) + 0.5 + (B[i] - 0.5) * amp))); }
+  function paintZone(c, m, rp, light, amp = 0.55) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      const col = rp[toneIdx(i, val(light, i), rp.length, amp)], o = i * 4;
+      c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------- shapes
+  const LDIR = (() => { const v = [-0.55, -0.7, 0.5], l = Math.hypot(...v); return v.map(q => q / l); })();   // screen space, from the upper left
+  // the skull and its helm in their own coordinates (a: towards the hero, b: up)
+  const CR = 11, HELM_R = 12.3, HINGE = [-4.5, -5.6];
+  const brow = a => 1.2 + 0.1 * a;                                     // the helm's lower edge, over the eye sockets
+  const inNotch = (a, b) => { const x = a + 6.5, y = b - 9.5; return y > -2 + 1.6 * Math.abs(x) - 0.9 * Math.sin(x * 2.1) && y < 6; };   // where the helm broke
+  const inMaxilla = (a, b) => { const qa = Math.abs(a - 3.6) - 6.6, qb = Math.abs(b + 3.6) - 4.4; return Math.hypot(Math.max(qa, 0), Math.max(qb, 0)) + Math.min(Math.max(qa, qb), 0) < 1.6; };
+  const inJaw = (a, b) => {                                            // the mandible, closed
+    if (b > -8.2 || b < -13.5 || a < -6.5 || a > 10.2) return false;
+    const chin = -13.5 + 3.2 * clamp01((a - 6) / 4.2) ** 2, back = a < -4 ? -8.2 - 1.6 * (a + 4) : 99;
+    return b >= chin && b <= Math.min(-8.2, back);
+  };
+  const SOCKETS = [[6.0, -1.3, 3.3, 2.9], [0.9, -1.5, 2.5, 2.4]];
+  const HORNS = [[[6.5, 8.5], [13.5, 12], [15, 19], [11, 23.5], 3.1], [[-3.5, 10.5], [-8, 15.5], [-8.5, 21], [-12.5, 24.5], 2.6]];
+
+  // ---------------------------------------------------------------------------------------------- labels
+  const L_ = {}; ['EMPTY', 'HORN_B', 'BONE', 'JAW', 'MOUTH', 'FACE', 'HELM', 'HORN'].forEach((k, i) => { L_[k] = i; });
+
+  // ---------------------------------------------------------------------------------------------- the pose
+  // Every frame writes the whole figure: where the skull hovers (x, y, hd) and how it tips (tilt, +: towards the hero),
+  // how far the jaw hangs open (jaw, degrees; jawPull: the jaw drawn forward/back), its eyes (glow), the fire of its mane
+  // (mane: height, wind: how far it streams back, - forward; roar: the flames thrown up), fire in its mouth (mouthFire),
+  // flash (hit) and fade (death).
+  const IDLE = { x: 0, y: 0, hd: 39, tilt: 4, jaw: 3, jawPull: 0, eyes: 1, mane: 1, wind: 0.4, roar: 0, mouthFire: 0, flash: 0, fade: 0, phase: 0 };
+
+  function figure(p) {
+    const lab = new Int8Array(N), HA = new Float32Array(N), HB = new Float32Array(N), TV = new Float32Array(N);
+    const hx = Math.round(ROOT_X + p.x), hy = Math.round(GROUND - p.hd * Z + p.y);
+    const ta = p.tilt * Math.PI / 180, cs = Math.cos(ta), sn = Math.sin(ta);
+    const toPx = (a, b) => [hx - (a * cs + b * sn) * Z, hy - (-a * sn + b * cs) * Z];
+    const ja = p.jaw * Math.PI / 180, jc = Math.cos(ja), js = Math.sin(ja);
+    for (let y = 0; y < GROUND; y++) for (let x = 0; x < CW; x++) {
+      const i = y * CW + x, du = (hx - x - 0.5) / Z, dd = (hy - y - 0.5) / Z, a = du * cs - dd * sn, b = du * sn + dd * cs;
+      HA[i] = a; HB[i] = b;
+      let L = 0;
+      const inCr = a * a + (b - 2) ** 2 <= CR * CR, inHelm = a * a + (b - 2) ** 2 <= HELM_R * HELM_R && b >= brow(a) && !inNotch(a, b);
+      if (inCr || inMaxilla(a, b)) L = L_.BONE;
+      // the jaw, opened about its hinge (the pixel is taken back to the closed jaw); the mouth between the teeth
+      const ra = a - HINGE[0] - p.jawPull, rb = b - HINGE[1], ca = ra * jc - rb * js + HINGE[0], cb = ra * js + rb * jc + HINGE[1];
+      if (inJaw(ca, cb)) { L = L_.JAW; TV[i] = cb; }
+      else if (p.jaw > 5 && b < -6.4 && cb > -8.4 && a > HINGE[0] + 0.5 && a < 10.2 && ca < 10.2) L = L_.MOUTH;
+      if (L === L_.BONE) for (const [sa, sb, rx, ry] of SOCKETS) if (((a - sa) / rx) ** 2 + ((b - sb) / ry) ** 2 <= 1) L = L_.FACE;
+      if (inHelm) L = L_.HELM;
+      lab[i] = L;
+    }
+    // the horns of the helm: curved strokes written for the helm (near one in front, far one behind), thinning to a tip
+    HORNS.forEach(([P0, P1, P2, P3, w0], j) => {
+      const LH = j === 0 ? L_.HORN : L_.HORN_B, Q = [P0, P1, P2, P3].map(([a, b]) => toPx(a, b));
+      let prev = null;
+      for (let k = 0; k <= 60; k++) {
+        const t = k / 60, s = 1 - t, q = [0, 1].map(d => s * s * s * Q[0][d] + 3 * s * s * t * Q[1][d] + 3 * s * t * t * Q[2][d] + t * t * t * Q[3][d]);
+        const r = (w0 * Math.pow(1 - t, 0.9) + 0.6) * Z;
+        for (let yy = Math.floor(q[1] - r - 1); yy <= q[1] + r + 1; yy++) for (let xx = Math.floor(q[0] - r - 1); xx <= q[0] + r + 1; xx++) {
+          const i = idx(xx, yy); if (i < 0 || yy >= GROUND || Math.hypot(xx + 0.5 - q[0], yy + 0.5 - q[1]) > r) continue;
+          if (j === 1 ? lab[i] === 0 : lab[i] !== L_.HELM || t < 0.2) { if (j === 0 || lab[i] === 0) { lab[i] = LH; TV[i] = t; } }
+        }
+        const pp = [Math.floor(q[0]), Math.floor(q[1])], i0 = idx(pp[0], pp[1]);
+        if (i0 >= 0 && (lab[i0] === 0 || j === 0 && lab[i0] !== L_.HELM)) { lab[i0] = LH; TV[i0] = t; }
+        if (prev && pp[0] !== prev[0] && pp[1] !== prev[1]) { const i1 = idx(pp[0], prev[1]); if (i1 >= 0 && lab[i1] === 0) { lab[i1] = LH; TV[i1] = t; } }
+        prev = pp;
+      }
+    });
+    // one figure: anything not 4-connected to the cranium is dropped
+    const reach = new Uint8Array(N), stack = [], seed = idx(...toPx(-4, 0));
+    if (seed >= 0 && lab[seed]) { reach[seed] = 1; stack.push(seed); }
+    while (stack.length) {
+      const i = stack.pop(), x = i % CW, y = (i / CW) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const j = idx(x + dx, y + dy); if (j >= 0 && !reach[j] && lab[j]) { reach[j] = 1; stack.push(j); } }
+    }
+    let lost = 0;
+    for (let i = 0; i < N; i++) if (!reach[i] && lab[i]) { lab[i] = 0; lost++; }
+    const lab0 = Int8Array.from(lab);
+    if (p.fade > 0) for (let i = 0; i < N; i++) {
+      if (!lab[i]) continue;
+      const x = i % CW, y = (i / CW) | 0, rag = 2.2 * Math.sin(x * 0.55 + 1.3) + 1.4 * Math.sin(x * 1.37) + (B[i] - 0.5) * 3;
+      if (GROUND - y < p.fade * 44 - 3 + rag) lab[i] = 0;
+    }
+    const ra = 8.2 - HINGE[0], mouth = toPx(HINGE[0] + p.jawPull + ra * jc + 1.2, HINGE[1] - ra * js * 0.5 - 1.4);
+    return { p, lab, lab0, HA, HB, TV, hx, hy, cs, sn, toPx, lost, mouth, eyes: SOCKETS.map(([a, b]) => toPx(a + 0.3, b - 0.2)),
+      chest: toPx(0, -3), body: toPx(0, 2), crown: toPx(-2, 13) };
+  }
+
+  // ---------------------------------------------------------------------------------------------- painting
+  function paint(c, g, F, t) {
+    const { p, lab, HA, HB, TV } = F;
+    const is = (...ls) => { const s = new Set(ls); const m = new Uint8Array(N); for (let i = 0; i < N; i++) if (s.has(lab[i])) m[i] = 1; return m; };
+    const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = lab[i] ? 1 : 0;
+    const mo = dilate(m);
+    for (let i = 0; i < N; i++) if (mo[i]) { const o = i * 4; g.px[o] = g.px[o + 1] = g.px[o + 2] = 0; }
+    put(c, outline(m), K.ink);
+    const up = mm => nb(mm, 0, -1), down = mm => nb(mm, 0, 1), left = mm => nb(mm, -1, 0), right = mm => nb(mm, 1, 0);
+    const bone = is(L_.BONE), jaw = is(L_.JAW), mouth = is(L_.MOUTH), face = is(L_.FACE), helm = is(L_.HELM), horn = is(L_.HORN), hornB = is(L_.HORN_B);
+    const toScreen = (na, nb_, nz) => { const nu = na * F.cs + nb_ * F.sn, nd = -na * F.sn + nb_ * F.cs, l = Math.hypot(nu, nd, nz) || 1; return (-nu * LDIR[0] - nd * LDIR[1] + nz * LDIR[2]) / l; };
+    const sph = (i, r, ca, cb) => { const na = (HA[i] - ca) / r, nb_ = (HB[i] - cb) / r; return toScreen(na, nb_, Math.sqrt(Math.max(0.05, 1 - na * na - nb_ * nb_))); };
+    // bone: the cranium a sphere, the face flatter, the cheekbone catching light, the teeth in a row with dark gaps
+    paintZone(c, bone, RAMP.bone, i => 0.5 + 0.55 * sph(i, CR + 2, 0, 0) + (HA[i] > 3 && HA[i] < 9 && Math.abs(HB[i] + 3.6) < 0.8 ? 0.15 : 0), 0.5);
+    put(c, and(bone, mask((x, y, i) => HB[i] < -6.6 && HA[i] > -0.5)), RAMP.bone[3]);
+    put(c, and(bone, mask((x, y, i) => HB[i] < -6.6 && HA[i] > -0.5 && Math.abs(frac(HA[i] / 1.9) - 0.5) < 0.18)), RAMP.bone[0]);
+    // the nose: a dark notch at the front of the face
+    put(c, and(bone, mask((x, y, i) => { const a = HA[i], b = HB[i]; return b < -4.4 && b > -6.4 && Math.abs(a - 8.0) < 1.0 * (1 - (-4.4 - b) / 2.0) + 0.35; })), K.void1);
+    paintZone(c, jaw, RAMP.bone, i => 0.36 + 0.45 * sph(i, 9, 2, -9), 0.5);
+    put(c, and(jaw, up(mouth)), RAMP.bone[3]);
+    put(c, and(jaw, up(bone)), RAMP.bone[0]);   // the seam where the closed jaw meets the teeth
+    put(c, and(jaw, mask((x, y, i) => TV[i] > -9.6)), RAMP.bone[3]);
+    put(c, and(jaw, mask((x, y, i) => TV[i] > -9.6 && Math.abs(frac(HA[i] / 1.9 + 0.5) - 0.5) < 0.18)), RAMP.bone[0]);
+    // the mouth: dark, glowing from the fire inside when it breathes
+    put(c, mouth, K.void1);
+    if (p.mouthFire > 0) {
+      const mk = p.mouthFire;
+      paintZone(c, mouth, FIRE, i => clamp01(0.35 + 0.6 * mk - 0.06 * Math.abs(HB[i] + 9) + 0.04 * (HA[i] - 3)), 0.8);
+      add(g, mouth, LIGHT.fire, 0.7 * mk);
+    }
+    // the helm: dark iron dome lit from the upper left, a band over the brow with rivets, the broken edge, the horns
+    paintZone(c, helm, RAMP.iron, i => 0.36 + 0.6 * sph(i, HELM_R, 0, 2) + (HB[i] < brow(HA[i]) + 1.8 ? -0.08 : 0), 0.45);
+    put(c, and(helm, mask((x, y, i) => HB[i] < brow(HA[i]) + 1.8 && HB[i] > brow(HA[i]) + 1.0)), RAMP.iron[4]);
+    for (const a of [9, 4.5, 0, -4.5]) { const [qx, qy] = F.toPx(a, brow(a) + 0.8); const i = idx(qx, qy); if (i >= 0 && helm[i]) putPx(c, qx, qy, RAMP.iron[5]); }
+    put(c, and(helm, mask((x, y, i) => inNotch(HA[i] - 0.7, HB[i] + 0.7))), RAMP.iron[0]);
+    put(c, and(helm, mask((x, y, i) => sph(i, HELM_R, 0, 2) > 0.92)), K.steel3);
+    paintZone(c, hornB, RAMP.horn, i => 0.25 + 0.3 * TV[i], 0.5);
+    paintZone(c, horn, RAMP.horn, i => 0.3 + 0.55 * TV[i] + 0.1 * (HA[i] > 9 ? 1 : 0), 0.5);
+    put(c, and(horn, not(up(horn)), mask((x, y, i) => TV[i] > 0.4)), RAMP.horn[4]);
+    put(c, and(helm, or(nb(horn, 1, 0), nb(horn, 0, 1))), K.ink);
+    // the eye sockets: shadow under the brow, an ember burning in each
+    put(c, face, K.void1);
+    const ek = p.eyes;
+    if (ek > 0.02) F.eyes.forEach(([ex, ey], k) => {
+      const pts = k === 0 ? [[0, 0], [-1, 0], [0, 1], [-1, 1], [1, 0]] : [[0, 0], [-1, 0], [0, 1]];
+      if (ek > 1.4) pts.push([0, -1], [1, 1]);
+      pts.forEach(([dx, dy], j) => {
+        const i = idx(ex + dx, ey + dy); if (i < 0 || lab[i] !== L_.FACE) return;
+        putPx(c, ex + dx, ey + dy, j === 0 ? (ek > 1.6 ? FIRE[5] : FIRE[4]) : j < 3 ? FIRE[3] : FIRE[2]);
+        addPx(g, ex + dx, ey + dy, j === 0 ? LIGHT.ember : LIGHT.fire, (j === 0 ? 1.1 : 0.6) * ek);
+      });
+    });
+    // rim light: cyan in front and on top, violet behind; its own fire warms the back of the helm
+    const fig = and(m, not(face), not(mouth));
+    const rimC = and(fig, or(not(left(m)), and(not(up(m)), mask(x => x < F.hx + 2))));
+    const rimV = and(fig, not(right(m)), not(rimC));
+    put(c, rimV, K.rimv, 0.8);
+    put(c, rimC, K.rimc); add(g, rimC, LIGHT.cyan, 0.42);
+    const warm = and(fig, or(not(up(m)), not(right(m))), mask((x, y, i) => x > F.hx - 6 && HB[i] > 2), not(rimC));
+    put(c, warm, FIRE[2], 0.6 * p.mane); add(g, warm, LIGHT.fire, 0.25 * p.mane);
+    if (p.fade > 0) { const gone = mask((x, y, i) => F.lab0[i] && !m[i]), edge = and(m, dilate(gone)); put(c, edge, FIRE[2]); put(c, and(edge, mask((x, y, i) => B[i] < 0.4)), FIRE[3]); add(g, edge, LIGHT.fire, 0.5); }
+    if (p.flash > 0) {
+      const fv = hex('#fff4e6');
+      for (let i = 0; i < N; i++) if (m[i]) { const w = p.flash * 0.85, o = i * 4; c.px[o] = c.px[o] * (1 - w) + fv[0] * w; c.px[o + 1] = c.px[o + 1] * (1 - w) + fv[1] * w; c.px[o + 2] = c.px[o + 2] * (1 - w) + fv[2] * w; }
+    }
+    return m;
+  }
+
+  // ---------------------------------------------------------------------------------------------- effects (its moves' vocabulary)
+  /** A flame pixel: the ramp from the dark red edge to the white core by heat (dithered), light in proportion. */
+  function firePx(c, g, x, y, heat, gain = 1) {
+    const i = idx(x, y); if (i < 0 || y >= GROUND || y < 2 || x < 2 || x >= CW - 2) return;
+    const tIdx = Math.max(0, Math.min(5, Math.floor(heat * 5 + 0.5 + (B[i] - 0.5) * 0.9)));
+    putPx(c, x, y, FIRE[tIdx]); addPx(g, x, y, tIdx >= 4 ? LIGHT.ember : LIGHT.fire, gain * (0.15 + 0.22 * tIdx));
+  }
+  /** The fire of its mane, drawn behind the figure: tongues that rise off the top and back of the helm, each one's shape
+      computed for this frame (height, lean, sway), wide and white-hot at the base, thin and dark red at the tip. */
+  function mane(c, g, F, t, gain = 1) {
+    const p = F.p; if (p.mane <= 0.02) return;
+    const tongues = [[-10, 9, 1, 0.3], [-7, 13, 2, 1.7], [-3.5, 15, 1, 3.1], [0, 13, 2, 4.4], [3.5, 11, 1, 5.6], [6.5, 8, 2, 0.9], [-12, 7, 1, 2.2]];
+    const heat = new Float32Array(N);
+    tongues.forEach(([a0, h0, cyc, off]) => {
+      const bTop = 2 + Math.sqrt(Math.max(0, HELM_R * HELM_R - a0 * a0)) - 1.5, base = F.toPx(a0, bTop);
+      const fl = 0.78 + 0.22 * Math.sin(2 * Math.PI * t * cyc * 2 + off) + 0.08 * Math.sin(2 * Math.PI * t * 5 + off * 2);
+      const H = Math.min(h0 * p.mane * fl * (1 + 0.5 * p.roar) * Z, base[1] - 4), lean = (p.wind * 0.55 + 0.12 * Math.sin(2 * Math.PI * t * cyc + off)) * H;
+      for (let s = 0; s <= 1.0001; s += 0.04) {
+        const w = (3.4 * Math.pow(1 - s, 0.8) + 0.4) * Z * (1 + 0.15 * p.roar), cx = base[0] + lean * Math.pow(s, 1.5) + Math.sin(s * 5 + 2 * Math.PI * t * 2 + off) * 0.8 * s * Z, cy = base[1] - H * s;
+        for (let yy = Math.floor(cy - w); yy <= cy + w; yy++) for (let xx = Math.floor(cx - w); xx <= cx + w; xx++) {
+          const d = Math.hypot(xx + 0.5 - cx, yy + 0.5 - cy) / w; if (d > 1) continue;
+          const i = idx(xx, yy); if (i < 0) continue;
+          heat[i] = Math.max(heat[i], (1 - s) * 0.85 * (1 - d * 0.75) + 0.12);
+        }
+      }
+    });
+    for (let i = 0; i < N; i++) if (heat[i] > 0.1) firePx(c, g, i % CW + 0.5, ((i / CW) | 0) + 0.5, Math.min(1, heat[i] * (1 + 0.25 * p.roar)), gain);
+  }
+  /** Embers rising off the mane (integer cycles per loop). */
+  function embers(c, g, t, F, count = 6, seed = 29, speed = 1) {
+    const r = rng(seed), top = F.crown;
+    for (let i = 0; i < count; i++) {
+      const x0 = top[0] + uni(r, -12, 10), ph = r(), cyc = (r() < 0.6 ? 1 : 2) * speed, u = frac(t * cyc + ph), a = Math.sin(Math.PI * u);
+      const x = x0 + Math.sin(u * 7 + i) * 2 + u * 4 * F.p.wind, y = top[1] - 4 - u * 34;
+      if (a < 0.2 || y < 2) continue;
+      putPx(c, x, y, u < 0.4 ? FIRE[4] : FIRE[3], Math.min(1, a * 1.4)); addPx(g, x, y, LIGHT.ember, 0.6 * a);
+    }
+  }
+  function star4(c, g, x, y, arm, o = {}) {
+    const core = o.core || K.white, col = o.col || FIRE[4], edge = o.edge || FIRE[3], light = o.light || LIGHT.ember, gain = o.gain ?? 1, diag = o.diag ?? true;
+    x = Math.floor(x); y = Math.floor(y);
+    for (let i = 1; i <= arm; i++) {
+      const k = i / (arm + 0.5), colr = k < 0.55 ? col : edge;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { putPx(c, x + dx * i + 0.5, y + dy * i + 0.5, colr); addPx(g, x + dx * i + 0.5, y + dy * i + 0.5, light, gain * (1 - k) * 0.9); }
+    }
+    if (diag && arm >= 3) for (const [dx, dy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) for (let i = 1; i <= Math.max(1, Math.floor(arm / 3)); i++) { putPx(c, x + dx * i + 0.5, y + dy * i + 0.5, edge); addPx(g, x + dx * i + 0.5, y + dy * i + 0.5, light, gain * 0.35); }
+    putPx(c, x + 0.5, y + 0.5, core); addPx(g, x + 0.5, y + 0.5, LIGHT.white, gain * 1.2);
+  }
+  /** Llamarada: a cone of fire out of its mouth towards the hero, puffs that grow and cool as they travel, out to `reach`
+      (0..1 of the way to the front of the cell); `from` eats the tail as the breath ends. */
+  function breath(c, g, x0, y0, x1, y1, reach, from, k, seed = 3) {
+    if (k <= 0.02 || reach <= from) return;
+    const r = rng(seed), len = Math.hypot(x1 - x0, y1 - y0), ux = (x1 - x0) / len, uy = (y1 - y0) / len;
+    const heat = new Float32Array(N);
+    for (let j = 0; j < 22; j++) {
+      const s = from + (reach - from) * (j + uni(r, 0, 0.6)) / 22, off = uni(r, -1, 1) * s * len * 0.16;
+      const cx = x0 + ux * s * len - uy * off, cy = y0 + uy * s * len + ux * off, rad = (1.8 + 7.5 * s) * (0.7 + 0.3 * k) * uni(r, 0.75, 1.1);
+      const hot = (1 - 0.65 * s) * k * (s > reach - 0.12 ? 1.1 : 1);
+      for (let yy = Math.floor(cy - rad); yy <= cy + rad; yy++) for (let xx = Math.floor(cx - rad); xx <= cx + rad; xx++) {
+        const d = Math.hypot(xx + 0.5 - cx, yy + 0.5 - cy) / rad; if (d > 1) continue;
+        const i = idx(xx, yy); if (i < 0 || xx < 2 || yy < 2 || yy >= GROUND - 1) continue;
+        heat[i] = Math.max(heat[i], hot * (1 - 0.7 * d) + 0.1 * vnoise(xx / 2.5 + j, yy / 2.5));
+      }
+    }
+    for (let i = 0; i < N; i++) if (heat[i] > 0.12) firePx(c, g, i % CW + 0.5, ((i / CW) | 0) + 0.5, Math.min(1, heat[i]), 1.1);
+  }
+  function sparks(c, g, ox, oy, age, seed, count, speed, ang, spread, o = {}) {
+    if (age <= 0) return;
+    const grav = o.grav ?? 0.14, life = o.life ?? 7, bone = o.bone;
+    const r = rng(seed);
+    for (let i = 0; i < count; i++) {
+      const a0 = ang + uni(r, -spread, spread), spd = uni(r, speed * 0.45, speed), lf = life * uni(r, 0.7, 1.0);
+      if (age > lf) continue;
+      const x = ox + Math.cos(a0) * spd * age, y = oy + Math.sin(a0) * spd * age + grav * age * age, k = 1 - age / (lf + 1);
+      if (y >= GROUND || x < 1 || x > CW - 2 || y < 1) continue;
+      if (bone && i % 2 === 0) { putPx(c, x, y, RAMP.bone[4]); putPx(c, x + 1, y, RAMP.bone[2]); continue; }
+      putPx(c, x, y, age < 2.5 ? FIRE[5] : FIRE[3]); addPx(g, x, y, LIGHT.ember, k);
+      if (age < 4) for (const [qx, qy] of line(x, y, x - Math.cos(a0) * spd * 0.9, y - Math.sin(a0) * spd * 0.9 - grav * age * 1.5).slice(1)) { putPx(c, qx + 0.5, qy + 0.5, FIRE[1], k); addPx(g, qx + 0.5, qy + 0.5, LIGHT.fire, 0.3 * k); }
+    }
+  }
+  /** Smoke: solid little puffs that rise and spread (no light). */
+  function smoke(c, x, y, age, k, seed = 5, n = 6) {
+    if (k <= 0.05 || age <= 0) return;
+    const q = rng(seed);
+    for (let j = 0; j < n; j++) {
+      const cx = x + uni(q, -4, 4) + age * uni(q, -0.6, 0.8), cy = y - age * uni(q, 1.2, 2.2), rr = (1.2 + 0.45 * age) * uni(q, 0.7, 1.1) * k;
+      for (let yy = Math.floor(cy - rr); yy <= cy + rr; yy++) for (let xx = Math.floor(cx - rr); xx <= cx + rr; xx++) {
+        const e = Math.hypot(xx + 0.5 - cx, yy + 0.5 - cy) / rr; if (e > 1 || yy >= GROUND || xx < 1 || xx > CW - 2 || yy < 1) continue;
+        putPx(c, xx + 0.5, yy + 0.5, e < 0.55 && xx < cx ? K.smoke1 : K.smoke0);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------- the frames
+  // Every action frame below is its own drawing: where the skull hovers and how it tips, how far the jaw hangs open, its
+  // eyes, and the fire of its mane (its height, how far it streams back or is thrown forward, the roar) are written for
+  // that frame, and every flame tongue is computed again for it; nothing is interpolated or rotated at play time.
+  const withP = (p, o) => Object.assign({}, p, o);
+  const CHATTER = { 5: 10, 6: 12, 7: 3, 8: 9, 9: 4 };
+  /** The idle: it bobs in whole pixels, tips a little after it, the jaw chatters now and then, the mane flickers and
+      streams back as it rises, embers drift up. */
+  function idlePose(t, f) {
+    const a = 2 * Math.PI * t, s = Math.sin(a), tl = Math.sin(a - 1.2);
+    return withP(IDLE, { phase: a, y: Math.round(-1.5 * s - 0.5), tilt: tl > 0.45 ? 7 : tl < -0.45 ? 1 : 4, wind: 0.4 + 0.25 * Math.sin(a - 0.6),
+      jaw: CHATTER[f] ?? 3, eyes: 1 + 0.12 * Math.sin(6 * a) });
+  }
+  const POSES = {
+    // Llamarada: it draws breath (tips back, the mane sucked forward, fire kindling in its mouth and eyes), thrusts its jaw
+    // open and breathes a cone of fire at the hero (it reaches the hero on frame 4) with the mane streaming back; the
+    // breath thins, smoke curls from its teeth and the mane flares back up as it settles
+    attack: [
+      { y: -1, tilt: -8, jaw: 0, eyes: 1.4, mane: 0.75, wind: -0.3 },
+      { x: 1, y: -2, tilt: -14, jaw: 7, eyes: 1.7, mane: 0.6, wind: -0.5, mouthFire: 0.45 },
+      { x: -3, y: -1, tilt: 10, jaw: 30, eyes: 2.0, mane: 0.8, wind: 1.4, mouthFire: 1 },
+      { x: -4, tilt: 14, jaw: 38, jawPull: 0.5, eyes: 2.0, mane: 0.9, wind: 1.8, mouthFire: 1 },
+      { x: -4, tilt: 12, jaw: 34, eyes: 1.8, mane: 0.95, wind: 1.6, mouthFire: 0.9 },
+      { x: -3, tilt: 8, jaw: 24, eyes: 1.5, mane: 1, wind: 1.1, mouthFire: 0.6 },
+      { x: -1, tilt: 2, jaw: 10, eyes: 1.3, mane: 1.15, wind: 0.3, mouthFire: 0.2 },
+      { y: -1, tilt: -2, jaw: 4, eyes: 1.15, mane: 1.25, wind: -0.1 },
+      { tilt: 3, jaw: 3, eyes: 1.05, mane: 1.05, wind: 0.3 }
+    ],
+    // Avivar: it rises and throws its head back with the jaw open in a roar, the mane flares up and roars, its eyes burn
+    // white, embers spiral up round it; then the fire settles, a little bigger for a moment
+    cast: [
+      { tilt: 2, jaw: 6, mane: 1.08, eyes: 1.2 },
+      { y: -1, tilt: -4, jaw: 12, mane: 1.18, roar: 0.15, eyes: 1.4, wind: 0.2 },
+      { y: -2, tilt: -8, jaw: 20, mane: 1.28, roar: 0.3, eyes: 1.7, wind: 0.1 },
+      { y: -3, tilt: -10, jaw: 26, mane: 1.36, roar: 0.45, eyes: 2.0, wind: 0, mouthFire: 0.4 },
+      { y: -3, tilt: -10, jaw: 28, mane: 1.4, roar: 0.5, eyes: 2.2, wind: -0.05, mouthFire: 0.6 },
+      { y: -3, tilt: -9, jaw: 26, mane: 1.4, roar: 0.45, eyes: 2.1, wind: 0.05, mouthFire: 0.5 },
+      { y: -2, tilt: -6, jaw: 18, mane: 1.34, roar: 0.35, eyes: 1.9, wind: 0.1, mouthFire: 0.3 },
+      { y: -2, tilt: -2, jaw: 10, mane: 1.26, roar: 0.25, eyes: 1.6, wind: 0.2 },
+      { y: -1, tilt: 2, jaw: 5, mane: 1.18, roar: 0.12, eyes: 1.35, wind: 0.3 },
+      { y: -1, tilt: 4, jaw: 3, mane: 1.1, eyes: 1.2, wind: 0.35 },
+      { tilt: 4, jaw: 3, mane: 1.04, eyes: 1.05, wind: 0.4 }
+    ],
+    // struck: knocked back, the jaw flops open, the flames are thrown forward; it rattles back into place
+    hurt: [
+      { x: 4, y: -1, tilt: -16, jaw: 22, flash: 0.85, mane: 0.8, wind: -0.8, eyes: 1.4 },
+      { x: 5, tilt: -18, jaw: 26, flash: 0.4, mane: 0.72, wind: -1.0, eyes: 1.3 },
+      { x: 3, tilt: -6, jaw: 10, flash: 0.12, mane: 0.9, wind: 0.8, eyes: 1.2 },
+      { x: 1, tilt: 2, jaw: 2, mane: 1.05, wind: 0.6 },
+      { tilt: 5, jaw: 5, mane: 1.0, wind: 0.42 },
+      { tilt: 4, jaw: 3, wind: 0.45 }
+    ],
+    // the death: struck, the fire sputters out into smoke and the eyes die; the skull drops with its jaw hanging open, hits
+    // the floor, bounces, rocks back and burns away from the floor up into embers
+    death: [
+      { x: 4, y: -1, tilt: -16, jaw: 22, flash: 0.9, mane: 0.8, wind: -0.8, eyes: 1.6 },
+      { x: 5, y: -2, tilt: -20, jaw: 30, mane: 0.6, wind: -0.6, eyes: 1.9, flash: 0.35 },
+      { x: 5, y: -2, tilt: -14, jaw: 34, mane: 0.42, wind: 0.2, eyes: 1.2 },
+      { x: 5, y: -1, tilt: -8, jaw: 36, mane: 0.26, wind: 0.5, eyes: 0.6 },
+      { x: 5, hd: 31, tilt: -2, jaw: 38, mane: 0.12, wind: 0.8, eyes: 0.3 },
+      { x: 5, hd: 24, tilt: 6, jaw: 34, mane: 0, eyes: 0.1 },
+      { x: 5, hd: 18.5, tilt: 14, jaw: 24, mane: 0, eyes: 0 },
+      { x: 4, hd: 16.5, tilt: 20, jaw: 10, mane: 0, eyes: 0 },
+      { x: 3, hd: 19, tilt: 8, jaw: 18, mane: 0, eyes: 0 },
+      { x: 2, hd: 16.5, tilt: -6, jaw: 6, mane: 0, eyes: 0 },
+      { x: 2, hd: 16.5, tilt: -10, jaw: 4, mane: 0, eyes: 0 }
+    ]
+  };
+  [0.14, 0.3, 0.46, 0.62, 0.8].forEach(fade => POSES.death.push(withP(POSES.death[10], { fade })));
+  const N_OF = { idle: 24, attack: 10, cast: 12, hurt: 7, death: 17 };
+  const ANIMATIONS = [['idle', 24, true], ['attack', 10, false], ['cast', 12, false], ['hurt', 7, false], ['death', 17, false]];
+  const STRIKE_FRAME = 3;
+
+  const clock = (f, n) => frac((f - (n - 1)) / LOOP);
+  const pose = (name, f) => name === 'idle' ? idlePose(f / LOOP, f) : withP(IDLE, POSES[name][Math.min(f, POSES[name].length - 1)]);
+  const poseAt = (name, f) => name === 'idle' ? idlePose(f / LOOP, f) : name !== 'death' && f >= N_OF[name] - 1 ? idlePose(0, 0) : pose(name, f);
+  const silhouette = p => { const F = figure(p); const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = F.lab[i] ? 1 : 0; return m; };
+
+  function idleFrame(f) {
+    const t = f / LOOP, p = idlePose(t, f);
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    mane(c, g, F, t);
+    paint(c, g, F, t);
+    embers(c, g, t, F);
+    return [c, g];
+  }
+  /** Where the fire lands: in front, at the hero's chest height. */
+  const BREATH_END = [4, GROUND - 44];
+  const strikePoint = () => [BREATH_END[0] + 12, BREATH_END[1]];
+
+  function actionFrame(name, f) {
+    const n = N_OF[name]; if (f === n - 1) return idleFrame(0);
+    const t = clock(f, n), p = withP(pose(name, f), { phase: t * 2 * Math.PI });
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    mane(c, g, F, t);
+    paint(c, g, F, t);
+    const [mx, my] = F.mouth;
+    if (name === 'attack') {
+      // breathing in: sparks drawn into the mouth; then the cone of fire, its tail eaten as it ends; smoke after
+      if (f <= 1) { const r = rng(13 + f); for (let i = 0; i < 9; i++) { const q = uni(r, 0, 2 * Math.PI), rr = uni(r, 6, 14) * (1 - 0.4 * f); const x = mx - 4 + Math.cos(q) * rr, y = my + Math.sin(q) * rr * 0.7, j = idx(x, y); if (j < 0 || F.lab[j]) continue; putPx(c, x, y, FIRE[4]); addPx(g, x, y, LIGHT.ember, 0.6); } }
+      const B_ = { 2: [0.42, 0, 1], 3: [1, 0, 1], 4: [1, 0.08, 0.85], 5: [1, 0.45, 0.55], 6: [1, 0.8, 0.28] }[f];
+      if (B_) breath(c, g, mx - 2, my, BREATH_END[0], BREATH_END[1], B_[0], B_[1], B_[2], 3 + f);
+      if (f >= 2 && f <= 4) star4(c, g, mx - 2, my, [3, 5, 3][f - 2], { gain: [1.0, 1.4, 1.0][f - 2] });
+      sparks(c, g, BREATH_END[0] + 10, BREATH_END[1], f - STRIKE_FRAME + 0.6, 5, 12, 2.2, -0.6, 1.1, { grav: 0.12, life: 6 });
+      if (f >= 6) smoke(c, mx - 1, my - 1, f - 5.4, [0.9, 0.7, 0.45][f - 6] ?? 0, 41, 4);
+      embers(c, g, t, F, 5, 29, 1);
+    } else if (name === 'cast') {
+      if (f === 3 || f === 4) F.eyes.forEach(([ex, ey], k) => star4(c, g, ex, ey, k ? 2 : (f === 3 ? 4 : 3), { gain: 1.2, diag: f === 3 && !k }));
+      // embers spiral up round it while the fire roars
+      if (f >= 1 && f <= 9) {
+        const r = rng(51), kk = [0, 0.4, 0.7, 1, 1, 1, 0.9, 0.7, 0.5, 0.3][f];
+        for (let i = 0; i < 16; i++) {
+          const ph = r(), u = frac(ph + f * 0.09), an = 2 * Math.PI * (ph * 3 + u * 1.5), rad = 15 + 6 * u, x = F.hx + Math.cos(an) * rad, y = F.hy + 12 - u * 50;
+          if (Math.sin(an) < -0.2 && Math.abs(x - F.hx) < 14) continue;   // behind the skull
+          if (y < 3 || y >= GROUND - 1) continue;
+          putPx(c, x, y, u < 0.5 ? FIRE[4] : FIRE[3], kk); addPx(g, x, y, LIGHT.ember, 0.7 * kk);
+        }
+      }
+      embers(c, g, t, F, 9, 31, 2);
+    } else if (name === 'hurt') {
+      // the hit chips bone and knocks embers out of it: they spray back, away from the hero
+      const h0 = figure(pose('hurt', 0)).toPx(8, 0);
+      sparks(c, g, h0[0] + 2, h0[1], f + 0.8, 13, 12, 2.4, -0.2, 0.9, { grav: 0.16, life: 5.5, bone: true });
+      if (f === 0) star4(c, g, h0[0] - 3, h0[1], 4, { core: K.white, col: K.violet3, edge: K.violet2, light: LIGHT.violet, gain: 1.0 });
+      embers(c, g, t, F, 4, 29, 1);
+    }
+    return [c, g];
+  }
+
+  function deathFrame(f) {
+    const n = N_OF.death, c = new Cv(), g = new Cv();
+    if (f === n - 1) return [c, g];   // nothing left: the death holds an empty frame
+    const t = frac(f / LOOP), p = withP(pose('death', f), { phase: t * 2 * Math.PI }), F = figure(p);
+    mane(c, g, F, t);
+    paint(c, g, F, t);
+    const h0 = figure(pose('death', 0)).toPx(8, 0);
+    sparks(c, g, h0[0] + 2, h0[1], f + 0.8, 13, 12, 2.4, -0.2, 0.9, { grav: 0.16, life: 5.5, bone: true });
+    if (f === 0) star4(c, g, h0[0] - 3, h0[1], 4, { core: K.white, col: K.violet3, edge: K.violet2, light: LIGHT.violet });
+    if (f === 1) F.eyes.forEach(([ex, ey]) => star4(c, g, ex, ey, 2, { gain: 0.9, diag: false }));
+    // the fire goes out in smoke; the skull hits the floor in a puff of ash and a clatter of bone
+    const c0 = figure(pose('death', 2)).crown;
+    if (f >= 2 && f <= 9) smoke(c, c0[0], c0[1] - 2, f - 1.5, Math.min(1, 1.2 - (f - 2) * 0.12), 61, 7);
+    if (f >= 7 && f <= 9) smoke(c, F.hx, GROUND - 3, (f - 6.5) * 0.8, [1, 0.7, 0.4][f - 7], 77 + f, 6);
+    if (f === 7) sparks(c, g, F.hx - 6, GROUND - 3, 1.4, 33, 6, 1.8, -Math.PI * 0.6, 0.6, { grav: 0.2, life: 4, bone: true });
+    // burning away: embers born on the ragged edge rise in the next frames
+    if (f >= 11) {
+      const r = rng(90);
+      for (let i = 0; i < 22; i++) {
+        const born = 11 + uni(r, 0, 4.5), x0 = uni(r, F.hx - 18, F.hx + 18), age = f - born, y0 = GROUND - 3 - uni(r, 0, 22);
+        if (age < 0 || age > 5) continue;
+        const k = 1 - age / 6, x = x0 + Math.sin(age * 1.3 + i) * 1.2, y = y0 - age * 2.6;
+        putPx(c, x, y, i % 3 ? FIRE[3] : FIRE[4], Math.min(1, 1.4 * k)); addPx(g, x, y, LIGHT.ember, 0.6 * k);
+      }
+      smoke(c, F.hx, GROUND - 8, f - 10.5, 0.8 - (f - 11) * 0.14, 91, 5);
+    }
+    return [c, g];
+  }
+
+  const FRAME = { idle: idleFrame, attack: f => actionFrame('attack', f), cast: f => actionFrame('cast', f), hurt: f => actionFrame('hurt', f), death: deathFrame };
+  const durationsMs = n => Array.from({ length: n }, (_, i) => Math.round((i + 1) * 1000 / FPS) - Math.round(i * 1000 / FPS));
+  const silhouetteOf = (name, f) => name === 'death' && f === N_OF.death - 1 ? new Uint8Array(N) : silhouette(poseAt(name, f));
+  const lostOf = (name, f) => name === 'death' && f === N_OF.death - 1 ? 0 : figure(poseAt(name, f)).lost;
+  const dissolving = (name, f) => name === 'death' && (f === N_OF.death - 1 || poseAt(name, f).fade > 0);
+  const EVENTS = { attack: { strikes: [STRIKE_FRAME] } };
+  const META = { moves: { flame: 'attack', stoke: 'cast', vengeance: 'cast' } };
+  /** Where the game's particles burst (EnemyAnimator.Styles): the skull, its eyes on idle frame 0, where the fire lands. */
+  const points = () => { const F = figure(idlePose(0, 0)); return { chest: F.chest, eyes: [(F.eyes[0][0] + F.eyes[1][0]) / 2, F.eyes[0][1]], body: F.body, claw: strikePoint() }; };
+  const api = { CW, CH, GROUND, FPS, LOOP, ROOT_X, ANIMATIONS, STRIKE_FRAME, EVENTS, META, FRAME, durationsMs, strikePoint,
+    silhouetteOf, lostOf, dissolving, points, figure, pose, L_ };
+  root.SkullArt = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const A = window.SkullArt;
+  const INFO = {
+    idle: ['Reposo', 'Bucle de 2 s: flota cabeceando, la mandíbula castañetea de vez en cuando, la melena de fuego parpadea y se va hacia atrás al subir, las brasas de los ojos laten y suben ascuas.'],
+    attack: ['Llamarada', 'Toma aire (se echa atrás, la melena se recoge hacia delante, el fuego prende en la boca y en los ojos), abre la mandíbula de golpe y lanza un cono de fuego que llega al héroe en el fotograma 4 con la melena hacia atrás; el aliento se apaga, le sale humo entre los dientes y la melena vuelve a crecer.'],
+    cast: ['Avivar', 'Se eleva y echa la cabeza atrás rugiendo con la mandíbula abierta; la melena crece y ruge, los ojos arden en blanco y las ascuas suben en espiral a su alrededor; luego el fuego se asienta, un momento más grande.'],
+    hurt: ['Daño', 'El golpe lo echa atrás, la mandíbula se le cae abierta y las llamas salen hacia delante; le arranca astillas de hueso y ascuas, y vuelve a su sitio.'],
+    death: ['Muerte', 'El golpe apaga el fuego en humo y mueren las brasas de los ojos; el cráneo cae con la mandíbula colgando, choca contra el suelo, rebota, se balancea y se consume de abajo arriba en ascuas. Termina en un fotograma vacío.']
+  };
+  const EVENTS = { attack: { [A.STRIKE_FRAME]: 'golpe' } };
+  const cache = {};
+  function toCanvases(c, g) {
+    const lit = document.createElement('canvas'), glow = document.createElement('canvas');
+    lit.width = glow.width = A.CW; lit.height = glow.height = A.CH;
+    const L = lit.getContext('2d').createImageData(A.CW, A.CH), G = glow.getContext('2d').createImageData(A.CW, A.CH);
+    for (let i = 0; i < A.CW * A.CH; i++) {
+      const o = i * 4;
+      let r = c.px[o] + Math.min(4, g.px[o]) * 0.6, gg = c.px[o + 1] + Math.min(4, g.px[o + 1]) * 0.6, b = c.px[o + 2] + Math.min(4, g.px[o + 2]) * 0.6;
+      const hot = Math.max(0, Math.max(r, gg, b) - 1) * 0.5;
+      r = Math.min(1, Math.min(1, r) + hot); gg = Math.min(1, Math.min(1, gg) + hot); b = Math.min(1, Math.min(1, b) + hot);
+      L.data[o] = r * 255 + 0.5; L.data[o + 1] = gg * 255 + 0.5; L.data[o + 2] = b * 255 + 0.5; L.data[o + 3] = c.px[o + 3] > 0.01 ? 255 : 0;
+      G.data[o] = Math.min(1, g.px[o] / 2.5) * 255; G.data[o + 1] = Math.min(1, g.px[o + 1] / 2.5) * 255; G.data[o + 2] = Math.min(1, g.px[o + 2] / 2.5) * 255; G.data[o + 3] = 255;
+    }
+    lit.getContext('2d').putImageData(L, 0, 0); glow.getContext('2d').putImageData(G, 0, 0);
+    return { lit, glow };
+  }
+  function frames(name) {
+    if (!cache[name]) { const n = A.ANIMATIONS.find(a => a[0] === name)[1]; cache[name] = Array.from({ length: n }, (_, f) => toCanvases(...A.FRAME[name](f))); }
+    return cache[name];
+  }
+  const stage = document.getElementById('stage');
+  const strip = document.getElementById('strip'), readout = document.getElementById('readout'), note = document.getElementById('note');
+  const playBtn = document.getElementById('play'), haloBox = document.getElementById('halo');
+  let name = 'idle', frame = 0, playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches, acc = 0, last = 0, rest = 0;
+  function paint(target, fr, scale, withHalo) {
+    const t = target.getContext('2d'), sw = A.CW * scale, s = A.CH * scale, css = getComputedStyle(document.documentElement);
+    t.fillStyle = css.getPropertyValue('--stage').trim() || '#1c1932'; t.fillRect(0, 0, sw, s);
+    t.fillStyle = css.getPropertyValue('--stage-floor').trim() || '#120f22'; t.fillRect(0, A.GROUND * scale, sw, s - A.GROUND * scale);
+    // the contact shadow the game draws under every figure (Presentation/Fx/GroundShadow.cs), here as a flat ellipse
+    t.fillStyle = 'rgba(10, 6, 18, 0.75)'; t.beginPath(); t.ellipse(A.ROOT_X * scale, (A.GROUND - 0.5) * scale, 17 * scale, 2.4 * scale, 0, 0, Math.PI * 2); t.fill();
+    t.imageSmoothingEnabled = false; t.drawImage(fr.lit, 0, 0, sw, s);
+    if (!withHalo) return;
+    t.save(); t.globalCompositeOperation = 'lighter'; t.imageSmoothingEnabled = true;
+    t.filter = `blur(${1.4 * scale}px)`; t.globalAlpha = 0.55 * 0.9; t.drawImage(fr.glow, 0, 0, sw, s);
+    t.filter = `blur(${4 * scale}px)`; t.globalAlpha = 0.55 * 1.1; t.drawImage(fr.glow, 0, 0, sw, s);
+    t.restore();
+  }
+  function render() {
+    const fr = frames(name);
+    paint(stage, fr[frame], 4, haloBox.checked);
+    const n = fr.length, ev = (EVENTS[name] || {})[frame];
+    readout.innerHTML = `Fotograma <b>${frame + 1}</b> / ${n} · ${A.durationsMs(n)[frame]} ms${ev ? ` · <b>${ev}</b>` : ''}`;
+    strip.querySelectorAll('figure').forEach((el, i) => { el.dataset.on = String(i === frame); });
+  }
+  function buildStrip() {
+    strip.textContent = '';
+    frames(name).forEach((fr, i) => {
+      const fig = document.createElement('figure'), cv = document.createElement('canvas'), cap = document.createElement('figcaption');
+      cv.width = 256; cv.height = 192; paint(cv, fr, 2, true);
+      cv.addEventListener('click', () => { frame = i; setPlaying(false); render(); });
+      const ev = (EVENTS[name] || {})[i];
+      cap.innerHTML = String(i + 1) + (ev ? ` <span class="ev">${ev}</span>` : '');
+      fig.append(cv, cap); strip.append(fig);
+    });
+  }
+  function select(n) {
+    name = n; frame = 0; acc = 0; rest = 0;
+    picker.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.anim === n)));
+    note.innerHTML = `<strong>${INFO[n][0]}.</strong> ${INFO[n][1]}`;
+    buildStrip(); render();
+  }
+  function setPlaying(v) { playing = v; playBtn.textContent = v ? 'Pausa' : 'Reproducir'; }
+  const picker = document.getElementById('picker');
+  A.ANIMATIONS.forEach(([n]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.anim = n; b.textContent = INFO[n][0];
+    b.addEventListener('click', () => select(n)); picker.append(b);
+  });
+  playBtn.addEventListener('click', () => setPlaying(!playing));
+  document.getElementById('prev').addEventListener('click', () => { setPlaying(false); const n = frames(name).length; frame = (frame - 1 + n) % n; render(); });
+  document.getElementById('next').addEventListener('click', () => { setPlaying(false); frame = (frame + 1) % frames(name).length; render(); });
+  haloBox.addEventListener('change', render);
+  function tick(now) {
+    const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
+    if (playing) {
+      const fr = frames(name), n = fr.length, loop = A.ANIMATIONS.find(a => a[0] === name)[2];
+      if (rest > 0) { rest -= dt; if (rest <= 0) { frame = 0; acc = 0; render(); } }
+      else {
+        acc += dt;
+        const dur = A.durationsMs(n)[frame] / 1000;
+        if (acc >= dur) {
+          acc -= dur;
+          if (frame === n - 1 && !loop) { rest = name === 'death' ? 1.6 : 0.6; }
+          else { frame = (frame + 1) % n; render(); }
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  setPlaying(playing);
+  select('idle');
+  requestAnimationFrame(tick);
+})();
+</script>

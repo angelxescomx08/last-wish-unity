@@ -122,6 +122,7 @@ namespace LastWish.Presentation
         private readonly HashSet<string> sparked = new HashSet<string>();
         private (float x, float y) mouse = (-1, -1);
         private static Tex layer;
+        private static IRenderBackend layerOwner;   // the layer belongs to the backend that made it
         public HeroSheetData Sheet { get; }
         public float T { get; private set; }
         public bool Dismissed { get; private set; }
@@ -165,7 +166,7 @@ namespace LastWish.Presentation
             if (ease < 1)
             {
                 // The original fades a whole composed layer: compose it offscreen, then blit it with alpha.
-                if (layer == null) layer = canvas.Backend.CreateTarget("hero_sheet_layer", Canvas.Width, Canvas.Height);
+                if (layer == null || !ReferenceEquals(layerOwner, canvas.Backend)) { layer = canvas.Backend.CreateTarget("hero_sheet_layer", Canvas.Width, Canvas.Height); layerOwner = canvas.Backend; }
                 canvas.BeginTarget(layer); DrawContent(canvas); canvas.EndTarget();
                 canvas.BlitRect(new Sprite(layer), new RectF(0, dy, Canvas.Width, Canvas.Height), Rgba.White.WithAlpha((int)(255 * ease)));
             }

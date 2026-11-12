@@ -95,10 +95,14 @@ namespace LastWish.Presentation
             ["mycelid"] = new EnemyFxStyle { Wisp = Spore, Ecto = Tox, Spark = Tox, Shreds = CapBits, Glow = C(60, 120, 30), Chest = (0, -126), Eyes = (0, -116), Body = (0, -96), Claw = (-292, -14), ShadowW = 210, AmbientRise = 0.55f },
             ["weaver"] = new EnemyFxStyle { Wisp = Silk, Ecto = Ichor, Spark = Ichor, Shreds = Chitin, Glow = C(120, 24, 70), Chest = (30, -96), Eyes = (-70, -92), Body = (10, -84), Claw = (-120, -64), ShadowW = 230, AmbientRise = 0.4f, AmbientHeavy = true },
             ["knight"] = new EnemyFxStyle { Wisp = EmberPal, Ecto = EmberPal, Spark = Steel, Shreds = Ash, Glow = C(150, 60, 16), Chest = (-6, -124), Eyes = (0, -178), Body = (0, -110), Claw = (-120, -100), ShadowW = 170, Blades = true },
-            ["slime"] = new EnemyFxStyle { Wisp = Acid, Ecto = Acid, Spark = Acid, Shreds = Tail(Acid), Glow = C(50, 130, 30), Chest = (0, -60), Eyes = (-10, -72), Body = (0, -50), Claw = (-118, -40), ShadowW = 180, AmbientRise = 0.5f, AmbientHeavy = true },
-            ["worm"] = new EnemyFxStyle { Wisp = Tox, Ecto = Flesh, Spark = Tox, Shreds = Earth, Glow = C(60, 100, 40), Chest = (-10, -110), Eyes = (-30, -128), Body = (0, -70), Claw = (-118, -96), ShadowW = 150, AmbientRise = 0.6f },
-            ["eye"] = new EnemyFxStyle { Wisp = VioletGlow, Ecto = Ichor, Spark = VioletGlow, Shreds = Tail(Ichor), Glow = C(100, 40, 150), Chest = (0, -96), Eyes = (-12, -108), Body = (0, -92), Claw = (-170, -108), ShadowW = 90 },
-            ["skull"] = new EnemyFxStyle { Wisp = EmberPal, Ecto = EmberPal, Spark = EmberPal, Shreds = Bone, Glow = C(170, 70, 20), Chest = (10, -92), Eyes = (0, -100), Body = (10, -92), Claw = (-150, -82), ShadowW = 110 },
+            // drawn by code in Tools/VfxLab/enemies/slime.html (points printed by `python Tools/VfxLab/export_enemy_art.py --styles`)
+            ["slime"] = new EnemyFxStyle { Wisp = Acid, Ecto = Acid, Spark = Acid, Shreds = Tail(Acid), Glow = C(50, 130, 30), Chest = (-2, -28), Eyes = (-19, -106), Body = (0, -48), Claw = (-110, -4), ShadowW = 150, AmbientRise = 0.5f, AmbientHeavy = true },
+            // drawn by code in Tools/VfxLab/enemies/worm.html
+            ["worm"] = new EnemyFxStyle { Wisp = Tox, Ecto = Flesh, Spark = Tox, Shreds = Earth, Glow = C(60, 100, 40), Chest = (-3, -52), Eyes = (-16, -113), Body = (0, -48), Claw = (-103, -33), ShadowW = 120, AmbientRise = 0.6f },
+            // drawn by code in Tools/VfxLab/enemies/eye.html
+            ["eye"] = new EnemyFxStyle { Wisp = VioletGlow, Ecto = Ichor, Spark = VioletGlow, Shreds = Tail(Ichor), Glow = C(100, 40, 150), Chest = (0, -122), Eyes = (-17, -126), Body = (5, -130), Claw = (-180, -96), ShadowW = 80 },
+            // drawn by code in Tools/VfxLab/enemies/skull.html
+            ["skull"] = new EnemyFxStyle { Wisp = EmberPal, Ecto = EmberPal, Spark = EmberPal, Shreds = Bone, Glow = C(170, 70, 20), Chest = (0, -94), Eyes = (-10, -98), Body = (0, -107), Claw = (-140, -88), ShadowW = 70 },
             ["bat"] = new EnemyFxStyle { Wisp = Blood, Ecto = Blood, Spark = Blood, Shreds = Fur, Glow = C(110, 20, 40), Chest = (0, -94), Eyes = (-10, -108), Body = (0, -92), Claw = (-110, -90), ShadowW = 130, AmbientRise = 0.7f },
             ["bomb"] = new EnemyFxStyle { Wisp = EmberPal, Ecto = Flesh, Spark = EmberPal, Shreds = TealCap, Glow = C(160, 90, 20), Chest = (0, -84), Eyes = (0, -60), Body = (0, -70), Claw = (-100, -62), ShadowW = 100 },
             ["golem"] = new EnemyFxStyle { Wisp = Moss, Ecto = Stone, Spark = Stone, Shreds = MossBits, Glow = C(40, 120, 110), Chest = (-10, -110), Eyes = (-24, -140), Body = (-10, -90), Claw = (-150, -24), ShadowW = 190, AmbientRise = 0.5f, AmbientHeavy = true },

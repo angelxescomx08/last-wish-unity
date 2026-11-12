@@ -126,7 +126,10 @@ namespace LastWish.Tests
         {
             var (art, render) = Load();
             var canvas = new Canvas(render);
-            var anim = new EnemyAnimator(art.EnemySheetById("slime"), 5);
+            // any sheet not redrawn with the HTML method yet (they lose this status one by one)
+            var old = Art.EnemySheetIds.Values.Distinct().Select(art.EnemySheetById).FirstOrDefault(s => s != null && !s.HasHalo);
+            if (old == null) Assert.Pass("every enemy sheet has its halo now");
+            var anim = new EnemyAnimator(old, 5);
             Assert.That(anim.Sheet.HasHalo, Is.False);
             anim.Draw(canvas, art, (400f, 300f));
             Assert.That(render.Quads.Any(q => q.tex != null && q.tex.Contains("_halo")), Is.False);

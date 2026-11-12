@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprite del Gusano de Tumba</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one stage (the sprite at 4x on the dungeon night), the animation picker beside it, the frame strip below. */
+  :root {
+    --bg: #0f0d1a; --panel: #17142a; --line: #2b2648; --fg: #e8e4f8; --muted: #9d97bd;
+    --accent: #e3cf52; --gold: #d9b26a; --stage: #1c1932; --stage-floor: #120f22;
+    --font-display: "Pixelify Sans", "Silkscreen", ui-monospace, monospace;
+    --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { background: var(--bg); color: var(--fg); }
+  body { font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .page { max-width: 980px; margin: 0 auto; padding-block: 28px 40px; display: grid; gap: 22px; }
+  header { display: grid; gap: 6px; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 6vw, 44px); line-height: 1; margin: 0;
+    letter-spacing: 0.02em; text-wrap: balance; }
+  h1 span { color: var(--accent); }
+  .lede { color: var(--muted); max-width: 64ch; margin: 0; }
+  .work { display: grid; grid-template-columns: minmax(0, 512px) minmax(0, 1fr); gap: 22px; align-items: start; }
+  @media (max-width: 720px) { .work { grid-template-columns: minmax(0, 1fr); } }
+  .stage { position: relative; width: 100%; max-width: 512px; aspect-ratio: 4 / 3; border: 1px solid var(--line);
+    background: var(--stage); }
+  .stage canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+  .side { display: grid; gap: 16px; min-width: 0; }
+  .label { font-family: var(--font-display); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .picker { display: flex; flex-wrap: wrap; gap: 8px; }
+  .picker button, .controls button { font: 600 14px/1 var(--font-body); color: var(--fg); background: var(--panel);
+    border: 1px solid var(--line); padding: 10px 12px; cursor: pointer; }
+  .picker button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+  .picker button:hover, .controls button:hover { border-color: var(--muted); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .controls label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 14px; }
+  .readout { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .readout b { color: var(--fg); font-weight: 500; }
+  .note { border-left: 2px solid var(--gold); padding: 2px 0 2px 12px; color: var(--muted); font-size: 14px; margin: 0; }
+  .note strong { color: var(--fg); font-weight: 600; }
+  .strip-wrap { display: grid; gap: 8px; }
+  .strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+  .strip figure { margin: 0; display: grid; gap: 4px; flex: 0 0 auto; }
+  .strip canvas { width: 256px; height: 192px; image-rendering: pixelated; background: var(--stage); border: 1px solid var(--line); cursor: pointer; display: block; }
+  .strip figure[data-on="true"] canvas { border-color: var(--accent); }
+  .strip figcaption { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+  .strip figcaption .ev { color: var(--gold); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+  <header>
+    <h1>El <span>Gusano de Tumba</span></h1>
+    <p class="lede">Enemigo de Last Wish dibujado con código, con el método y el diseño de los héroes. En cada fotograma la figura entera —la lápida, el montículo de tierra, el cuerpo anillado, la cabeza envuelta en su mortaja y la boca de lamprea— es una sola silueta con un único contorno: no hay piezas encima ni partes que giren. Mira hacia el héroe. 12 fotogramas por segundo, celdas de 128×96 px.</p>
+  </header>
+  <div class="work">
+    <div class="stage"><canvas id="stage" width="512" height="384" aria-label="El Gusano de Tumba animado"></canvas></div>
+    <div class="side">
+      <div class="label">Animación</div>
+      <div class="picker" id="picker" role="group" aria-label="Animación"></div>
+      <div class="controls">
+        <button id="play" type="button">Pausa</button>
+        <button id="prev" type="button" aria-label="Fotograma anterior">◀</button>
+        <button id="next" type="button" aria-label="Fotograma siguiente">▶</button>
+        <label><input id="halo" type="checkbox" checked> Halo de luz</label>
+      </div>
+      <div class="readout" id="readout"></div>
+      <p class="note" id="note"></p>
+    </div>
+  </div>
+  <div class="strip-wrap">
+    <div class="label">Fotogramas a tamaño de combate</div>
+    <div class="strip" id="strip"></div>
+  </div>
+</div>
+
+<script id="worm-art">
+/* El Gusano de Tumba drawn by code (docs/art-style.md section 3.1: the mandatory method for characters and enemies). Every
+   frame computes the WHOLE figure as one label map: the gravestone leaning behind, the heap of earth it comes out of, the
+   ringed body (its spine and widths written for that frame), the head wrapped in a tattered burial shroud (its point and
+   hanging strips trail with the motion), the dark face under the shroud with two bile eyes, and the lamprey mouth with its
+   ring of bone teeth. One outline around everything; nothing is a separate piece and nothing is tweened at play time.
+   Two layers: paint (readable alone) and light (only the bile: eyes, drool, poison, the stream it vomits).
+   128x96 cells, the shadow line on row 93; it faces left (towards the hero): cyan rim in front, violet behind. */
+(function (root) {
+  'use strict';
+  const CW = 128, CH = 96, N = CW * CH, GROUND = 93, ROOT_X = 80, FPS = 12, LOOP = 24, Z = 1.0;  // Z: drawing scale of the body
+
+  // ---------------------------------------------------------------------------------------------- palette
+  const hex = h => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
+  const ramp = a => a.map(hex);
+  const K = {};
+  for (const [k, v] of Object.entries({
+    ink: '#07050c', void1: '#04020a', rimc: '#58dcff', rimv: '#3a2163', white: '#ffffff',
+    violet1: '#55248a', violet2: '#8a47cf', violet3: '#c79bff', steel3: '#cdd5ec', dust0: '#2a2233', dust1: '#3d3348'
+  })) K[k] = hex(v);
+  const RAMP = {
+    flesh: ramp(['#100c18', '#1d1629', '#2e243e', '#433756', '#5d4f74', '#7c6c94']),
+    belly: ramp(['#2a2236', '#43394f', '#5f546c', '#827692', '#a397b2']),
+    shroud: ramp(['#10151c', '#1c2530', '#2c3a48', '#435465', '#62758a', '#8798ab']),
+    dirt: ramp(['#100c12', '#1c161c', '#2a2127', '#3a2e32', '#4e3f40', '#655350']),
+    stone: ramp(['#151722', '#242836', '#363c4e', '#4e556b', '#6c748e', '#9299b0']),
+    bone: ramp(['#3a3446', '#6a6278', '#a29ab2', '#d8d2e2']),
+    throat: ramp(['#16050d', '#330d1a', '#561829', '#7a2738'])
+  };
+  // its accent: bile (eyes, the drool of its maw, the poison of its bite, the bile it vomits)
+  const BILE = ramp(['#262006', '#55480e', '#9a8419', '#d8c447', '#f8f2be']);
+  const LIGHT = { bile: [0.95, 0.82, 0.2], cyan: [0.25, 0.85, 1.0], white: [1, 1, 1], violet: [0.6, 0.3, 1.0] };
+  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+  // ---------------------------------------------------------------------------------------------- tiny raster kit
+  const BAY = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  const B = new Float32Array(N);
+  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) B[y * CW + x] = (BAY[y % 4][x % 4] + 0.5) / 16;
+  const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+  const smooth = (e0, e1, d) => clamp01((d - e0) / (e1 - e0));
+  const frac = v => v - Math.floor(v);
+
+  class Cv { constructor() { this.px = new Float32Array(N * 4); } }
+  const val = (a, i) => typeof a === 'number' ? a : typeof a === 'function' ? a(i) : a[i];
+  function put(c, m, col, a = 1) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      if (B[i] < val(a, i)) { const o = i * 4; c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1; }
+    }
+  }
+  function add(g, m, light, a = 1) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      const al = val(a, i), o = i * 4;
+      g.px[o] += light[0] * al; g.px[o + 1] += light[1] * al; g.px[o + 2] += light[2] * al; g.px[o + 3] = 1;
+    }
+  }
+  const idx = (x, y) => { x = Math.floor(x); y = Math.floor(y); return x < 0 || y < 0 || x >= CW || y >= CH ? -1 : y * CW + x; };
+  function putPx(c, x, y, col, a = 1) {
+    const i = idx(x, y); if (i < 0 || B[i] >= a) return;
+    const o = i * 4; c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+  }
+  function addPx(g, x, y, light, a = 1) {
+    const i = idx(x, y); if (i < 0) return;
+    const o = i * 4; g.px[o] += light[0] * a; g.px[o + 1] += light[1] * a; g.px[o + 2] += light[2] * a; g.px[o + 3] = 1;
+  }
+  const mask = fn => { const m = new Uint8Array(N); for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) { const i = y * CW + x; if (fn(x + 0.5, y + 0.5, i, x, y)) m[i] = 1; } return m; };
+  const at = (m, x, y) => x >= 0 && y >= 0 && x < CW && y < CH ? m[y * CW + x] : 0;
+  function dilate(m, diag = false) {
+    const o = new Uint8Array(N);
+    for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+      const i = y * CW + x;
+      o[i] = m[i] || at(m, x - 1, y) || at(m, x + 1, y) || at(m, x, y - 1) || at(m, x, y + 1) ||
+        (diag && (at(m, x - 1, y - 1) || at(m, x + 1, y - 1) || at(m, x - 1, y + 1) || at(m, x + 1, y + 1))) ? 1 : 0;
+    }
+    return o;
+  }
+  const outline = m => { const d = dilate(m); for (let i = 0; i < N; i++) d[i] = d[i] && !m[i] ? 1 : 0; return d; };
+  const nb = (m, dx, dy) => { const o = new Uint8Array(N); for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) o[y * CW + x] = at(m, x + dx, y + dy); return o; };
+  const and = (...ms) => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) { let v = 1; for (const m of ms) if (!m[i]) { v = 0; break; } o[i] = v; } return o; };
+  const or = (...ms) => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) { for (const m of ms) if (m[i]) { o[i] = 1; break; } } return o; };
+  const not = m => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) o[i] = m[i] ? 0 : 1; return o; };
+  function line(x0, y0, x1, y1) {
+    x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+    const pts = []; const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx + dy;
+    for (;;) { pts.push([x0, y0]); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x0 += sx; } if (e2 <= dx) { err += dx; y0 += sy; } }
+    return pts;
+  }
+  function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const uni = (r, a, b) => a + (b - a) * r();
+  const h2 = (x, y) => { let h = Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+  const vnoise = (x, y) => {
+    const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+    const a = h2(xi, yi), b = h2(xi + 1, yi), c = h2(xi, yi + 1), d = h2(xi + 1, yi + 1);
+    return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+  };
+
+  function toneIdx(i, light, n, amp) { return Math.max(0, Math.min(n - 1, Math.floor(light * (n - 1) + 0.5 + (B[i] - 0.5) * amp))); }
+  function paintZone(c, m, rp, light, amp = 0.55) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      const col = rp[toneIdx(i, val(light, i), rp.length, amp)], o = i * 4;
+      c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------- shapes
+  const sdEllipse = (x, y, rx, ry) => (Math.hypot(x / rx, y / ry) - 1) * Math.min(rx, ry);
+  const smin = (a, b, k) => { const h = clamp01(0.5 + 0.5 * (b - a) / k); return b + (a - b) * h - k * h * (1 - h); };
+  const LDIR = (() => { const v = [-0.55, -0.7, 0.5], l = Math.hypot(...v); return v.map(q => q / l); })();   // screen space, from the upper left
+  const FRONT_DOWN = [-0.6, 0.8];   // the belly side of the body (towards the hero and the floor)
+  const SEG = 4.3;                  // length of a body segment (px)
+  const HR = 8.5;                   // head radius (px)
+
+  // ---------------------------------------------------------------------------------------------- labels
+  const L_ = {}; ['EMPTY', 'STONE', 'BODY', 'HEAD', 'SHROUD', 'FACE', 'LIP', 'TEETH', 'THROAT', 'DIRT'].forEach((k, i) => { L_[k] = i; });
+
+  // ---------------------------------------------------------------------------------------------- the pose
+  // Every frame writes the shape of the whole worm, like an animator draws it, not a puppet:
+  //   sp: the body's spine, four points [u (towards the hero), d (height)] from its root inside the mound to the head;
+  //   w: its half widths at the root, the middle and the neck; bulge: [t, amount] a swallow travelling up it (Bilis);
+  //   look: where the head points, in degrees (0 at the hero, + down, - up); maw: how wide the lamprey mouth
+  //   opens (0 puckered, 1 gaping); the burial shroud over its head: tipBack (its point blown back), drag (where its
+  //   hanging strips trail: + towards the hero, - behind), wave; the grave: moundH, moundBulge (something moves under
+  //   it), shake, stoneTilt; dirty: earth clinging to it (Enterrarse); eyes, blink, flash; crumble: the grave falling to dust.
+  const IDLE = { x: 0, phase: 0, sp: [[2, 2], [14, 20], [-13, 37], [4, 55]], w: [7, 6.2, 5.2], bulge: null, look: 6, maw: 0.1,
+    tipBack: 0, drag: 0, wave: 1, moundH: 1, moundBulge: 0, shake: 0, stoneTilt: -9, dirty: 0, eyes: 1, blink: 0, flash: 0, crumble: 0 };
+
+  const rot = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return [v[0] * c - v[1] * s, v[0] * s + v[1] * c]; };
+  const norm = v => { const l = Math.hypot(v[0], v[1]) || 1; return [v[0] / l, v[1] / l]; };
+
+  /** The whole figure of a pose as ONE label map: the gravestone, the mound, the body, the head in its shroud. */
+  function figure(p) {
+    const lab = new Int8Array(N), KI = new Int16Array(N).fill(-1), VV = new Float32Array(N), HA = new Float32Array(N), HB = new Float32Array(N);
+    const gx = ROOT_X + p.x, W = (u, d) => [gx - u * Z, GROUND - d * Z];
+    const P = p.sp.map(([u, d]) => W(u, d));
+    const bez = t => { const s = 1 - t, k0 = s * s * s, k1 = 3 * s * s * t, k2 = 3 * s * t * t, k3 = t * t * t; return [k0 * P[0][0] + k1 * P[1][0] + k2 * P[2][0] + k3 * P[3][0], k0 * P[0][1] + k1 * P[1][1] + k2 * P[2][1] + k3 * P[3][1]]; };
+    const NS = 64, C = [], R = [], NB = [], ARC = [0];
+    for (let k = 0; k <= NS; k++) C.push(bez(k / NS));
+    for (let k = 1; k <= NS; k++) ARC.push(ARC[k - 1] + Math.hypot(C[k][0] - C[k - 1][0], C[k][1] - C[k - 1][1]));
+    const total = ARC[NS], [w0, w1, w2] = p.w;
+    for (let k = 0; k <= NS; k++) {
+      const t = k / NS, a = C[Math.max(0, k - 1)], b = C[Math.min(NS, k + 1)], tan = norm([b[0] - a[0], b[1] - a[1]]);
+      let n = [-tan[1], tan[0]]; if (n[0] * FRONT_DOWN[0] + n[1] * FRONT_DOWN[1] < 0) n = [-n[0], -n[1]];
+      const segK = Math.abs(Math.sin(Math.PI * (total - ARC[k]) / SEG));
+      let r = (w0 * (1 - t) * (1 - t) + 2 * w1 * t * (1 - t) + w2 * t * t) * Z * (1 + 0.07 * segK);
+      if (p.bulge) r += p.bulge[1] * Z * Math.exp(-(((t - p.bulge[0]) / 0.1) ** 2));
+      R.push(r); NB.push(n);
+    }
+    // the head: at the end of the neck, turned by `nod`; its own frame (a: where it looks, b: the back of its head)
+    const la = p.look * Math.PI / 180, hd = [-Math.cos(la), Math.sin(la)];
+    let bv = [-hd[1], hd[0]]; if (bv[0] * FRONT_DOWN[0] + bv[1] * FRONT_DOWN[1] > 0) bv = [-bv[0], -bv[1]];
+    const hc = [C[NS][0] + hd[0] * 1.5 * Z, C[NS][1] + hd[1] * 1.5 * Z], rh = HR * Z;
+    // the shroud's opening, where the face is: an oval on the front of the head
+    const inOpening = (a, b) => ((a - 3.8) / 5.4) ** 2 + ((b - 0.4) / 5.2) ** 2 < 1;
+    const loc = (x, y) => [((x - hc[0]) * hd[0] + (y - hc[1]) * hd[1]) / Z, ((x - hc[0]) * bv[0] + (y - hc[1]) * bv[1]) / Z];
+    const toPx = (a, b) => [hc[0] + (hd[0] * a + bv[0] * b) * Z, hc[1] + (hd[1] * a + bv[1] * b) * Z];
+    // the lamprey mouth: an ellipse on the front of the head, wider when it gapes
+    const mw = p.maw, ma = HR - 1.6 + 1.2 * mw, mb = -3.4 - 0.4 * mw, mra = 1.9 + 1.5 * mw, mrb = 2.3 + 3.0 * mw;
+    // the shroud's point (bent back) and the strips hanging from its back edge (they hang down and trail by `drag`)
+    const tip = [], strips = [];
+    for (let s = 0; s <= 1.0001; s += 0.05) {
+      const q = toPx(-HR * 0.45 - (7 + p.tipBack) * s, HR * 0.72 + (2 + 0.8 * p.tipBack) * s * s + 0.8 * Math.sin(p.phase + 0.6) * s * s * p.wave);
+      tip.push([q[0], q[1], (3.0 * (1 - s) + 0.65) * Z]);
+    }
+    [[-HR * 0.9, -HR * 0.15, 9, 0.0], [-HR * 0.62, -HR * 0.72, 11, 1.7], [-HR * 0.12, -HR * 0.98, 8, 3.1]].forEach(([a, b, len, off]) => {
+      const A = toPx(a, b), pts = [];
+      for (let s = 0; s <= 1.0001; s += 1 / 14) {
+        const sway = p.wave * 0.9 * Math.sin(p.phase * 1 + off + s * 3) * s, dx = -(p.drag * Math.pow(s, 1.4) + sway) * Z;
+        pts.push([A[0] + dx, A[1] + len * Z * s, (1.7 * (1 - s) + 0.55) * Z]);
+      }
+      strips.push(pts);
+    });
+    // the grave: a heap of earth and a gravestone leaning behind it
+    const mx = gx + 2 * Z + p.shake, mrx = 26 * Z, mry = 10 * Z * p.moundH;
+    const moundTop = x => { const k = (x - mx) / mrx; if (Math.abs(k) >= 1) return -1; return mry * Math.sqrt(1 - k * k) + (0.7 * Math.sin(x * 0.7) + 0.5 * Math.sin(x * 1.9 + 1)) * Math.sqrt(1 - k * k) + p.moundBulge * Z * Math.exp(-(((x - mx) / 9) ** 2)); };
+    const st = p.stoneTilt * Math.PI / 180, scs = Math.cos(st), ssn = Math.sin(st), sbx = gx + 19 * Z + p.shake * 0.5, sby = GROUND - 1 * Z;
+    for (let y = 0; y < GROUND; y++) for (let x = 0; x < CW; x++) {
+      const i = y * CW + x, px = x + 0.5, py = y + 0.5;
+      let L = 0;
+      // the gravestone (behind everything)
+      { const dx = px - sbx, dy = sby - py, a = (dx * scs - dy * ssn) / Z, b = (dx * ssn + dy * scs) / Z;
+        if ((Math.abs(a) < 6.2 && b > 0 && b < 17) || Math.hypot(a, b - 17) < 6.2) { L = L_.STONE; HA[i] = a; HB[i] = b; } }
+      // the body: discs along the spine, smoothly joined to the head and its mouth
+      let best = 1e9, bk = 0;
+      for (let k = 0; k <= NS; k++) { const dd = Math.hypot(px - C[k][0], py - C[k][1]) - R[k]; if (dd < best) { best = dd; bk = k; } }
+      const [a, b] = loc(px, py), sh = Math.hypot(a, b) * Z - rh, sm = sdEllipse(a - ma, b - mb, mra, mrb) * Z;
+      const s = Math.min(smin(best, sh, 2.5 * Z), sm);
+      if (s < 0) {
+        L = sh < best ? L_.HEAD : L_.BODY; KI[i] = bk; HA[i] = a; HB[i] = b;
+        VV[i] = ((px - C[bk][0]) * NB[bk][0] + (py - C[bk][1]) * NB[bk][1]) / Math.max(0.5, R[bk]);
+        // the mouth
+        const mr = Math.hypot((a - ma) / mra, (b - mb) / mrb);
+        if (mr < 1) { const an = Math.atan2((b - mb) / mrb, (a - ma) / mra); L = mr > 0.72 ? L_.LIP : mr > 0.42 && frac(an * 9 / (2 * Math.PI) + 0.25) < 0.5 + 0.2 * (1 - mw) ? L_.TEETH : L_.THROAT; }
+        // in the shroud's opening: the dark face (the eyes are in it)
+        else if (sh < 0 && inOpening(a, b)) L = L_.FACE;
+      }
+      // the shroud: over the top and the back of the head, a little proud of it
+      const inHood = Math.hypot(a, b) < HR + 1.3 && !inOpening(a, b) && !(b < -3.6 && a > -0.5) && !(L === L_.LIP || L === L_.TEETH || L === L_.THROAT);
+      if (inHood) { L = L_.SHROUD; HA[i] = a; HB[i] = b; VV[i] = -1; }
+      if (L !== L_.SHROUD) {
+        for (const [qx, qy, qr] of tip) if ((px - qx) ** 2 + (py - qy) ** 2 <= qr * qr) { L = L_.SHROUD; VV[i] = 1; HA[i] = a; HB[i] = b; break; }
+      }
+      if (L !== L_.SHROUD && L !== L_.FACE && L !== L_.LIP && L !== L_.TEETH && L !== L_.THROAT) {
+        strips.forEach((pts, j) => pts.forEach(([qx, qy, qr], k) => { if ((px - qx) ** 2 + (py - qy) ** 2 <= qr * qr) { L = L_.SHROUD; VV[i] = 2 + k / (pts.length - 1); HA[i] = j; } }));
+      }
+      // the heap of earth in front of its root and the stone's foot
+      const mt = moundTop(px);
+      if (mt > 0 && (GROUND - py) < mt) L = L_.DIRT;
+      lab[i] = L;
+    }
+    // one figure: anything not 4-connected to the mound is dropped
+    const reach = new Uint8Array(N), stack = [], seed = idx(mx, GROUND - 2);
+    if (seed >= 0 && lab[seed]) { reach[seed] = 1; stack.push(seed); }
+    while (stack.length) {
+      const i = stack.pop(), x = i % CW, y = (i / CW) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const j = idx(x + dx, y + dy); if (j >= 0 && !reach[j] && lab[j]) { reach[j] = 1; stack.push(j); }
+      }
+    }
+    let lost = 0;
+    for (let i = 0; i < N; i++) if (!reach[i] && lab[i]) { lab[i] = 0; lost++; }
+    // death: the grave falls to dust from the top down, along a ragged edge
+    if (p.crumble > 0) {
+      for (let i = 0; i < N; i++) {
+        if (!lab[i]) continue;
+        const x = i % CW, y = (i / CW) | 0, hgt = clamp01((GROUND - y) / 30);
+        if (0.5 * (1 - hgt) + 0.4 * vnoise(x / 3.5, y / 2.6) + 0.1 * B[i] < p.crumble) lab[i] = 0;
+      }
+      for (let pass = 0; pass < 2; pass++) {
+        const keep = Int8Array.from(lab);
+        for (let i = 0; i < N; i++) {
+          if (!keep[i]) continue;
+          const x = i % CW, y = (i / CW) | 0; let k = 0;
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const j = idx(x + dx, y + dy); if (j >= 0 && keep[j]) k++; }
+          if (k < 2) lab[i] = 0;
+        }
+      }
+    }
+    return { p, lab, KI, VV, HA, HB, C, R, ARC, total, gx, lost, W, toPx, hc, hd, bv, mx, moundTop,
+      mouth: toPx(ma + mra * 0.4, mb), eyes: [toPx(5.6, 2.0), toPx(2.8, 2.4)], chest: bez(0.45), body: W(0, 24) };
+  }
+
+  // ---------------------------------------------------------------------------------------------- painting
+  function paint(c, g, F, t) {
+    const { p, lab, KI, VV, HA, HB } = F;
+    const is = (...ls) => { const s = new Set(ls); const m = new Uint8Array(N); for (let i = 0; i < N; i++) if (s.has(lab[i])) m[i] = 1; return m; };
+    const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = lab[i] ? 1 : 0;
+    const mo = dilate(m);
+    for (let i = 0; i < N; i++) if (mo[i]) { const o = i * 4; g.px[o] = g.px[o + 1] = g.px[o + 2] = 0; }
+    put(c, outline(m), K.ink);
+    const up = mm => nb(mm, 0, -1), down = mm => nb(mm, 0, 1), left = mm => nb(mm, -1, 0), right = mm => nb(mm, 1, 0);
+    const body = is(L_.BODY), head = is(L_.HEAD), shroud = is(L_.SHROUD), face = is(L_.FACE), lip = is(L_.LIP), teeth = is(L_.TEETH),
+      throat = is(L_.THROAT), dirt = is(L_.DIRT), stone = is(L_.STONE);
+    const lit = (nx, ny, nz) => { const l = Math.hypot(nx, ny, nz) || 1; return (nx * LDIR[0] + ny * LDIR[1] + nz * LDIR[2]) / l; };
+    // the gravestone: flat slab lit from the left, rounded top, a carved cross and a crack
+    paintZone(c, stone, RAMP.stone, i => 0.42 - 0.03 * HA[i] + (HB[i] > 17 ? 0.25 * (HB[i] - 17) / 6.2 : 0) - 0.012 * Math.max(0, 8 - HB[i]), 0.5);
+    put(c, and(stone, mask((x, y, i) => (Math.abs(HA[i]) < 0.7 && HB[i] > 6.5 && HB[i] < 15) || (Math.abs(HB[i] - 12) < 0.65 && Math.abs(HA[i]) < 3.2))), RAMP.stone[1]);
+    put(c, and(stone, mask((x, y, i) => { const a = HA[i], b = HB[i]; return b > 9 && Math.abs(a - (3.6 - (b - 9) * 0.25 + 0.8 * Math.sin(b * 1.3))) < 0.45; })), RAMP.stone[0]);
+    // the body: a tube of pale grave-flesh, its belly plated, ringed in segments (counted from the head, so they slide in
+    // and out of the earth with it), lit from the upper left
+    for (let i = 0; i < N; i++) {
+      if (!body[i] && !head[i]) continue;
+      const k = KI[i], v = Math.max(-1, Math.min(1, VV[i]));
+      let L;
+      if (head[i]) { const a = HA[i] / HR, b = HB[i] / HR, x = i % CW + 0.5, y = ((i / CW) | 0) + 0.5; const nx = (x - F.hc[0]) / (HR * Z), ny = (y - F.hc[1]) / (HR * Z); L = 0.45 + 0.55 * lit(nx, ny, Math.sqrt(Math.max(0.05, 1 - nx * nx - ny * ny))); }
+      else {
+        const nb_ = [((i % CW + 0.5) - F.C[k][0]) / F.R[k], (((i / CW) | 0) + 0.5 - F.C[k][1]) / F.R[k]];
+        L = 0.45 + 0.55 * lit(nb_[0], nb_[1], Math.sqrt(Math.max(0.05, 1 - nb_[0] * nb_[0] - nb_[1] * nb_[1])));
+        const seg = frac((F.total - F.ARC[k]) / SEG);
+        if (seg < 0.16) L -= 0.38; else if (seg < 0.36) L += 0.14;
+      }
+      const belly = body[i] && v > 0.32, rp = belly ? RAMP.belly : RAMP.flesh, col = rp[toneIdx(i, L - (belly ? 0.05 : 0), rp.length, 0.32)], o = i * 4;
+      c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+    }
+    // earth clinging to it after it burrows
+    if (p.dirty > 0) put(c, and(or(body, head), mask((x, y) => h2(x * 3 + 7, y * 5 + 1) < 0.22 * p.dirty)), RAMP.dirt[3]);
+    // the mouth: a fleshy rim, a ring of bone teeth, the throat dark inside
+    paintZone(c, lip, RAMP.flesh, i => 0.62 - 0.05 * HB[i], 0.5);
+    put(c, and(lip, not(up(lip)), not(up(teeth))), RAMP.flesh[5]);
+    paintZone(c, teeth, RAMP.bone, i => 0.55 + 0.06 * HB[i], 0.5);
+    paintZone(c, throat, RAMP.throat, i => 0.25 + 0.4 * p.maw, 0.6);
+    // the shroud: dusty linen over the head, its brim lit along the face, folds, the strips darker towards their frayed ends
+    for (let i = 0; i < N; i++) {
+      if (!shroud[i]) continue;
+      let L;
+      if (VV[i] >= 2) L = 0.5 - 0.35 * (VV[i] - 2) + 0.06 * (HA[i] === 1 ? -1 : 1);
+      else { const x = i % CW + 0.5, y = ((i / CW) | 0) + 0.5, nx = (x - F.hc[0]) / ((HR + 1.3) * Z), ny = (y - F.hc[1]) / ((HR + 1.3) * Z);
+        L = 0.42 + 0.6 * lit(nx, ny, Math.sqrt(Math.max(0.05, 1 - nx * nx - ny * ny))) - (VV[i] === 1 ? 0.1 : 0);
+        if (Math.abs(frac(HA[i] * 0.3 - HB[i] * 0.12 + 0.3) - 0.5) < 0.06) L -= 0.18; }
+      const col = RAMP.shroud[toneIdx(i, L, RAMP.shroud.length, 0.5)], o = i * 4;
+      c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+    }
+    const brim = and(shroud, dilate(face, true));
+    put(c, and(brim, mask((x, y, i) => HB[i] > 0.5)), RAMP.shroud[5]);
+    put(c, and(brim, mask((x, y, i) => HB[i] <= 0.5)), RAMP.shroud[1]);
+    put(c, face, K.void1);
+    // the heap: dark earth, lighter on top, clods, a dark hole where the worm comes out of it
+    paintZone(c, dirt, RAMP.dirt, i => { const x = i % CW, y = (i / CW) | 0, mt = F.moundTop(x + 0.5), h = (GROUND - y - 0.5) / Math.max(1, mt); return 0.25 + 0.5 * h - 0.004 * (x - F.mx) + (h2(x * 5 + 3, y * 7 + 2) < 0.12 ? 0.25 : 0); }, 0.6);
+    const worm = or(body, head);
+    put(c, and(dirt, dilate(dilate(worm)), not(down(worm))), RAMP.dirt[0]);
+    put(c, and(dirt, not(up(dirt)), not(up(worm)), not(up(stone)), mask((x, y) => h2(x * 9, y * 3 + 5) < 0.5)), RAMP.dirt[4]);
+    // where the shroud and the body cross the stone or the earth, a dark edge
+    put(c, and(stone, or(nb(worm, 1, 0), nb(worm, -1, 0), nb(shroud, 1, 0), nb(shroud, -1, 0))), K.ink);
+    // rim light: cyan in front and on top, violet behind (none on the earth's flat top, the face or the mouth)
+    const fig = and(m, not(face), not(throat), not(teeth));
+    const rimC = and(fig, or(not(left(m)), and(not(up(m)), mask(x => x < F.gx + 6))), not(and(dirt, mask((x, y) => y > GROUND - 3))));
+    const rimV = and(fig, not(right(m)), not(rimC), not(dirt));
+    put(c, rimV, K.rimv, 0.8);
+    put(c, rimC, K.rimc); add(g, rimC, LIGHT.cyan, 0.42);
+    // eyes: two bile embers under the shroud
+    const ek = p.eyes;
+    if (ek > 0.02) F.eyes.forEach(([ex, ey], k) => {
+      const pts = p.blink > 0.5 ? [[0, 0], [1, 0], [-1, 0]] : k === 0 ? [[0, 0], [-1, 0], [0, -1], [1, 1]] : [[0, 0], [1, 0], [0, -1]];
+      if (ek > 1.4) pts.push(k === 0 ? [-1, -1] : [1, -1]);
+      pts.forEach(([dx, dy], j) => {
+        const i = idx(ex + dx, ey + dy); if (i < 0 || lab[i] !== L_.FACE) return;
+        putPx(c, ex + dx, ey + dy, j === 0 ? mix(BILE[3], BILE[4], clamp01(ek - 0.6)) : mix(BILE[1], BILE[2], Math.min(1, ek)));
+        addPx(g, ex + dx, ey + dy, LIGHT.bile, (j === 0 ? 1.0 : 0.55) * ek);
+      });
+    });
+    // the edge of the crumbling grave
+    if (p.crumble > 0) put(c, and(m, or(not(up(m)), not(left(m)), not(right(m)))), K.dust1);
+    if (p.flash > 0) {
+      const fv = hex('#fffbe6');
+      for (let i = 0; i < N; i++) if (m[i] && !dirt[i] && !stone[i]) { const w = p.flash * 0.85, o = i * 4; c.px[o] = c.px[o] * (1 - w) + fv[0] * w; c.px[o + 1] = c.px[o + 1] * (1 - w) + fv[1] * w; c.px[o + 2] = c.px[o + 2] * (1 - w) + fv[2] * w; }
+    }
+    return m;
+  }
+
+  // ---------------------------------------------------------------------------------------------- effects (its moves' vocabulary)
+  function star4(c, g, x, y, arm, o = {}) {
+    const core = o.core || K.white, col = o.col || BILE[3], edge = o.edge || BILE[2], light = o.light || LIGHT.bile, gain = o.gain ?? 1, diag = o.diag ?? true;
+    x = Math.floor(x); y = Math.floor(y);
+    for (let i = 1; i <= arm; i++) {
+      const k = i / (arm + 0.5), colr = k < 0.55 ? col : edge;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { putPx(c, x + dx * i + 0.5, y + dy * i + 0.5, colr); addPx(g, x + dx * i + 0.5, y + dy * i + 0.5, light, gain * (1 - k) * 0.9); }
+    }
+    if (diag && arm >= 3) for (const [dx, dy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) for (let i = 1; i <= Math.max(1, Math.floor(arm / 3)); i++) { putPx(c, x + dx * i + 0.5, y + dy * i + 0.5, edge); addPx(g, x + dx * i + 0.5, y + dy * i + 0.5, light, gain * 0.35); }
+    putPx(c, x + 0.5, y + 0.5, core); addPx(g, x + 0.5, y + 0.5, LIGHT.white, gain * 1.2);
+  }
+  function motes(c, g, t, seed, count, area, gain = 0.6) {
+    const r = rng(seed); const [x0, y0, x1, y1] = area;
+    for (let i = 0; i < count; i++) {
+      const px = uni(r, x0, x1), phase = r(), cycles = r() < 0.7 ? 1 : 2, wob = uni(r, 1.0, 2.5);
+      const u = frac(t * cycles + phase), y = y1 - u * (y1 - y0), x = px + Math.sin((u * 2 + phase) * Math.PI * 2) * wob, a = Math.sin(u * Math.PI);
+      if (a < 0.2) continue;
+      const vio = i % 3 === 0, col = vio ? K.violet3 : BILE[3], lt = vio ? LIGHT.violet : LIGHT.bile;
+      putPx(c, x, y, col, Math.min(1, a * 1.4)); addPx(g, x, y, lt, gain * a);
+    }
+  }
+  /** Grave mist: a few poison motes rising off the earth. */
+  const ambient = (c, g, t, F, gain = 0.45) => motes(c, g, t, 23, 5, [F.mx - 26, 40, F.mx + 22, GROUND - 6], gain);
+  /** Bile drooling from the lower lip of its mouth: a drop swells, stretches and falls. */
+  function drool(c, g, t, F, cyc = 1, off = 0) {
+    const k = frac(t * cyc + off), [mx, my] = F.mouth, x = Math.round(mx), y0 = Math.round(my + 3);
+    if (k < 0.45) { const len = Math.floor(k / 0.45 * 4); for (let s = 0; s <= len; s++) { putPx(c, x, y0 + s, s === len ? BILE[3] : BILE[2]); addPx(g, x, y0 + s, LIGHT.bile, s === len ? 0.5 : 0.2); } }
+    else if (k < 0.75) { const q = (k - 0.45) / 0.3, y = y0 + 4 + q * q * 18; if (y < GROUND - 1) { putPx(c, x, y, BILE[3]); putPx(c, x, y - 1, BILE[1]); addPx(g, x, y, LIGHT.bile, 0.5); } }
+  }
+  /** Dirt crumbs dropping off its body now and then. */
+  function crumbs(c, t, F) {
+    const r = rng(17);
+    for (let i = 0; i < 3; i++) {
+      const k = frac(t * (i + 1) + r()), tk = 0.25 + 0.5 * r(), q = F.C[Math.floor(tk * 64)], x = Math.round(q[0] + uni(r, -4, 4)), y = q[1] + k * 26;
+      if (k > 0.5 || y >= GROUND - 1) continue;
+      const j = idx(x, y); if (j >= 0 && F.lab[j]) continue;
+      putPx(c, x, y, i % 2 ? K.dust1 : RAMP.dirt[3]);
+    }
+  }
+  function sparks(c, g, ox, oy, age, seed, count, speed, ang, spread, o = {}) {
+    if (age <= 0) return;
+    const grav = o.grav ?? 0.14, life = o.life ?? 7, ve = o.violetEvery ?? 0;
+    const r = rng(seed);
+    for (let i = 0; i < count; i++) {
+      const a0 = ang + uni(r, -spread, spread), spd = uni(r, speed * 0.45, speed), lf = life * uni(r, 0.7, 1.0);
+      if (age > lf) continue;
+      const x = ox + Math.cos(a0) * spd * age, y = oy + Math.sin(a0) * spd * age + grav * age * age, k = 1 - age / (lf + 1);
+      if (y >= GROUND || x < 1 || x > CW - 2 || y < 1) continue;
+      const vio = ve && i % ve === 0;
+      putPx(c, x, y, vio ? K.violet3 : age < 2.5 ? BILE[4] : BILE[3]); addPx(g, x, y, vio ? LIGHT.violet : LIGHT.bile, k);
+      if (age < 4) for (const [qx, qy] of line(x, y, x - Math.cos(a0) * spd * 0.9, y - Math.sin(a0) * spd * 0.9 - grav * age * 1.5).slice(1)) { putPx(c, qx + 0.5, qy + 0.5, vio ? K.violet1 : BILE[1], k); addPx(g, qx + 0.5, qy + 0.5, vio ? LIGHT.violet : LIGHT.bile, 0.3 * k); }
+    }
+  }
+  /** Clods of earth thrown up (no light): chunks that arc and fall. */
+  function clods(c, ox, oy, age, seed, count, speed, ang, spread) {
+    if (age <= 0) return;
+    const r = rng(seed);
+    for (let i = 0; i < count; i++) {
+      const a0 = ang + uni(r, -spread, spread), spd = uni(r, speed * 0.4, speed), x = ox + Math.cos(a0) * spd * age, y = oy + Math.sin(a0) * spd * age + 0.25 * age * age;
+      if (y >= GROUND - 1 || x < 1 || x > CW - 3 || y < 1) continue;
+      const col = i % 3 === 0 ? RAMP.dirt[4] : i % 3 === 1 ? K.dust1 : RAMP.dirt[2];
+      putPx(c, x, y, col); putPx(c, x + 1, y, RAMP.dirt[2]); if (i % 2 === 0) { putPx(c, x, y + 1, RAMP.dirt[1]); putPx(c, x + 1, y + 1, RAMP.dirt[1]); }
+    }
+  }
+  /** A puff of grave dust (no light): a cluster of solid little clouds, fewer and smaller as it settles (no dithered
+      transparency over the stage, it reads as a grid). */
+  function dust(c, x, y, r, k, seed = 5) {
+    if (k <= 0.05) return;
+    const q = rng(seed), n = Math.round(4 + 6 * k);
+    for (let j = 0; j < n; j++) {
+      const an = uni(q, 0, 2 * Math.PI), dd = uni(q, 0.2, 1) * r, cx = x + Math.cos(an) * dd, cy = y + Math.sin(an) * dd * 0.5, rr = uni(q, 1.2, 2.6) * (0.5 + 0.5 * k);
+      for (let yy = Math.floor(cy - rr); yy <= cy + rr; yy++) for (let xx = Math.floor(cx - rr); xx <= cx + rr; xx++) {
+        const e = Math.hypot(xx + 0.5 - cx, yy + 0.5 - cy) / rr; if (e > 1 || yy >= GROUND || xx < 1 || xx > CW - 2 || yy < 1) continue;
+        putPx(c, xx + 0.5, yy + 0.5, e < 0.5 && xx < cx ? K.dust1 : K.dust0);
+      }
+    }
+  }
+  function speedLines(c, g, x, y, ux, uy, k, seed, count = 6, spread = 8, len = [7, 12], start = 4) {
+    if (k <= 0) return;
+    const r = rng(seed), vx = -uy, vy = ux;
+    for (let i = 0; i < count; i++) {
+      const off = uni(r, -spread, spread), st = start + uni(r, 0, 6), ln = uni(r, len[0], len[1]) * (0.6 + 0.4 * k);
+      const sx = x - ux * st + vx * off, sy = y - uy * st + vy * off;
+      for (const [qx, qy] of line(sx, sy, sx - ux * ln, sy - uy * ln)) { putPx(c, qx + 0.5, qy + 0.5, i % 2 === 0 ? BILE[3] : K.steel3, Math.min(1, k * 1.6)); addPx(g, qx + 0.5, qy + 0.5, LIGHT.bile, 0.35 * k); }
+    }
+  }
+  /** The bile it vomits: a thick stream in an arc from its mouth to the floor, drawn from a to b (0..1 of the arc). */
+  function bileStream(c, g, x0, y0, x1, y1, lift, a, b, k = 1) {
+    if (b <= a || k <= 0.02) return;
+    for (let s = a; s <= b; s += 0.012) {
+      const x = x0 + (x1 - x0) * s, y = y0 + (y1 - y0) * s - lift * 4 * s * (1 - s), r = (3.0 - 1.3 * s) * (0.6 + 0.4 * k), head = s > b - 0.06;
+      for (let yy = Math.floor(y - r - 1); yy <= y + r + 1; yy++) for (let xx = Math.floor(x - r - 1); xx <= x + r + 1; xx++) {
+        const dd = Math.hypot(xx + 0.5 - x, yy + 0.5 - y); if (dd > r || yy >= GROUND) continue;
+        const inner = dd < r * 0.45;
+        putPx(c, xx + 0.5, yy + 0.5, inner ? (head ? BILE[4] : BILE[3]) : dd > r * 0.8 ? BILE[1] : BILE[2]); addPx(g, xx + 0.5, yy + 0.5, LIGHT.bile, (inner ? 0.5 : 0.25) * k);
+      }
+    }
+  }
+  /** A pool of bile on the floor, steaming. */
+  function puddle(c, g, x, w, k) {
+    if (k <= 0.02) return;
+    for (let xx = Math.floor(x - w); xx <= x + w; xx++) {
+      const e = 1 - Math.abs(xx - x) / w; if (e <= 0) continue;
+      putPx(c, xx + 0.5, GROUND - 1, e > 0.5 ? BILE[2] : BILE[1], k * 1.4); addPx(g, xx + 0.5, GROUND - 1, LIGHT.bile, 0.2 * k * e);
+      if (e > 0.55) { putPx(c, xx + 0.5, GROUND - 2, BILE[1], k); }
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------- the frames
+  // Every action frame below is its own drawing: the spine and widths of the whole body, how the head turns and how wide
+  // the mouth opens, where the shroud's point and strips trail, and the grave itself are written for that frame
+  // (anticipation, smear, impact, follow-through, cloth arriving late); nothing is interpolated or rotated at play time.
+  const withP = (p, o) => Object.assign({}, p, o);
+  /** The idle: the body sways in its S (the top later than the root), the segments breathe, the head bobs and looks, the
+      shroud's strips trail behind the head's motion, the mouth puckers now and then. */
+  function idlePose(t) {
+    const a = 2 * Math.PI * t, s1 = Math.sin(a), s2 = Math.sin(a - 0.7), s3 = Math.sin(a - 1.4);
+    return withP(IDLE, {
+      phase: a,
+      sp: [[2, 2], [14 + 1.5 * s1, 20], [-13 + 2 * s2, 37 + 0.6 * Math.sin(2 * a)], [4 + 1.6 * s3, 55 + 0.8 * Math.sin(2 * a - 0.8)]],
+      w: [7, 6.2 + 0.25 * Math.sin(2 * a), 5.2],
+      look: 6 + 6 * Math.sin(a - 1.9), drag: -1.6 * Math.sin(a - 2.4), maw: 0.1 + 0.25 * Math.max(0, Math.sin(2 * a - 1))
+    });
+  }
+  const POSES = {
+    // Mordida Pútrida: it coils back with the mouth opening, lunges (smear), bites down at the hero with the mouth gaping
+    // (strike on frame 5), snaps shut, recoils and settles; the shroud's strips arrive late every time
+    attack: [
+      { sp: [[2, 2], [12, 20], [-16, 34], [-4, 56]], look: -15, maw: 0.3, drag: 1.0, eyes: 1.3 },
+      { sp: [[2, 2], [10, 19], [-19, 32], [-10, 54]], w: [7, 6.5, 5.4], look: -28, maw: 0.6, drag: 1.8, eyes: 1.5 },
+      { sp: [[2, 2], [9, 18], [-20, 31], [-13, 52]], w: [7.1, 6.7, 5.6], look: -35, maw: 0.85, drag: 2.2, tipBack: -1, eyes: 1.8 },
+      { sp: [[2, 2], [12, 20], [26, 33], [40, 35]], w: [6.6, 5.0, 4.3], look: 5, maw: 1.0, drag: -2.6, tipBack: 3, eyes: 2.0 },
+      { sp: [[2, 2], [12, 17], [29, 26], [43, 24]], w: [7, 5.8, 5], look: 22, maw: 1.0, drag: -3.4, tipBack: 3.5, eyes: 2.0 },
+      { sp: [[2, 2], [12, 17], [27, 27], [41, 26]], w: [7, 5.9, 5.1], look: 18, maw: 0.2, drag: -1.6, tipBack: 2.5, eyes: 1.7 },
+      { sp: [[2, 2], [12, 20], [8, 34], [18, 46]], look: 10, maw: 0.15, drag: 1.4, tipBack: 0.5, eyes: 1.4 },
+      { sp: [[2, 2], [13, 21], [-14, 38], [0, 55]], look: 2, maw: 0.1, drag: 2.0, eyes: 1.2 },
+      { sp: [[2, 2], [14, 20], [-13, 37], [3.5, 55]], look: 6, maw: 0.1, drag: -0.4, eyes: 1.05 }
+    ],
+    // Enterrarse: it rears, tips over and dives head first into its grave (earth flies), the heap heaves while it is under,
+    // then it bursts back out wearing earth (its block) and settles
+    burrow: [
+      { sp: [[2, 2], [12, 22], [-10, 40], [2, 59]], look: -10, maw: 0, eyes: 1.2 },
+      { sp: [[2, 2], [14, 24], [16, 40], [18, 34]], look: 50, maw: 0.2, drag: 1.5, eyes: 1.3 },
+      { sp: [[2, 2], [10, 20], [14, 24], [10, 10]], w: [7, 6.6, 5.6], look: 80, maw: 0.3, drag: 2.5, eyes: 1.3 },
+      { sp: [[2, 2], [6, 14], [8, 17], [6, 2]], w: [7, 6.6, 5.6], look: 85, drag: 3, eyes: 1.0 },
+      { sp: [[2, -2], [2, 9], [4, 12], [4, -4]], w: [7, 6.6, 5.6], look: 85, drag: 3, eyes: 0.6, moundBulge: 0.6 },
+      { sp: [[2, -12], [2, -12], [2, -12], [2, -14]], w: [6, 6, 5], look: 0, eyes: 0, moundBulge: 2.2, shake: 1 },
+      { sp: [[2, -12], [2, -12], [2, -12], [2, -14]], w: [6, 6, 5], look: 0, eyes: 0, moundBulge: 3.2, shake: -1 },
+      { sp: [[2, 2], [4, 12], [0, 24], [2, 33]], look: -60, maw: 0.6, eyes: 1.6, moundBulge: 1, dirty: 1, drag: -1.5 },
+      { sp: [[2, 2], [9, 19], [-8, 34], [0, 48]], look: -25, maw: 0.3, eyes: 1.5, dirty: 0.8, drag: -2.2 },
+      { sp: [[2, 2], [13, 22], [-12, 40], [3, 58]], look: -2, maw: 0.1, eyes: 1.2, dirty: 0.5, drag: 0.6 },
+      { sp: [[2, 2], [14, 20], [-13, 37], [4, 55.5]], look: 5, eyes: 1.05, dirty: 0.25, drag: 0.8 }
+    ],
+    // Bilis: a swallow swells up its body from the grave to the neck, it throws its head back and retches, then vomits a
+    // stream of bile at the hero that splashes and steams on the floor
+    cast: [
+      { bulge: [0.12, 2.2], look: 6, eyes: 1.2 },
+      { bulge: [0.34, 2.6], sp: [[2, 2], [14, 20], [-14, 37], [3, 56]], look: 0, eyes: 1.3 },
+      { bulge: [0.56, 2.8], sp: [[2, 2], [14, 20], [-15, 37], [1, 56]], look: -10, maw: 0.3, eyes: 1.4 },
+      { bulge: [0.78, 3.0], sp: [[2, 2], [13, 20], [-16, 36], [-4, 55]], look: -28, maw: 0.5, eyes: 1.6, drag: 1 },
+      { bulge: [0.96, 2.4], sp: [[2, 2], [12, 20], [-17, 36], [-7, 54]], look: -40, maw: 0.7, eyes: 1.8, drag: 1.6 },
+      { sp: [[2, 2], [14, 20], [2, 38], [14, 50]], look: 35, maw: 1.0, eyes: 2.0, drag: -2, tipBack: 2 },
+      { sp: [[2, 2], [14, 20], [3, 38], [15, 49]], look: 38, maw: 1.0, eyes: 2.0, drag: -2.6, tipBack: 2.5 },
+      { sp: [[2, 2], [14, 20], [2, 38], [14, 50]], look: 32, maw: 0.8, eyes: 1.8, drag: -1.6, tipBack: 1.5 },
+      { sp: [[2, 2], [14, 20], [-4, 38], [10, 52]], look: 22, maw: 0.5, eyes: 1.5, drag: -0.4 },
+      { sp: [[2, 2], [14, 20], [-10, 37], [6, 54]], look: 12, maw: 0.25, eyes: 1.25, drag: 0.8 },
+      { sp: [[2, 2], [14, 20], [-12, 37], [4.5, 55]], look: 7, maw: 0.12, eyes: 1.05, drag: 0.4 }
+    ],
+    // struck from the front: it recoils, the head thrown back with the mouth open, the strips fly forward; then it rebounds
+    hurt: [
+      { sp: [[2, 2], [11, 21], [-17, 36], [-9, 53]], look: -30, maw: 0.6, flash: 0.85, blink: 1, drag: 2.0, tipBack: -2, eyes: 1.4 },
+      { sp: [[2, 2], [10, 20], [-19, 35], [-12, 51]], look: -36, maw: 0.5, flash: 0.4, blink: 1, drag: 2.6, tipBack: -2, eyes: 1.4 },
+      { sp: [[2, 2], [15, 21], [-8, 37], [8, 54]], look: 18, maw: 0.2, flash: 0.12, drag: -1.2, eyes: 1.2 },
+      { sp: [[2, 2], [13, 20], [-14, 37], [2, 55]], look: 2, maw: 0.1, drag: 0.8, eyes: 1.1 },
+      { sp: [[2, 2], [14, 20], [-12, 37], [5, 55]], look: 8, drag: -0.2 },
+      { sp: [[2, 2], [14, 20], [-13, 37], [3.6, 55]], look: 4, drag: 0.6 }
+    ],
+    // the death: struck, it writhes, sags and flops forward onto the floor, then it is dragged back into its grave, the
+    // heap settles and the grave falls to dust from the top down until nothing is left
+    death: [
+      { sp: [[2, 2], [11, 21], [-17, 36], [-9, 53]], look: -30, maw: 0.6, flash: 0.9, blink: 1, drag: 2.0, tipBack: -2, eyes: 1.6 },
+      { sp: [[2, 2], [-6, 20], [12, 36], [-4, 52]], look: -45, maw: 1.0, flash: 0.4, drag: 2.4, eyes: 2.0 },
+      { sp: [[2, 2], [16, 20], [-12, 34], [8, 48]], look: 35, maw: 0.8, drag: -2.2, eyes: 1.6 },
+      { sp: [[2, 2], [14, 18], [6, 32], [14, 39]], look: 50, maw: 0.6, drag: -1, eyes: 1.2 },
+      { sp: [[2, 2], [12, 15], [20, 20], [26, 16]], look: 60, maw: 0.4, drag: 1.5, eyes: 0.9 },
+      { sp: [[2, 2], [12, 11], [22, 10], [30, 9]], w: [7, 6, 5.2], look: 80, maw: 0.2, drag: 2.4, eyes: 0.6 },
+      { sp: [[2, 2], [12, 10], [22, 9], [31, 9]], w: [6.8, 5.8, 5], look: 82, maw: 0.15, drag: 1.2, eyes: 0.4 },
+      { sp: [[2, -2], [8, 6], [18, 8], [24, 9]], w: [6.8, 5.8, 5], look: 75, maw: 0.1, drag: -1.5, eyes: 0.25, moundBulge: 0.6 },
+      { sp: [[2, -4], [5, 2], [12, 4], [15, 6]], w: [6.6, 5.6, 5], look: 55, drag: -2.4, eyes: 0.1, moundBulge: 1.2 },
+      { sp: [[2, -12], [2, -12], [2, -12], [2, -14]], w: [6, 6, 5], look: 0, eyes: 0, moundBulge: 1.6, shake: 1 },
+      { sp: [[2, -12], [2, -12], [2, -12], [2, -14]], w: [6, 6, 5], look: 0, eyes: 0, moundBulge: 0.6, stoneTilt: -13 }
+    ]
+  };
+  [0.14, 0.32, 0.5, 0.68, 0.86].forEach((crumble, k) => POSES.death.push(withP(POSES.death[10], { crumble, moundBulge: 0.3, stoneTilt: -13 - 2 * k })));
+  const N_OF = { idle: 24, attack: 10, burrow: 12, cast: 12, hurt: 7, death: 17 };
+  const ANIMATIONS = [['idle', 24, true], ['attack', 10, false], ['burrow', 12, false], ['cast', 12, false], ['hurt', 7, false], ['death', 17, false]];
+  const STRIKE_FRAME = 4;
+
+  const clock = (f, n) => frac((f - (n - 1)) / LOOP);
+  const pose = (name, f) => name === 'idle' ? idlePose(f / LOOP) : withP(IDLE, POSES[name][Math.min(f, POSES[name].length - 1)]);
+  const poseAt = (name, f) => name === 'idle' ? idlePose(f / LOOP) : name !== 'death' && f >= N_OF[name] - 1 ? idlePose(0) : pose(name, f);
+  const silhouette = p => { const F = figure(p); const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = F.lab[i] ? 1 : 0; return m; };
+
+  function idleFrame(f) {
+    const t = f / LOOP, p = withP(idlePose(t), { blink: f === 15 || f === 16 ? 1 : 0 });
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    paint(c, g, F, t);
+    drool(c, g, t, F);
+    crumbs(c, t, F);
+    ambient(c, g, t, F);
+    return [c, g];
+  }
+  /** Where the bite lands: the gaping mouth of the strike frame. */
+  const strikePoint = () => figure(pose('attack', STRIKE_FRAME)).mouth;
+
+  function actionFrame(name, f) {
+    const n = N_OF[name]; if (f === n - 1) return idleFrame(0);
+    const t = clock(f, n), p = withP(pose(name, f), { phase: t * 2 * Math.PI });
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    if (name === 'attack' && (f === 3 || f === 4)) speedLines(c, g, F.hc[0] + 6, F.hc[1] - 2, -0.9, 0.4, f === 3 ? 1 : 0.6, 41 + f, 5, 7, [6, 11], 8);
+    paint(c, g, F, t);
+    if (name === 'attack') {
+      // the bile gathers in its mouth, the bite splashes poison
+      if (f <= 2) drool(c, g, t, F, 2, 0.1);
+      const [sx, sy] = strikePoint();
+      if (f === 4) { star4(c, g, sx - 3, sy, 6, { gain: 1.5 }); }
+      if (f === 5) star4(c, g, sx - 3, sy, 3, { gain: 1.0 });
+      if (f === 6) star4(c, g, sx - 3, sy, 1, { gain: 0.6, diag: false });
+      sparks(c, g, sx - 3, sy, f - STRIKE_FRAME + 0.6, 5, 13, 2.4, Math.PI * 0.9, 0.9, { grav: 0.18, life: 6, violetEvery: 3 });
+    } else if (name === 'burrow') {
+      // earth flies as it dives in and when it bursts out; dust hangs over the heap while it is under
+      const top = [F.mx, GROUND - 8];
+      if (f >= 2 && f <= 5) clods(c, top[0] - 4, top[1], f - 1.4, 11, 14, 2.6, -Math.PI * 0.5, 1.1);
+      if (f >= 3 && f <= 7) dust(c, top[0] - 2, top[1] - 1, 7 + (f - 3) * 2, [0.9, 0.8, 0.6, 0.45, 0.3][f - 3]);
+      if (f >= 7 && f <= 10) clods(c, top[0], top[1] - 2, f - 6.4, 23, 16, 3.0, -Math.PI * 0.5, 0.9);
+      if (f >= 7) crumbs(c, t * 3, F);
+    } else if (name === 'cast') {
+      // the stream: out of the mouth, in an arc, onto the floor in front, where it pools and steams
+      const m5 = figure(pose('cast', 5)).mouth, tx = m5[0] - 34, ty = GROUND - 1;
+      if (f === 4) star4(c, g, F.mouth[0], F.mouth[1], 2, { gain: 0.8, diag: false });
+      if (f >= 5 && f <= 8) {
+        const [mx, my] = F.mouth, a = { 5: 0, 6: 0, 7: 0.3, 8: 0.7 }[f], b = { 5: 0.55, 6: 1, 7: 1, 8: 1 }[f], k = { 5: 1, 6: 1, 7: 0.75, 8: 0.45 }[f];
+        bileStream(c, g, mx - 1, my + 1, tx, ty, 8, a, b, k);
+        if (f === 5) star4(c, g, mx - 2, my, 4, { gain: 1.2 });
+      }
+      if (f >= 6) {
+        puddle(c, g, tx, 5 + (f - 6) * 1.5, [1, 1, 0.9, 0.75, 0.5, 0.3][f - 6] ?? 0);
+        sparks(c, g, tx, ty - 1, f - 5.5, 31, 10, 1.8, -Math.PI / 2, 1.1, { grav: 0.16, life: 5, violetEvery: 3 });
+        motes(c, g, t * 2, 61, 6, [tx - 8, GROUND - 26, tx + 8, GROUND - 2], [0.9, 0.9, 0.8, 0.6, 0.4, 0.2][f - 6] ?? 0);
+      }
+    } else if (name === 'hurt') {
+      const h0 = figure(pose('hurt', 0)).hc;
+      sparks(c, g, h0[0] + 2, h0[1], f + 0.8, 13, 12, 2.4, -0.2, 0.9, { grav: 0.16, life: 5.5, violetEvery: 3 });
+      if (f === 0) star4(c, g, h0[0] - 6, h0[1], 4, { core: K.white, col: K.violet3, edge: K.violet2, light: LIGHT.violet, gain: 1.0 });
+    }
+    ambient(c, g, t, F);
+    return [c, g];
+  }
+
+  function deathFrame(f) {
+    const n = N_OF.death, c = new Cv(), g = new Cv();
+    if (f === n - 1) return [c, g];   // nothing left: the death holds an empty frame
+    const t = frac(f / LOOP), p = withP(pose('death', f), { phase: t * 2 * Math.PI }), F = figure(p);
+    paint(c, g, F, t);
+    const h0 = figure(pose('death', 0)).hc;
+    sparks(c, g, h0[0] + 2, h0[1], f + 0.8, 13, 12, 2.4, -0.2, 0.9, { grav: 0.16, life: 5.5, violetEvery: 3 });
+    if (f === 0) star4(c, g, h0[0] - 6, h0[1], 4, { core: K.white, col: K.violet3, edge: K.violet2, light: LIGHT.violet });
+    if (f === 1) F.eyes.forEach(([ex, ey]) => star4(c, g, ex, ey, 2, { gain: 0.9, diag: false }));
+    // it hits the floor: dust; it is dragged under: earth flies; the grave falls to dust
+    if (f >= 5 && f <= 7) dust(c, F.hc[0], GROUND - 3, 6 + (f - 5) * 2, [0.8, 0.55, 0.3][f - 5]);
+    if (f >= 7 && f <= 10) clods(c, F.mx - 4, GROUND - 8, f - 6.4, 11, 12, 2.4, -Math.PI * 0.5, 1.1);
+    if (f >= 11) {
+      dust(c, F.mx + 4, GROUND - 5 - (f - 11) * 1.5, 12 + (f - 11) * 2.5, [0.6, 0.8, 0.7, 0.5, 0.3][f - 11] ?? 0, 7 + f);
+      const r = rng(90);
+      for (let i = 0; i < 18; i++) {
+        const born = 11 + uni(r, 0, 4), x0 = uni(r, F.mx - 26, F.mx + 26), age = f - born, y0 = GROUND - 4 - uni(r, 0, 16);
+        if (age < 0 || age > 4) continue;
+        const x = x0 + Math.sin(age + i) * 0.8, y = y0 + age * age * 0.6;
+        if (y < GROUND - 1) putPx(c, x, y, i % 3 ? K.dust1 : RAMP.dirt[3]);
+      }
+      motes(c, g, t * 2, 71, 5, [F.mx - 24, GROUND - 34, F.mx + 24, GROUND - 4], 0.4 * (1 - (f - 11) / 5));
+    }
+    return [c, g];
+  }
+
+  const FRAME = { idle: idleFrame, attack: f => actionFrame('attack', f), burrow: f => actionFrame('burrow', f), cast: f => actionFrame('cast', f),
+    hurt: f => actionFrame('hurt', f), death: deathFrame };
+  const durationsMs = n => Array.from({ length: n }, (_, i) => Math.round((i + 1) * 1000 / FPS) - Math.round(i * 1000 / FPS));
+  const silhouetteOf = (name, f) => name === 'death' && f === N_OF.death - 1 ? new Uint8Array(N) : silhouette(poseAt(name, f));
+  const lostOf = (name, f) => name === 'death' && f === N_OF.death - 1 ? 0 : figure(poseAt(name, f)).lost;
+  /** Frames that may come apart (the grave falling to dust). */
+  const dissolving = (name, f) => name === 'death' && (f === N_OF.death - 1 || poseAt(name, f).crumble > 0);
+  const EVENTS = { attack: { strikes: [STRIKE_FRAME] } };
+  const META = { moves: { bite: 'attack', burrow: 'burrow', bile: 'cast', vengeance: 'cast' } };
+  /** Where the game's particles burst (EnemyAnimator.Styles): the body, the eyes on idle frame 0, the bite. */
+  const points = () => { const F = figure(idlePose(0)); return { chest: F.chest, eyes: [(F.eyes[0][0] + F.eyes[1][0]) / 2, F.eyes[0][1]], body: F.body, claw: strikePoint() }; };
+  const api = { CW, CH, GROUND, FPS, LOOP, ROOT_X, ANIMATIONS, STRIKE_FRAME, EVENTS, META, FRAME, durationsMs, strikePoint,
+    silhouetteOf, lostOf, dissolving, points, figure, pose, L_ };
+  root.WormArt = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const A = window.WormArt;
+  const INFO = {
+    idle: ['Reposo', 'Bucle de 2 s: el cuerpo se mece en su S (la cabeza llega después que la raíz), los anillos respiran, la cabeza cabecea y mira, las tiras de la mortaja se quedan atrás, la boca se frunce de vez en cuando y gotea bilis; caen terrones.'],
+    attack: ['Mordida Pútrida', 'Se enrosca hacia atrás abriendo la boca, se lanza en un barrido estirado y muerde al héroe con la boca de lamprea abierta (golpe en el fotograma 5) salpicando veneno; la cierra de golpe, retrocede y se asienta; las tiras de la mortaja llegan tarde.'],
+    burrow: ['Enterrarse', 'Se yergue, se vuelca y se zambulle de cabeza en su tumba levantando tierra; el montículo se agita mientras está debajo y luego sale de golpe cubierto de tierra (su escudo) y se asienta.'],
+    cast: ['Bilis', 'Un trago le hincha el cuerpo de la tumba al cuello, echa la cabeza atrás con una arcada y vomita un chorro de bilis en arco hacia el héroe, que salpica y humea en el suelo.'],
+    hurt: ['Daño', 'El golpe lo echa atrás con un destello, la cabeza hacia atrás con la boca abierta y las tiras de la mortaja por delante; le arranca bilis y rebota hasta asentarse.'],
+    death: ['Muerte', 'Se retuerce, se desploma hacia delante sobre el suelo y la tumba lo arrastra de vuelta; el montículo se asienta y la tumba entera se deshace en polvo de arriba abajo. Termina en un fotograma vacío.']
+  };
+  const EVENTS = { attack: { [A.STRIKE_FRAME]: 'golpe' } };
+  const cache = {};
+  function toCanvases(c, g) {
+    const lit = document.createElement('canvas'), glow = document.createElement('canvas');
+    lit.width = glow.width = A.CW; lit.height = glow.height = A.CH;
+    const L = lit.getContext('2d').createImageData(A.CW, A.CH), G = glow.getContext('2d').createImageData(A.CW, A.CH);
+    for (let i = 0; i < A.CW * A.CH; i++) {
+      const o = i * 4;
+      let r = c.px[o] + Math.min(4, g.px[o]) * 0.6, gg = c.px[o + 1] + Math.min(4, g.px[o + 1]) * 0.6, b = c.px[o + 2] + Math.min(4, g.px[o + 2]) * 0.6;
+      const hot = Math.max(0, Math.max(r, gg, b) - 1) * 0.5;
+      r = Math.min(1, Math.min(1, r) + hot); gg = Math.min(1, Math.min(1, gg) + hot); b = Math.min(1, Math.min(1, b) + hot);
+      L.data[o] = r * 255 + 0.5; L.data[o + 1] = gg * 255 + 0.5; L.data[o + 2] = b * 255 + 0.5; L.data[o + 3] = c.px[o + 3] > 0.01 ? 255 : 0;
+      G.data[o] = Math.min(1, g.px[o] / 2.5) * 255; G.data[o + 1] = Math.min(1, g.px[o + 1] / 2.5) * 255; G.data[o + 2] = Math.min(1, g.px[o + 2] / 2.5) * 255; G.data[o + 3] = 255;
+    }
+    lit.getContext('2d').putImageData(L, 0, 0); glow.getContext('2d').putImageData(G, 0, 0);
+    return { lit, glow };
+  }
+  function frames(name) {
+    if (!cache[name]) { const n = A.ANIMATIONS.find(a => a[0] === name)[1]; cache[name] = Array.from({ length: n }, (_, f) => toCanvases(...A.FRAME[name](f))); }
+    return cache[name];
+  }
+  const stage = document.getElementById('stage');
+  const strip = document.getElementById('strip'), readout = document.getElementById('readout'), note = document.getElementById('note');
+  const playBtn = document.getElementById('play'), haloBox = document.getElementById('halo');
+  let name = 'idle', frame = 0, playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches, acc = 0, last = 0, rest = 0;
+  function paint(target, fr, scale, withHalo) {
+    const t = target.getContext('2d'), sw = A.CW * scale, s = A.CH * scale, css = getComputedStyle(document.documentElement);
+    t.fillStyle = css.getPropertyValue('--stage').trim() || '#1c1932'; t.fillRect(0, 0, sw, s);
+    t.fillStyle = css.getPropertyValue('--stage-floor').trim() || '#120f22'; t.fillRect(0, A.GROUND * scale, sw, s - A.GROUND * scale);
+    // the contact shadow the game draws under every figure (Presentation/Fx/GroundShadow.cs), here as a flat ellipse
+    t.fillStyle = 'rgba(10, 6, 18, 0.75)'; t.beginPath(); t.ellipse(A.ROOT_X * scale, (A.GROUND - 0.5) * scale, 27 * scale, 2.4 * scale, 0, 0, Math.PI * 2); t.fill();
+    t.imageSmoothingEnabled = false; t.drawImage(fr.lit, 0, 0, sw, s);
+    if (!withHalo) return;
+    t.save(); t.globalCompositeOperation = 'lighter'; t.imageSmoothingEnabled = true;
+    t.filter = `blur(${1.4 * scale}px)`; t.globalAlpha = 0.55 * 0.9; t.drawImage(fr.glow, 0, 0, sw, s);
+    t.filter = `blur(${4 * scale}px)`; t.globalAlpha = 0.55 * 1.1; t.drawImage(fr.glow, 0, 0, sw, s);
+    t.restore();
+  }
+  function render() {
+    const fr = frames(name);
+    paint(stage, fr[frame], 4, haloBox.checked);
+    const n = fr.length, ev = (EVENTS[name] || {})[frame];
+    readout.innerHTML = `Fotograma <b>${frame + 1}</b> / ${n} · ${A.durationsMs(n)[frame]} ms${ev ? ` · <b>${ev}</b>` : ''}`;
+    strip.querySelectorAll('figure').forEach((el, i) => { el.dataset.on = String(i === frame); });
+  }
+  function buildStrip() {
+    strip.textContent = '';
+    frames(name).forEach((fr, i) => {
+      const fig = document.createElement('figure'), cv = document.createElement('canvas'), cap = document.createElement('figcaption');
+      cv.width = 256; cv.height = 192; paint(cv, fr, 2, true);
+      cv.addEventListener('click', () => { frame = i; setPlaying(false); render(); });
+      const ev = (EVENTS[name] || {})[i];
+      cap.innerHTML = String(i + 1) + (ev ? ` <span class="ev">${ev}</span>` : '');
+      fig.append(cv, cap); strip.append(fig);
+    });
+  }
+  function select(n) {
+    name = n; frame = 0; acc = 0; rest = 0;
+    picker.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.anim === n)));
+    note.innerHTML = `<strong>${INFO[n][0]}.</strong> ${INFO[n][1]}`;
+    buildStrip(); render();
+  }
+  function setPlaying(v) { playing = v; playBtn.textContent = v ? 'Pausa' : 'Reproducir'; }
+  const picker = document.getElementById('picker');
+  A.ANIMATIONS.forEach(([n]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.anim = n; b.textContent = INFO[n][0];
+    b.addEventListener('click', () => select(n)); picker.append(b);
+  });
+  playBtn.addEventListener('click', () => setPlaying(!playing));
+  document.getElementById('prev').addEventListener('click', () => { setPlaying(false); const n = frames(name).length; frame = (frame - 1 + n) % n; render(); });
+  document.getElementById('next').addEventListener('click', () => { setPlaying(false); frame = (frame + 1) % frames(name).length; render(); });
+  haloBox.addEventListener('change', render);
+  function tick(now) {
+    const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
+    if (playing) {
+      const fr = frames(name), n = fr.length, loop = A.ANIMATIONS.find(a => a[0] === name)[2];
+      if (rest > 0) { rest -= dt; if (rest <= 0) { frame = 0; acc = 0; render(); } }
+      else {
+        acc += dt;
+        const dur = A.durationsMs(n)[frame] / 1000;
+        if (acc >= dur) {
+          acc -= dur;
+          if (frame === n - 1 && !loop) { rest = name === 'death' ? 1.6 : 0.6; }
+          else { frame = (frame + 1) % n; render(); }
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  setPlaying(playing);
+  select('idle');
+  requestAnimationFrame(tick);
+})();
+</script>

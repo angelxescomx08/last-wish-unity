@@ -1,62 +1,82 @@
 {
- "cell_w": 160,
- "cell_h": 108,
- "columns": 13,
+ "cell_w": 144,
+ "cell_h": 96,
+ "columns": 24,
  "anchor": [
-  112,
-  102
+  102,
+  93
  ],
  "scale": 2,
  "sheet": "eye_sheet.png",
+ "halo": {
+  "sheet": "eye_halo.png",
+  "gain": 0.55
+ },
  "animations": {
   "idle": {
    "row": 0,
-   "frames": 12,
+   "frames": 24,
    "durations_ms": [
-    110,
-    110,
-    110,
-    110,
-    110,
-    110,
-    110,
-    110,
-    110,
-    110,
-    110,
-    110
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83
    ],
    "loop": true
   },
   "attack": {
    "row": 1,
-   "frames": 9,
+   "frames": 10,
    "durations_ms": [
-    90,
-    110,
-    100,
-    55,
-    60,
-    70,
-    90,
-    90,
-    110
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83
    ],
    "loop": false
   },
   "cast": {
    "row": 2,
-   "frames": 9,
+   "frames": 12,
    "durations_ms": [
-    85,
-    85,
-    85,
-    85,
-    85,
-    85,
-    90,
-    90,
-    110
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83
    ],
    "loop": false
   },
@@ -64,33 +84,37 @@
    "row": 3,
    "frames": 7,
    "durations_ms": [
-    55,
-    60,
-    70,
-    70,
-    80,
-    90,
-    100
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83
    ],
    "loop": false
   },
   "death": {
    "row": 4,
-   "frames": 13,
+   "frames": 17,
    "durations_ms": [
-    70,
-    90,
-    90,
-    90,
-    85,
-    85,
-    85,
-    85,
-    85,
-    85,
-    85,
-    85,
-    120
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84,
+    83,
+    83,
+    84
    ],
    "loop": false
   }
@@ -108,11 +132,13 @@
   "dread": "cast",
   "vengeance": "cast"
  },
- "top_native": 29,
+ "top_native": 8,
  "idle_bbox_native": [
-  91,
-  29,
+  83,
+  8,
   133,
-  85
- ]
+  68
+ ],
+ "style": "docs/art-style.md",
+ "generator": "Tools/VfxLab/enemies/eye.html"
 }

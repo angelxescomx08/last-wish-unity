@@ -185,8 +185,27 @@ Small domain additions for presentation (rules unchanged, tests green):
 * `EnemySheet` reads an optional `halo` (`HaloTexture`, `HaloGain`, `Halo(animation, elapsed)`); `EnemyAnimator.Draw`
   adds it over the frame (`DrawHalo`, additive, scaled by the canvas alpha and the arrival fade). Older sheets have no
   halo and draw exactly as before. The wraith's `EnemyAnimator.Styles` points follow the new art.
-* Tests: `WraithArtTests` (EditMode, 7). EditMode 490/490 with the offline .NET 8 NUnit runner; PlayMode not run yet
-  (Unity was closed).
+* La Babosa Ácida (`slime.html`, 12-11-2026): a dark teal gel mound with an acid core, a rusty helmet sunk in its crown
+  (eyes in the visor slit). Each frame writes the gel's spine, widths, foot, trail and splat (smooth union), and where
+  the helmet rides (seated on the computed gel top, whole pixels, tilt per frame). Clips kept from the old sheet: idle
+  24, attack 11 (Golpe Viscoso, strike 5), spit 10 (Escupitajo Ácido, strike 5), cast 12 (Corroer), hurt 7, death 17;
+  `moves` slam/spit/corrode/vengeance. 128x96 cells, anchor (78, 93); its Styles points were re-exported.
+* El Gusano de Tumba (`worm.html`, 128x96, anchor (80, 93)): grave, mound and worm in one label map; per frame the body
+  spine and widths, where the head looks (absolute angle), the mouth, the shroud's tip and strips. Clips idle 24, attack
+  10 (strike 4), burrow 12, cast 12 (Bilis), hurt 7, death 17; moves bite/burrow/bile/vengeance.
+* El Ojo Vigilante (`eye.html`, 144x96 for the beam, anchor (102, 93)): iron sallet, visor-eyelid, one magenta eye, five
+  tentacles written per frame (swing, curl, length, trailing tip). Clips idle 24, attack 10 (Rayo Ocular, strike 4), cast
+  12 (Mirada Fija / Pavor), hurt 7, death 17; moves beam/stare/dread/vengeance.
+* El Cráneo Ígneo (`skull.html`, 128x96, anchor (86, 93)): skull, jaw (opening per frame) and horned broken helm in one
+  label map; the fire mane is drawn behind it without an outline, every tongue recomputed per frame. Clips idle 24, attack
+  10 (Llamarada, strike 3), cast 12 (Avivar), hurt 7, death 17; moves flame/stoke/vengeance. The Styles points of all four
+  were re-exported (`--styles`).
+* Tests: `WraithArtTests` (EditMode, 7) and `HtmlEnemyArtTests` (EditMode, one case per redrawn enemy: sheet, clips,
+  timing, strikes, moves, cells, halo, actions; 4 enemies, 24 cases). `SheetsWithoutAHaloDrawNoLight` now picks any sheet
+  not redrawn yet. EditMode 514/514 and PlayMode 36/36 in the editor (12-11-2026).
+* Fix found by the PlayMode run: `CardWidget`'s static card-face cache and `HeroSheet`'s fade layer kept render targets
+  made by an earlier backend; in a new boot their ids named other textures (`InvalidCastException` in
+  `UnityRenderBackend.EndFrame`). Both now forget their surfaces when the canvas has a different backend.
 
 ## Contact shadows (beyond the original)
 

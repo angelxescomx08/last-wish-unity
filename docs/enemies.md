@@ -400,10 +400,19 @@ Nunca toca las hojas originales ni las de héroes.
 | Enemigo | Página | Hoja | Desde |
 |---|---|---|---|
 | Espectro | `Tools/VfxLab/enemies/wraith.html` | `wraith_sheet.png` + `wraith_halo.png`, celda 128×96 | 12-11-2026 |
+| Babosa Ácida | `Tools/VfxLab/enemies/slime.html` | `slime_sheet.png` + `slime_halo.png`, celda 128×96 | 12-11-2026 |
+| Gusano de Tumba | `Tools/VfxLab/enemies/worm.html` | `worm_sheet.png` + `worm_halo.png`, celda 128×96 | 12-11-2026 |
+| Ojo Vigilante | `Tools/VfxLab/enemies/eye.html` | `eye_sheet.png` + `eye_halo.png`, celda 144×96 | 12-11-2026 |
+| Cráneo Ígneo | `Tools/VfxLab/enemies/skull.html` | `skull_sheet.png` + `skull_halo.png`, celda 128×96 | 12-11-2026 |
 
 Cada página es a la vez el visor (ábrela en el navegador) y la fuente de la hoja. Los brazos, mangas y dedos se escriben
-fotograma a fotograma (regla del usuario del 12-11-2026). Animaciones: reposo 24, ataque 10, daño 7, habilidad 12 y
-muerte 17, a 12 fps, con eventos de golpe y halo.
+fotograma a fotograma (regla del usuario del 12-11-2026); en los que no tienen brazos, la forma de todo el cuerpo (la Babosa:
+lomo, anchos, pie y salpicadura del gel en cada fotograma). Cada hoja conserva los clips, el mapa `moves` y los golpes que ya
+esperaba el juego, a 12 fps: reposo 24 (bucle), acciones que acaban en el fotograma 0 del reposo y muerte que acaba vacía
+(Espectro: ataque 10, daño 7, habilidad 12, muerte 17; Babosa: ataque 11 con golpe en el 5, escupitajo 10 con golpe en el 5,
+habilidad 12, daño 7, muerte 17; Gusano: ataque 10 con golpe en el 4, `burrow` 12, habilidad 12, daño 7, muerte 17; Ojo:
+ataque 10 con el rayo en el 4, habilidad 12, daño 7, muerte 17; Cráneo: ataque 10 con la llamarada en el 3, habilidad 12,
+daño 7, muerte 17), con halo. Pruebas: `WraithArtTests` y `HtmlEnemyArtTests` (una entrada por enemigo).
 
 ```powershell
 python Tools/VfxLab/export_enemy_art.py                  # todas las páginas de Tools/VfxLab/enemies (necesita Node)

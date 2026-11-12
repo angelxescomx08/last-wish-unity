@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprite de la Babosa Ácida</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one stage (the sprite at 4x on the dungeon night), the animation picker beside it, the frame strip below. */
+  :root {
+    --bg: #0f0d1a; --panel: #17142a; --line: #2b2648; --fg: #e8e4f8; --muted: #9d97bd;
+    --accent: #b3ec4a; --gold: #d9b26a; --stage: #1c1932; --stage-floor: #120f22;
+    --font-display: "Pixelify Sans", "Silkscreen", ui-monospace, monospace;
+    --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { background: var(--bg); color: var(--fg); }
+  body { font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .page { max-width: 980px; margin: 0 auto; padding-block: 28px 40px; display: grid; gap: 22px; }
+  header { display: grid; gap: 6px; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 6vw, 44px); line-height: 1; margin: 0;
+    letter-spacing: 0.02em; text-wrap: balance; }
+  h1 span { color: var(--accent); }
+  .lede { color: var(--muted); max-width: 64ch; margin: 0; }
+  .work { display: grid; grid-template-columns: minmax(0, 512px) minmax(0, 1fr); gap: 22px; align-items: start; }
+  @media (max-width: 720px) { .work { grid-template-columns: minmax(0, 1fr); } }
+  .stage { position: relative; width: 100%; max-width: 512px; aspect-ratio: 4 / 3; border: 1px solid var(--line);
+    background: var(--stage); }
+  .stage canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+  .side { display: grid; gap: 16px; min-width: 0; }
+  .label { font-family: var(--font-display); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .picker { display: flex; flex-wrap: wrap; gap: 8px; }
+  .picker button, .controls button { font: 600 14px/1 var(--font-body); color: var(--fg); background: var(--panel);
+    border: 1px solid var(--line); padding: 10px 12px; cursor: pointer; }
+  .picker button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+  .picker button:hover, .controls button:hover { border-color: var(--muted); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .controls label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 14px; }
+  .readout { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .readout b { color: var(--fg); font-weight: 500; }
+  .note { border-left: 2px solid var(--gold); padding: 2px 0 2px 12px; color: var(--muted); font-size: 14px; margin: 0; }
+  .note strong { color: var(--fg); font-weight: 600; }
+  .strip-wrap { display: grid; gap: 8px; }
+  .strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+  .strip figure { margin: 0; display: grid; gap: 4px; flex: 0 0 auto; }
+  .strip canvas { width: 256px; height: 192px; image-rendering: pixelated; background: var(--stage); border: 1px solid var(--line); cursor: pointer; display: block; }
+  .strip figure[data-on="true"] canvas { border-color: var(--accent); }
+  .strip figcaption { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+  .strip figcaption .ev { color: var(--gold); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+  <header>
+    <h1>La <span>Babosa Ácida</span></h1>
+    <p class="lede">Enemigo de Last Wish dibujado con código, con el método y el diseño de los héroes. En cada fotograma la figura entera —el cuerpo de gel, el yelmo oxidado que se tragó y la rendija de la visera con sus ojos de ácido— es una sola silueta con un único contorno: no hay piezas encima ni partes que giren. Mira hacia el héroe. 12 fotogramas por segundo, celdas de 128×96 px.</p>
+  </header>
+  <div class="work">
+    <div class="stage"><canvas id="stage" width="512" height="384" aria-label="La Babosa Ácida animada"></canvas></div>
+    <div class="side">
+      <div class="label">Animación</div>
+      <div class="picker" id="picker" role="group" aria-label="Animación"></div>
+      <div class="controls">
+        <button id="play" type="button">Pausa</button>
+        <button id="prev" type="button" aria-label="Fotograma anterior">◀</button>
+        <button id="next" type="button" aria-label="Fotograma siguiente">▶</button>
+        <label><input id="halo" type="checkbox" checked> Halo de luz</label>
+      </div>
+      <div class="readout" id="readout"></div>
+      <p class="note" id="note"></p>
+    </div>
+  </div>
+  <div class="strip-wrap">
+    <div class="label">Fotogramas a tamaño de combate</div>
+    <div class="strip" id="strip"></div>
+  </div>
+</div>
+
+<script id="slime-art">
+/* La Babosa Ácida drawn by code (docs/art-style.md section 3.1: the mandatory method for characters and enemies). Every
+   frame computes the WHOLE figure as one label map: the gel body (a mound whose spine, widths, foot and trail are written
+   for that frame), the rusty helmet it swallowed, sunk into its crown (the part under the gel shows as a dark shape), and
+   the visor slit with its two acid eyes. One outline around everything; nothing is a separate piece and nothing is
+   tweened at play time. Two layers: paint (readable alone) and light (only the acid: eyes, core, bubbles, drips, spit).
+   128x96 cells, the shadow line on row 93; it faces left (towards the hero): cyan rim in front, violet behind. */
+(function (root) {
+  'use strict';
+  const CW = 128, CH = 96, N = CW * CH, GROUND = 93, ROOT_X = 78, FPS = 12, LOOP = 24, Z = 1.08;  // Z: drawing scale of the body
+
+  // ---------------------------------------------------------------------------------------------- palette
+  const hex = h => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
+  const ramp = a => a.map(hex);
+  const K = {};
+  for (const [k, v] of Object.entries({
+    ink: '#07050c', void1: '#04020a', rimc: '#58dcff', rimv: '#3a2163', white: '#ffffff',
+    violet1: '#55248a', violet2: '#8a47cf', violet3: '#c79bff', steel3: '#cdd5ec', gloss: '#9fdcc9'
+  })) K[k] = hex(v);
+  const RAMP = {
+    gel: ramp(['#060d11', '#0a171c', '#0f2227', '#152f33', '#1c3f40', '#27554f']),
+    iron: ramp(['#16131c', '#272330', '#3d3747', '#5a5266', '#857c93']),
+    rust: ramp(['#26141a', '#3f2120', '#5c3224', '#7c4a2e']),
+    inner: ramp(['#040209', '#0a0614', '#130c22'])
+  };
+  // its accent: acid (eyes, the core seen through the gel, bubbles, drips, its spit and splashes)
+  const ACID = ramp(['#12280b', '#2a5812', '#5a9b1b', '#9ad936', '#e0ffa6']);
+  const CORE = [RAMP.gel[2], hex('#123327'), ACID[0], ACID[1], ACID[2]];
+  const LIGHT = { acid: [0.55, 1.0, 0.18], cyan: [0.25, 0.85, 1.0], white: [1, 1, 1], violet: [0.6, 0.3, 1.0] };
+  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+  // ---------------------------------------------------------------------------------------------- tiny raster kit
+  const BAY = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  const B = new Float32Array(N);
+  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) B[y * CW + x] = (BAY[y % 4][x % 4] + 0.5) / 16;
+  const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+  const smooth = (e0, e1, d) => clamp01((d - e0) / (e1 - e0));
+  const frac = v => v - Math.floor(v);
+
+  class Cv { constructor() { this.px = new Float32Array(N * 4); } }
+  const val = (a, i) => typeof a === 'number' ? a : typeof a === 'function' ? a(i) : a[i];
+  function put(c, m, col, a = 1) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      if (B[i] < val(a, i)) { const o = i * 4; c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1; }
+    }
+  }
+  function add(g, m, light, a = 1) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      const al = val(a, i), o = i * 4;
+      g.px[o] += light[0] * al; g.px[o + 1] += light[1] * al; g.px[o + 2] += light[2] * al; g.px[o + 3] = 1;
+    }
+  }
+  const idx = (x, y) => { x = Math.floor(x); y = Math.floor(y); return x < 0 || y < 0 || x >= CW || y >= CH ? -1 : y * CW + x; };
+  function putPx(c, x, y, col, a = 1) {
+    const i = idx(x, y); if (i < 0 || B[i] >= a) return;
+    const o = i * 4; c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+  }
+  function addPx(g, x, y, light, a = 1) {
+    const i = idx(x, y); if (i < 0) return;
+    const o = i * 4; g.px[o] += light[0] * a; g.px[o + 1] += light[1] * a; g.px[o + 2] += light[2] * a; g.px[o + 3] = 1;
+  }
+  const mask = fn => { const m = new Uint8Array(N); for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) { const i = y * CW + x; if (fn(x + 0.5, y + 0.5, i, x, y)) m[i] = 1; } return m; };
+  const at = (m, x, y) => x >= 0 && y >= 0 && x < CW && y < CH ? m[y * CW + x] : 0;
+  function dilate(m, diag = false) {
+    const o = new Uint8Array(N);
+    for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+      const i = y * CW + x;
+      o[i] = m[i] || at(m, x - 1, y) || at(m, x + 1, y) || at(m, x, y - 1) || at(m, x, y + 1) ||
+        (diag && (at(m, x - 1, y - 1) || at(m, x + 1, y - 1) || at(m, x - 1, y + 1) || at(m, x + 1, y + 1))) ? 1 : 0;
+    }
+    return o;
+  }
+  const outline = m => { const d = dilate(m); for (let i = 0; i < N; i++) d[i] = d[i] && !m[i] ? 1 : 0; return d; };
+  const nb = (m, dx, dy) => { const o = new Uint8Array(N); for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) o[y * CW + x] = at(m, x + dx, y + dy); return o; };
+  const and = (...ms) => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) { let v = 1; for (const m of ms) if (!m[i]) { v = 0; break; } o[i] = v; } return o; };
+  const or = (...ms) => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) { for (const m of ms) if (m[i]) { o[i] = 1; break; } } return o; };
+  const not = m => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) o[i] = m[i] ? 0 : 1; return o; };
+  function line(x0, y0, x1, y1) {
+    x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+    const pts = []; const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx + dy;
+    for (;;) { pts.push([x0, y0]); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x0 += sx; } if (e2 <= dx) { err += dx; y0 += sy; } }
+    return pts;
+  }
+  function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const uni = (r, a, b) => a + (b - a) * r();
+  const h2 = (x, y) => { let h = Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+  const vnoise = (x, y) => {
+    const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+    const a = h2(xi, yi), b = h2(xi + 1, yi), c = h2(xi, yi + 1), d = h2(xi + 1, yi + 1);
+    return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+  };
+
+  function toneIdx(i, light, n, amp) { return Math.max(0, Math.min(n - 1, Math.floor(light * (n - 1) + 0.5 + (B[i] - 0.5) * amp))); }
+  function paintZone(c, m, rp, light, amp = 0.55) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      const col = rp[toneIdx(i, val(light, i), rp.length, amp)], o = i * 4;
+      c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------- shapes
+  const sdEllipse = (x, y, rx, ry) => (Math.hypot(x / rx, y / ry) - 1) * Math.min(rx, ry);
+  const sdBox = (x, y, hx, hy) => { const qx = Math.abs(x) - hx, qy = Math.abs(y) - hy; return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0); };
+  const smin = (a, b, k) => { const h = clamp01(0.5 + 0.5 * (b - a) / k); return b + (a - b) * h - k * h * (1 - h); };
+  // the helmet, in its own coordinates (a: towards the hero, b: up, px): a bascinet, its dome rising to a point that
+  // leans back, over a short skirt with a flared rim; the visor slit across its front, a hole the acid ate in the back
+  const HRX = 11, HDOME = 1.5, HRY = 11, HBOT = -10.5;
+  const domeC = q => -2.2 * q * q;                                       // the point leans back
+  const domeW = q => HRX * Math.sqrt(Math.max(0, 1 - q * q)) * (1 - 0.28 * q * q);
+  const helmSdf = (a, b) => {
+    const skirt = Math.min(sdBox(a, b - (HBOT + HDOME) / 2, HRX, (HDOME - HBOT) / 2), sdBox(a, b - (HBOT + 1), HRX + 0.8, 1.0));
+    if (b <= HDOME) return skirt;
+    const q = (b - HDOME) / HRY;
+    return Math.min(skirt, q >= 1 ? Math.hypot(a - domeC(1), b - HDOME - HRY) : Math.max(Math.abs(a - domeC(q)) - domeW(q), b - HDOME - HRY));
+  };
+  const inSlit = (a, b) => b > -0.5 && b < 2.7 && a > -1.8 && a < 9.9;
+  const inHole = (a, b) => { const r = Math.hypot(a + 5.6, b - 6.8); return r < 2.2 + 0.55 * Math.sin(3 * Math.atan2(b - 6.8, a + 5.6) + 1.0); };
+  const LDIR = (() => { const v = [-0.55, -0.7, 0.5], l = Math.hypot(...v); return v.map(q => q / l); })();   // screen space, from the upper left
+
+  // ---------------------------------------------------------------------------------------------- labels
+  const L_ = {}; ['EMPTY', 'GEL', 'SUB', 'HELM', 'HOLE', 'FACE'].forEach((k, i) => { L_[k] = i; });
+
+  // ---------------------------------------------------------------------------------------------- the pose
+  // Every frame writes the shape of the whole gel, like an animator draws a blob, not a puppet:
+  //   base: the foot on the floor [front, back, height] (u: towards the hero, body units); trail: [length, height] of the
+  //   slime trail behind it; sp: the body's spine, four points [u, d] from the floor to the crown; w: its half widths at
+  //   the foot, the middle and the crown; splat: [u, rx, ry] gel slapped flat on the floor in front (the impact);
+  //   wob/wobF/wobPh: the jelly's wobble round its outline (amplitude, lobes, phase);
+  //   helm: [u, seat, tilt, sink]: the helmet over column u, its centre `seat` above the top of the gel there (it rides the
+  //   gel wherever the gel goes, on whole pixels), its tilt in degrees (+: towards the hero), sink: where the gel line
+  //   crosses it (helmet units from its centre; higher is deeper); sinkWave: the gel lapping at it;
+  //   eyes, blink; core/coreAt/coreR: the acid core's glow, centre and size; crust: the skin hardening into foam (Corroer);
+  //   flash: hit; melt (0..1): the death's puddle boiling away from the outside in.
+  const IDLE = { x: 0, phase: 0, base: [31, -33, 7], trail: [8, 1.6], sp: [[0, 0], [0, 12], [1, 22], [3, 30]], w: [30, 29, 15],
+    splat: null, helm: [5, 4, 8, -4.5], wob: 0.45, wobF: 3, wobPh: 0, sinkWave: 0.6, eyes: 1, blink: 0, core: 1, coreAt: [1, 13],
+    coreR: 1, crust: 0, flash: 0, melt: 0 };
+
+  /** The whole figure of a pose as ONE label map (plus the gel's distance field and the helmet's own coordinates). */
+  function figure(p) {
+    const lab = new Int8Array(N), S = new Float32Array(N), HA = new Float32Array(N), HB = new Float32Array(N), HS = new Float32Array(N);
+    const gx = ROOT_X + p.x, W = (u, d) => [gx - u * Z, GROUND - d * Z];
+    const P = p.sp.map(([u, d]) => W(u, d));
+    const bez = t => { const s = 1 - t, k0 = s * s * s, k1 = 3 * s * s * t, k2 = 3 * s * t * t, k3 = t * t * t; return [k0 * P[0][0] + k1 * P[1][0] + k2 * P[2][0] + k3 * P[3][0], k0 * P[0][1] + k1 * P[1][1] + k2 * P[2][1] + k3 * P[3][1]]; };
+    const [w0, w1, w2] = p.w, NS = 40, C = [], R = [];
+    for (let k = 0; k <= NS; k++) { const t = k / NS; C.push(bez(t)); R.push((w0 * (1 - t) * (1 - t) + 2 * w1 * t * (1 - t) + w2 * t * t) * Z); }
+    const [bf, bb, bh] = p.base, bcx = gx - (bf + bb) / 2 * Z, brx = (bf - bb) / 2 * Z, bry = bh * Z;
+    const [tl, th] = p.trail, sp = p.splat;
+    // the top of the gel in a column (spine discs, foot and splat), where the helmet rides
+    const ellTop = (xc, cx, rx, ry) => { const dx = xc - cx; return Math.abs(dx) < rx ? GROUND - ry * Math.sqrt(1 - (dx / rx) ** 2) : GROUND; };
+    const gelTop = xc => {
+      let top = ellTop(xc, bcx, brx, bry);
+      for (let k = 0; k <= NS; k++) { const dx = xc - C[k][0]; if (Math.abs(dx) < R[k]) top = Math.min(top, C[k][1] - Math.sqrt(R[k] * R[k] - dx * dx)); }
+      if (sp) top = Math.min(top, ellTop(xc, gx - sp[0] * Z, sp[1] * Z, sp[2] * Z));
+      return top;
+    };
+    // the helmet sits on whole pixels (iron does not shimmer); its tilt is written per frame
+    const [hu, seat, tilt, sink] = p.helm, hxc = gx - hu * Z, hx = Math.round(hxc), hy = Math.round(gelTop(hxc) - seat * Z);
+    const ta = tilt * Math.PI / 180, cs = Math.cos(ta), sn = Math.sin(ta);
+    const wc = bez(0.45);
+    for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+      const i = y * CW + x, px = x + 0.5, py = y + 0.5;
+      const du = (hx - px) / Z, dd = (hy - py) / Z, a = du * cs - dd * sn, b = du * sn + dd * cs;
+      HA[i] = a; HB[i] = b;
+      const hs = helmSdf(a, b); HS[i] = hs;
+      // the gel: discs along the spine, smoothly joined to the foot, the trail, the splat and the part of the helmet it swallowed
+      let s = 99;
+      for (let k = 0; k <= NS; k++) s = Math.min(s, Math.hypot(px - C[k][0], py - C[k][1]) - R[k]);
+      s = smin(s, sdEllipse(px - bcx, py - GROUND, brx, bry), 5 * Z);
+      const u = (gx - px) / Z, d = (GROUND - py) / Z;
+      if (u < bb + 4 && u > bb - tl) { const k = clamp01((bb + 4 - u) / (tl + 4)); s = Math.min(s, (d - (th * (1 - k * k) + 0.4)) * Z); }
+      if (sp) s = smin(s, sdEllipse(px - (gx - sp[0] * Z), py - GROUND, sp[1] * Z, sp[2] * Z), 3 * Z);
+      s = smin(s, Math.max(hs, b - sink) + 0.5, 3 * Z);
+      s += p.wob * Math.sin(p.wobF * Math.atan2(py - wc[1], px - wc[0]) + p.wobPh) * Z;
+      S[i] = s;
+      if (py >= GROUND) continue;
+      const gel = s < 0;
+      let L = gel ? L_.GEL : 0;
+      if (hs < 0) {
+        const surf = sink + p.sinkWave * Math.sin(a * 0.6 + p.phase);
+        if (b > surf || !gel) L = inSlit(a, b) ? L_.FACE : inHole(a, b) ? L_.HOLE : L_.HELM;
+        else L = L_.SUB;
+      }
+      lab[i] = L;
+    }
+    // one figure: anything not 4-connected to the middle of the gel is dropped
+    const reach = new Uint8Array(N), stack = [], seed = idx(...W((bf + bb) / 2 * 0.5, 3));
+    if (seed >= 0 && lab[seed]) { reach[seed] = 1; stack.push(seed); }
+    while (stack.length) {
+      const i = stack.pop(), x = i % CW, y = (i / CW) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const j = idx(x + dx, y + dy); if (j >= 0 && !reach[j] && lab[j]) { reach[j] = 1; stack.push(j); }
+      }
+    }
+    let lost = 0;
+    for (let i = 0; i < N; i++) if (!reach[i] && lab[i]) { lab[i] = 0; lost++; }
+    // death: the puddle boils away from the outside in, along a ragged edge (two noise scales and the dither)
+    if (p.melt > 0) for (let i = 0; i < N; i++) {
+      if (!lab[i]) continue;
+      const x = i % CW, y = (i / CW) | 0, inner = lab[i] === L_.GEL || lab[i] === L_.SUB ? clamp01(-S[i] / (6 * Z)) : 0.3 * clamp01(-HS[i] / (5 * Z));
+      const n = 0.72 * vnoise(x / 4.6 + 2, y / 3.0) + 0.2 * vnoise(x / 1.9 + 9, y / 1.9 + 4) + 0.08 * B[i];
+      if (0.55 * inner + 0.45 * n < p.melt) lab[i] = 0;
+    }
+    // no lone specks: a pixel with fewer than two neighbours left boils off too
+    if (p.melt > 0) for (let pass = 0; pass < 2; pass++) {
+      const keep = Int8Array.from(lab);
+      for (let i = 0; i < N; i++) {
+        if (!keep[i]) continue;
+        const x = i % CW, y = (i / CW) | 0;
+        let k = 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const j = idx(x + dx, y + dy); if (j >= 0 && keep[j]) k++; }
+        if (k < 2) lab[i] = 0;
+      }
+    }
+    // helmet space -> pixels
+    const toPx = (a, b) => [hx - (a * cs + b * sn) * Z, hy - (-a * sn + b * cs) * Z];
+    return { p, lab, S, HA, HB, gx, lost, W, toPx, hx, hy, cs, sn,
+      eyes: [toPx(2.6, 1.1), toPx(7.4, 1.1)], slit: toPx(11.5, 1.1), chest: W(...p.coreAt), body: W(0, 22), crown: P[3] };
+  }
+
+  // ---------------------------------------------------------------------------------------------- painting
+  function paint(c, g, F, t, pulse) {
+    const { p, lab, S, HA, HB } = F;
+    const is = (...ls) => { const s = new Set(ls); const m = new Uint8Array(N); for (let i = 0; i < N; i++) if (s.has(lab[i])) m[i] = 1; return m; };
+    const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = lab[i] ? 1 : 0;
+    // the figure is opaque: light from effects drawn behind it must not shine through
+    const mo = dilate(m);
+    for (let i = 0; i < N; i++) if (mo[i]) { const o = i * 4; g.px[o] = g.px[o + 1] = g.px[o + 2] = 0; }
+    put(c, outline(m), K.ink);
+    const up = mm => nb(mm, 0, -1), down = mm => nb(mm, 0, 1), left = mm => nb(mm, -1, 0), right = mm => nb(mm, 1, 0);
+    const gel = is(L_.GEL), sub = is(L_.SUB), helm = is(L_.HELM), hole = is(L_.HOLE), face = is(L_.FACE);
+
+    // the gel: a soft volume lit from the upper left (normals from its distance field, facing us deeper inside)
+    const lam = new Float32Array(N), dep = new Float32Array(N);
+    const Sat = (x, y) => S[Math.max(0, Math.min(CH - 1, y)) * CW + Math.max(0, Math.min(CW - 1, x))];
+    for (let i = 0; i < N; i++) {
+      if (!gel[i] && !sub[i]) continue;
+      const x = i % CW, y = (i / CW) | 0, sx = Sat(x + 1, y) - Sat(x - 1, y), sy = Sat(x, y + 1) - Sat(x, y - 1), nl = Math.hypot(sx, sy) || 1;
+      const depth = -S[i], k = Math.pow(clamp01(depth / (11 * Z)), 0.65);
+      let n0 = sx / nl * (1 - k), n1 = sy / nl * (1 - k), n2 = k + 0.2; const l = Math.hypot(n0, n1, n2); n0 /= l; n1 /= l; n2 /= l;
+      lam[i] = n0 * LDIR[0] + n1 * LDIR[1] + n2 * LDIR[2]; dep[i] = depth;
+    }
+    const gelS = or(gel, sub);
+    paintZone(c, gelS, RAMP.gel, i => 0.48 + 0.68 * lam[i], 0.5);
+    // the acid core seen through the gel: a wobbling lump low in the belly, brighter in the middle, and it breathes
+    const [ccx, ccy] = F.chest, crx = 13.5 * Z * p.coreR * (1 + 0.04 * pulse), cry = 7.5 * Z * p.coreR * (1 - 0.04 * pulse);
+    const coreK = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      if (!gel[i]) continue;
+      const x = i % CW + 0.5, y = ((i / CW) | 0) + 0.5, an = Math.atan2(y - ccy, x - ccx);
+      const r = Math.hypot((x - ccx) / crx, (y - ccy) / cry) - 0.04 * Math.sin(2 * an + p.phase * 2) - 0.025 * Math.sin(3 * an - p.phase);
+      coreK[i] = clamp01((1 - r) * 1.6) * p.core * Math.min(1, dep[i] / 2.5);
+    }
+    const core = and(gel, mask((x, y, i) => coreK[i] > 0.04));
+    paintZone(c, core, CORE, i => Math.min(1, coreK[i]), 0.7);
+    add(g, core, LIGHT.acid, i => 0.12 * coreK[i]);
+    // the gloss: a crescent on the upper left of the skin and one hot spot
+    put(c, and(gel, mask((x, y, i) => dep[i] > 0.8 && dep[i] < 3.8 && lam[i] > 0.74)), RAMP.gel[5]);
+    put(c, and(gel, mask((x, y, i) => dep[i] > 1.3 && dep[i] < 2.8 && lam[i] > 0.86)), K.gloss);
+    // the wet highlight: a short curved stroke on the shoulder that faces the light (walk up-left from the core to the
+    // skin, then back inside)
+    {
+      let [qx, qy] = F.chest, k = 0;
+      while (k++ < 80) { const j = idx(qx - 0.75, qy - 0.66); if (j < 0 || !gel[j]) break; qx -= 0.75; qy -= 0.66; }
+      const bx = Math.round(qx + 5.2), by = Math.round(qy + 4.6);
+      [[0, 0], [1, -1], [2, -1], [3, -2], [-1, 2], [-1, 1]].forEach(([dx, dy], j) => { const q = idx(bx + dx, by + dy); if (q >= 0 && gel[q]) putPx(c, bx + dx, by + dy, j < 2 ? K.gloss : RAMP.gel[5]); });
+    }
+    // the helmet it swallowed shows through the gel just under the gel line, then the gel closes over it
+    put(c, and(sub, mask((x, y, i) => HB[i] > p.helm[3] - 2.6)), RAMP.gel[2], i => 0.95 - 0.3 * clamp01((p.helm[3] - HB[i]) / 2.6));
+    put(c, and(sub, mask((x, y, i) => HB[i] > p.helm[3] - 1.2)), RAMP.gel[1]);
+    // Corroer: the skin hardens into a pale foam crust, flecked white
+    if (p.crust > 0) {
+      const sk = and(gelS, mask((x, y, i) => dep[i] < 2.4 * Z));
+      put(c, sk, RAMP.gel[5], i => p.crust * (0.6 + 0.4 * clamp01(lam[i] + 0.4)));
+      put(c, and(sk, mask((x, y, i) => dep[i] < 1.4 && lam[i] > -0.3)), K.gloss, 0.5 * p.crust);
+      put(c, and(gelS, mask((x, y, i) => dep[i] < 5 && h2(x * 7 + 1, y * 13) < 0.08 * p.crust)), K.gloss);
+    }
+    // the gel line round the helmet catches the light (wet lip)
+    const helmAll = or(helm, hole, face);
+    put(c, and(gelS, nb(helmAll, 0, -1), mask((x, y, i) => lam[i] > -0.25)), RAMP.gel[5]);
+
+    // the helmet: old iron, a dome lit from the upper left, rust that rides with it (thicker where the acid bites)
+    const hl = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      if (!helm[i]) continue;
+      const a = HA[i], b = HB[i];
+      let na, nbb, nz;
+      if (b > HDOME) {
+        const q = Math.min(1, (b - HDOME) / HRY), ea = Math.max(-1, Math.min(1, (a - domeC(q)) / Math.max(1, domeW(q))));
+        na = ea * Math.sqrt(1 - q * q); nbb = q; nz = Math.sqrt(Math.max(0.05, 1 - na * na - nbb * nbb));
+      } else { const ea = Math.max(-1, Math.min(1, a / (HRX + 0.8))); na = ea; nbb = b < HBOT + 2 ? -0.35 : 0; nz = Math.sqrt(Math.max(0.05, 1 - ea * ea)); }
+      const nu = na * F.cs + nbb * F.sn, nd = -na * F.sn + nbb * F.cs, l = Math.hypot(nu, nd, nz);
+      let v = 0.3 + 0.56 * ((-nu * LDIR[0] - nd * LDIR[1] + nz * LDIR[2]) / l);
+      if (b >= 2.7 && b < 4.3 && a > -3.4) v += 0.16;                                    // the brow band over the slit
+      if (b >= 4.3 && Math.abs(a - 3.0 - domeC((b - HDOME) / HRY)) < 0.7) v += 0.22;    // the ridge up the dome
+      if (b > -1.6 && b <= -0.5 && a > -1.8 && a < 9.9) v += 0.16;                       // the slit's lower lip
+      if (b < HBOT + 1.8) v -= 0.12;                                                     // the rim, in its own shadow
+      hl[i] = v;
+    }
+    const rusty = mask((x, y, i) => helm[i] && vnoise(HA[i] / 2.4 + 7, HB[i] / 2.4 + 3) + 0.35 * clamp01((p.helm[3] + 4 - HB[i]) / 4) > 0.72);
+    paintZone(c, and(helm, not(rusty)), RAMP.iron, i => hl[i], 0.5);
+    paintZone(c, rusty, RAMP.rust, i => hl[i] - 0.05, 0.5);
+    put(c, and(helm, mask((x, y, i) => hl[i] > 0.86 && HB[i] > HDOME + 2)), RAMP.iron[4]);
+    // the breathing holes under the slit and the hole the acid ate
+    for (const a of [4.4, 6.9, 9.2]) { const [qx, qy] = F.toPx(a, -3.6); const i = idx(qx, qy); if (i >= 0 && helm[i]) putPx(c, qx, qy, RAMP.inner[0]); }
+    put(c, hole, RAMP.inner[1]);
+    put(c, and(hole, not(up(hole))), RAMP.inner[0]);
+    put(c, and(helm, up(hole)), RAMP.rust[3]);
+    put(c, face, K.void1);
+
+    // rim light on the outer edges: cyan in front (towards the hero) and on top, violet behind
+    const fig = and(m, not(face));
+    const topEdge = and(not(up(m)), mask(x => x < F.gx + 4));
+    const rimC = and(fig, or(not(left(m)), topEdge));
+    const rimV = and(fig, not(right(m)), not(rimC));
+    put(c, rimV, K.rimv, 0.8);
+    const low = mask((x, y) => y > GROUND - 7);
+    put(c, and(rimC, not(low)), K.rimc);
+    put(c, and(rimC, low), ACID[2]);
+    add(g, and(rimC, not(low)), LIGHT.cyan, 0.45);
+    add(g, and(rimC, low), LIGHT.acid, 0.2);
+
+    // eyes: two acid embers in the slit
+    const ek = p.eyes;
+    if (ek > 0.02) {
+      F.eyes.forEach(([ex, ey], k) => {
+        const pts = p.blink > 0.5 ? [[0, 0], [1, 0], [-1, 0]] : k === 0 ? [[0, 0], [-1, 0], [1, 0], [0, -1]] : [[0, 0], [1, 0], [-1, 0], [0, -1]];
+        if (ek > 1.3) pts.push(k === 0 ? [-1, -1] : [1, -1]);
+        pts.forEach(([dx, dy], j) => {
+          const i = idx(ex + dx, ey + dy);
+          if (i < 0 || lab[i] !== L_.FACE) return;
+          const hot = j === 0;
+          putPx(c, ex + dx, ey + dy, hot ? mix(ACID[3], ACID[4], clamp01(ek - 0.6)) : mix(ACID[1], ACID[2], Math.min(1, ek)));
+          addPx(g, ex + dx, ey + dy, LIGHT.acid, (hot ? 1.0 : 0.55) * ek);
+        });
+      });
+    }
+    // boiling away: the true edge of what is left burns acid
+    if (p.melt > 0) {
+      const edge = and(m, or(not(up(m)), not(left(m)), not(right(m)), and(not(down(m)), mask((x, y) => y < GROUND - 1))));
+      put(c, edge, ACID[2]); put(c, and(edge, not(up(m)), mask((x, y, i) => B[i] < 0.5)), ACID[3]);
+      add(g, edge, LIGHT.acid, 0.5);
+    }
+    if (p.flash > 0) {
+      const fv = hex('#f2ffe0');
+      for (let i = 0; i < N; i++) if (m[i]) { const w = p.flash * 0.85, o = i * 4; c.px[o] = c.px[o] * (1 - w) + fv[0] * w; c.px[o + 1] = c.px[o + 1] * (1 - w) + fv[1] * w; c.px[o + 2] = c.px[o + 2] * (1 - w) + fv[2] * w; }
+    }
+    return m;
+  }
+
+  // ---------------------------------------------------------------------------------------------- effects (its moves' vocabulary)
+  function star4(c, g, x, y, arm, o = {}) {
+    const core = o.core || K.white, col = o.col || ACID[3], edge = o.edge || ACID[2], light = o.light || LIGHT.acid, gain = o.gain ?? 1, diag = o.diag ?? true;
+    x = Math.floor(x); y = Math.floor(y);
+    for (let i = 1; i <= arm; i++) {
+      const k = i / (arm + 0.5), colr = k < 0.55 ? col : edge;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { putPx(c, x + dx * i + 0.5, y + dy * i + 0.5, colr); addPx(g, x + dx * i + 0.5, y + dy * i + 0.5, light, gain * (1 - k) * 0.9); }
+    }
+    if (diag && arm >= 3) for (const [dx, dy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) for (let i = 1; i <= Math.max(1, Math.floor(arm / 3)); i++) { putPx(c, x + dx * i + 0.5, y + dy * i + 0.5, edge); addPx(g, x + dx * i + 0.5, y + dy * i + 0.5, light, gain * 0.35); }
+    putPx(c, x + 0.5, y + 0.5, core); addPx(g, x + 0.5, y + 0.5, LIGHT.white, gain * 1.2);
+  }
+  function motes(c, g, t, seed, count, area, gain = 0.6) {
+    const r = rng(seed); const [x0, y0, x1, y1] = area;
+    for (let i = 0; i < count; i++) {
+      const px = uni(r, x0, x1), phase = r(), cycles = r() < 0.7 ? 1 : 2, wob = uni(r, 1.0, 2.5);
+      const u = frac(t * cycles + phase), y = y1 - u * (y1 - y0), x = px + Math.sin((u * 2 + phase) * Math.PI * 2) * wob, a = Math.sin(u * Math.PI);
+      if (a < 0.2) continue;
+      const vio = i % 3 === 0, col = vio ? K.violet3 : ACID[3], lt = vio ? LIGHT.violet : LIGHT.acid;
+      putPx(c, x, y, col, Math.min(1, a * 1.4)); addPx(g, x, y, lt, gain * a);
+      if (a > 0.85 && i % 4 === 1) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { putPx(c, x + dx, y + dy, col, 0.6); addPx(g, x + dx, y + dy, lt, gain * 0.3); }
+    }
+  }
+  /** Acid vapour rising off its back. */
+  const ambient = (c, g, t, F, gain = 0.5) => motes(c, g, t, 23, 6, [F.gx - 28, 24, F.gx + 24, GROUND - 34], gain);
+  /** Bubbles rising through the gel: each is born near the floor, rises and pops on the skin with a fleck of acid. */
+  function bubbles(c, g, t, F, n = 5, speed = 1, seed = 41, gain = 1) {
+    const r = rng(seed), cols = n === 5 && seed === 41 ? [-11, -5, 2, 8, 13] : Array.from({ length: n }, () => uni(r, -13, 15));
+    for (let i = 0; i < cols.length; i++) {
+      const u0 = cols[i] + uni(r, -1.5, 1.5), off = r(), cyc = (i % 2 ? 2 : 1) * speed, rad = i % 3 === 0 ? 1.5 : 1;
+      const k = frac(t * cyc + off), x = Math.floor(F.chest[0] - u0 * Z + Math.sin(k * 6.28 + i) * 0.8);
+      let top = -1;
+      for (let y = 0; y < GROUND; y++) if (F.lab[y * CW + x] === L_.GEL) { top = y; break; }
+      if (top < 0) continue;
+      const y0 = F.chest[1] + 3, y1 = top + 2 + rad, y = Math.round(y0 + (y1 - y0) * Math.min(1, k / 0.8));
+      if (k < 0.8) {
+        const ring = rad > 1 ? [[0, -1], [1, -1], [-1, 0], [2, 0], [-1, 1], [2, 1], [0, 2], [1, 2]] : [[0, 0], [1, 0], [0, 1], [1, 1]];
+        const inCore = y > F.chest[1] - 6;
+        ring.forEach(([dx, dy], j) => {
+          const q = idx(x + dx, y + dy); if (q < 0 || F.lab[q] !== L_.GEL) return;
+          const hi = j === 0;
+          putPx(c, x + dx, y + dy, hi ? K.gloss : inCore ? ACID[3] : RAMP.gel[5]);
+          if (inCore) addPx(g, x + dx, y + dy, LIGHT.acid, 0.3 * gain);
+        });
+      } else if (k < 0.9) {
+        putPx(c, x - 1, top - 1, ACID[3]); putPx(c, x + 1, top - 2, ACID[2]); addPx(g, x - 1, top - 1, LIGHT.acid, 0.5 * gain); addPx(g, x + 1, top - 2, LIGHT.acid, 0.3 * gain);
+      }
+    }
+  }
+  /** Acid oozing out of the visor slit and running down the helmet into the gel. */
+  function ooze(c, g, t, F) {
+    [[5.4, 0.0, 1], [8.8, 0.45, 2]].forEach(([a, off, cyc]) => {
+      const k = frac(t * cyc + off), len = 1 + 7 * k;
+      for (let s = 0; s <= len; s += 0.5) {
+        const [x, y] = F.toPx(a, -0.7 - s), i = idx(x, y);
+        if (i < 0 || !F.lab[i] || F.lab[i] === L_.FACE) continue;
+        const head = s > len - 1.2;
+        putPx(c, x, y, head ? ACID[3] : ACID[1]); addPx(g, x, y, LIGHT.acid, head ? 0.4 : 0.08);
+      }
+    });
+  }
+  /** A gob of acid: a round blob, hot on its upper left. */
+  function glob(c, g, x, y, r, tone = 3) {
+    x = Math.round(x); y = Math.round(y);
+    for (let yy = -r - 1; yy <= r + 1; yy++) for (let xx = -r - 1; xx <= r + 1; xx++) {
+      const d2 = xx * xx + yy * yy; if (d2 > r * r + r + 0.5 || y + yy >= GROUND) continue;
+      const hot = xx < 0 && yy < 0 && d2 <= r * r * 0.5 + 0.6, rim = d2 > r * r - r + 0.5;
+      putPx(c, x + xx, y + yy, hot ? ACID[4] : rim ? ACID[tone - 1] : ACID[tone]); addPx(g, x + xx, y + yy, LIGHT.acid, hot ? 0.8 : 0.4);
+    }
+  }
+  /** Drops falling from the visor slit after the spit. */
+  function drips(c, g, F, age) {
+    [[-1, 0.2], [2, 0.7]].forEach(([dx, off]) => {
+      const k = age - off; if (k <= 0) return;
+      const x = F.slit[0] - 4 + dx, y = F.slit[1] + 2 + k * k * 1.6;
+      if (y >= GROUND - 1) return;
+      putPx(c, x, y, ACID[3]); putPx(c, x, y - 1, ACID[2], 0.6); addPx(g, x, y, LIGHT.acid, 0.5);
+    });
+  }
+  /** Corroer's breath: puffs of acid vapour that roll off its front towards the hero, curling and thinning out. */
+  function vapor(c, g, F, age, k, seed = 57) {
+    if (k <= 0.02 || age <= 0) return;
+    const r = rng(seed), [ox, oy] = F.W(29, 24);
+    for (let i = 0; i < 30; i++) {
+      const born = uni(r, 0, 2.6), spd = uni(r, 2.2, 3.8), dy = uni(r, -13, 9), ph = uni(r, 0, 6.28), life = uni(r, 4, 6.5);
+      const a = age - born; if (a <= 0 || a > life) continue;
+      const x = ox - a * spd, y = oy + dy - a * 0.7 + Math.sin(a * 1.4 + ph) * 1.5, q = k * Math.sin(Math.PI * a / life);
+      if (x < 3 || y < 3) continue;
+      const vio = i % 4 === 0, col = vio ? K.violet3 : i % 3 ? ACID[3] : ACID[2], lt = vio ? LIGHT.violet : LIGHT.acid;
+      putPx(c, x, y, col, Math.min(1, q * 1.5)); addPx(g, x, y, lt, 0.55 * q);
+      if (i % 2 === 0 && q > 0.4) for (const [ex, ey] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { putPx(c, x + ex, y + ey, ACID[1], q); addPx(g, x + ex, y + ey, lt, 0.2 * q); }
+    }
+  }
+  function sparks(c, g, ox, oy, age, seed, count, speed, ang, spread, o = {}) {
+    if (age <= 0) return;
+    const grav = o.grav ?? 0.14, life = o.life ?? 7, ve = o.violetEvery ?? 0;
+    const r = rng(seed);
+    for (let i = 0; i < count; i++) {
+      const a0 = ang + uni(r, -spread, spread), spd = uni(r, speed * 0.45, speed), lf = life * uni(r, 0.7, 1.0);
+      if (age > lf) continue;
+      const x = ox + Math.cos(a0) * spd * age, y = oy + Math.sin(a0) * spd * age + grav * age * age, k = 1 - age / (lf + 1);
+      if (y >= GROUND) continue;
+      const vio = ve && i % ve === 0, big = i % 4 === 1;
+      putPx(c, x, y, vio ? K.violet3 : age < 2.5 ? ACID[4] : ACID[3]); addPx(g, x, y, vio ? LIGHT.violet : LIGHT.acid, k);
+      if (big) { putPx(c, x + 1, y, ACID[2]); putPx(c, x, y + 1, ACID[2]); addPx(g, x + 1, y, LIGHT.acid, 0.4 * k); }
+      if (age < 4) for (const [qx, qy] of line(x, y, x - Math.cos(a0) * spd * 0.9, y - Math.sin(a0) * spd * 0.9 - grav * age * 1.5).slice(1)) { putPx(c, qx + 0.5, qy + 0.5, vio ? K.violet1 : ACID[1], k); addPx(g, qx + 0.5, qy + 0.5, vio ? LIGHT.violet : LIGHT.acid, 0.3 * k); }
+    }
+  }
+  function speedLines(c, g, x, y, ux, uy, k, seed, count = 6, spread = 8, len = [7, 12], start = 4) {
+    if (k <= 0) return;
+    const r = rng(seed), vx = -uy, vy = ux;
+    for (let i = 0; i < count; i++) {
+      const off = uni(r, -spread, spread), st = start + uni(r, 0, 6), ln = uni(r, len[0], len[1]) * (0.6 + 0.4 * k);
+      const sx = x - ux * st + vx * off, sy = y - uy * st + vy * off;
+      for (const [qx, qy] of line(sx, sy, sx - ux * ln, sy - uy * ln)) { putPx(c, qx + 0.5, qy + 0.5, i % 2 === 0 ? ACID[3] : K.steel3, Math.min(1, k * 1.6)); addPx(g, qx + 0.5, qy + 0.5, LIGHT.acid, 0.4 * k); }
+    }
+  }
+  /** A splash ring flat on the floor where the gel lands. */
+  function floorRing(c, g, cx, cy, r, k) {
+    if (k <= 0.02) return;
+    const ry = Math.max(1, r * 0.22), m = mask((x, y) => y < GROUND && Math.abs(Math.hypot((x - cx) / r, (y - cy) / ry) - 1) * r < 0.7);
+    put(c, m, ACID[3], k); add(g, m, LIGHT.acid, 0.7 * k);
+  }
+
+  // ---------------------------------------------------------------------------------------------- the frames
+  // Every action frame below is its own drawing: the shape of the whole gel (spine, widths, foot, splat), where the helmet
+  // rides and how it tips, and the acid core are written for that frame (anticipation, smear, impact, follow-through,
+  // the gel that arrives late and jiggles); nothing is interpolated or rotated at play time.
+  const withP = (p, o) => Object.assign({}, p, o);
+  /** The idle: it breathes (taller and narrower, then squashed and wider), the crown follows late and the helmet later
+      still (whole pixels), it tips now and then, the gel laps at it, the jelly wobbles round its outline. */
+  function idlePose(t) {
+    const a = 2 * Math.PI * t, s = Math.sin(a), lagC = Math.sin(a - 0.8), lagH = Math.sin(a - 1.5), tl = Math.sin(a - 2.2);
+    return withP(IDLE, {
+      phase: a, wobPh: 2 * a,
+      base: [31 - 0.9 * s, -33 + 0.9 * s, 7 - 0.5 * s],
+      sp: [[0, 0], [0.4 * lagC, 12], [1 + 0.6 * lagC, 22 + 1.2 * s], [3 + 0.8 * lagH, 30 + 1.8 * lagC]],
+      w: [30 - 1.0 * s, 29 - 1.1 * s, 15 + 0.4 * s],
+      helm: [5 + Math.round(0.8 * lagH), 4 + 1.8 * (lagH - lagC), tl > 0.5 ? 12 : tl < -0.5 ? 4 : 8, -4.5],
+      coreAt: [1, 13 + 0.8 * s]
+    });
+  }
+  const REST = { base: [31, -33, 7], sp: [[0, 0], [-0.2, 12], [0.6, 22], [2.3, 28.8]], w: [30, 29, 15], helm: [4, 3.6, 4, -4.5] };
+  const POSES = {
+    // Golpe Viscoso: it squashes and draws back, springs up, rolls over towards the hero as a wave with the helmet on the
+    // crest, the front falls (smear) and slams flat (impact on frame 6), then the gel rebounds, overshoots and settles
+    attack: [
+      { base: [33, -35, 7.5], sp: [[0, 0], [-1, 11], [-2, 20], [-2, 27]], w: [31, 30, 16], helm: [3, 4, 0, -4.5], eyes: 1.2, core: 1.05, coreAt: [0, 12], wob: 0.5, wobPh: 0.5 },
+      { base: [33, -36, 8], trail: [9, 1.8], sp: [[0, 0], [-2, 10], [-5, 17], [-6, 23]], w: [32, 31, 17], helm: [-1, 3.5, -10, -4.5], eyes: 1.4, core: 1.15, coreAt: [-2, 11], wob: 0.6, wobPh: 1.2 },
+      { x: -1, base: [30, -31, 6], sp: [[-2, 0], [-4, 17], [-3, 33], [2, 41]], w: [26, 23, 15], helm: [5, 4.5, 6, -4.5], eyes: 1.5, core: 1.2, coreAt: [-3, 15], wob: 0.3, wobPh: 2 },
+      { x: -2, base: [28, -30, 6], trail: [10, 1.4], sp: [[-6, 0], [-7, 20], [4, 38], [17, 41]], w: [27, 24, 17], helm: [24, 2.5, 28, -4.5], eyes: 1.5, core: 1.2, coreAt: [-1, 16], wob: 0.2, wobPh: 2.6 },
+      { x: -3, base: [40, -28, 5], trail: [12, 1.4], sp: [[-6, 0], [-1, 19], [16, 30], [33, 20]], w: [24, 19, 14], helm: [27, 3, 44, -4.5], eyes: 1.7, core: 1.25, coreAt: [4, 14], wob: 0.15, wobPh: 3 },
+      { x: -2, base: [50, -26, 6], trail: [12, 1.4], sp: [[-6, 0], [4, 12], [18, 16], [30, 9]], w: [24, 19, 10], splat: [42, 10, 5], helm: [14, 3.4, 22, -4.5], eyes: 1.7, core: 1.35, coreAt: [12, 10], wob: 0.25, wobPh: 3.4, sinkWave: 0.3 },
+      { x: -2, base: [44, -28, 7], trail: [11, 1.5], sp: [[-5, 0], [1, 13], [10, 22], [18, 22]], w: [26, 22, 15], splat: [36, 8, 4], helm: [12, 3.6, 14, -4.5], eyes: 1.5, core: 1.25, coreAt: [8, 12], wob: 0.6, wobPh: 4.2 },
+      { x: -1, base: [35, -33, 7], trail: [10, 1.6], sp: [[-1, 0], [-1, 14], [-2, 26], [-1, 33]], w: [29, 26, 15], helm: [3, 4.2, -2, -4.5], eyes: 1.3, core: 1.15, coreAt: [3, 14], wob: 0.55, wobPh: 5 },
+      { base: [32, -33, 7], sp: [[0, 0], [0.5, 13], [2, 24], [4, 31]], w: [30, 28, 15], helm: [6, 4.2, 10, -4.5], eyes: 1.1, core: 1.05, coreAt: [1, 13.5], wob: 0.5, wobPh: 5.6 },
+      { base: [31, -33, 7], sp: [[0, 0], [-0.2, 12], [0.6, 22], [2.4, 29]], w: [30, 29, 15], helm: [4, 3.6, 5, -4.5], eyes: 1.0, coreAt: [1, 13], wob: 0.45, wobPh: 6.0 }
+    ],
+    // Escupitajo Ácido: it breathes in (rises, the helmet tips back, the acid core climbs into its throat), snaps forward,
+    // the glob bursts out of the visor slit and flies at the hero (frame 6), it recoils and settles
+    spit: [
+      { base: [31, -32, 7], sp: [[0, 0], [0, 13], [0, 24], [2, 32]], w: [30, 29, 16], helm: [4, 4, -4, -4.5], eyes: 1.2, core: 1.1, coreAt: [0, 17], coreR: 0.9, wobPh: 0.6 },
+      { base: [32, -33, 7], sp: [[0, 0], [-1, 14], [-2, 26], [-1, 35]], w: [32, 31, 18], helm: [2, 4, -14, -4.5], eyes: 1.4, core: 1.25, coreAt: [-1, 24], coreR: 0.8, wob: 0.6, wobPh: 1.4 },
+      { base: [33, -34, 7.5], sp: [[0, 0], [-2, 15], [-3, 28], [-2, 37]], w: [33, 32, 19], helm: [1, 4, -20, -4.5], eyes: 1.7, core: 1.4, coreAt: [-1, 31], coreR: 0.7, wob: 0.75, wobPh: 2.2 },
+      { x: -2, base: [32, -30, 6.5], sp: [[-2, 0], [0, 16], [6, 30], [13, 35]], w: [29, 26, 16], helm: [17, 3, 26, -4.5], eyes: 2.2, core: 1.1, coreAt: [6, 30], coreR: 0.55, wob: 0.25, wobPh: 2.8 },
+      { x: -2, base: [31, -31, 6.5], sp: [[-2, 0], [-1, 15], [4, 28], [10, 33]], w: [29, 27, 16], helm: [14, 3.2, 30, -4.5], eyes: 2.0, core: 0.85, coreAt: [2, 16], coreR: 0.8, wob: 0.4, wobPh: 3.4 },
+      { x: -1, base: [32, -33, 7], sp: [[0, 0], [-1, 13], [-3, 24], [-3, 31]], w: [30, 29, 16], helm: [2, 3.8, -8, -4.5], eyes: 1.4, core: 0.9, coreAt: [0, 13], wob: 0.6, wobPh: 4.2 },
+      { base: [31, -33, 7], sp: [[0, 0], [0.5, 12], [2, 23], [4, 31]], w: [30, 29, 15], helm: [6, 4, 12, -4.5], eyes: 1.2, core: 0.95, coreAt: [1, 13], wob: 0.5, wobPh: 5 },
+      { base: [31, -33, 7], sp: [[0, 0], [0, 12], [1, 22], [2.5, 29.5]], w: [30, 29, 15], helm: [4, 3.8, 6, -4.5], eyes: 1.05, coreAt: [1, 13], wob: 0.45, wobPh: 5.6 },
+      { base: [31, -33, 7], sp: [[0, 0], [-0.2, 12], [0.6, 22], [2.3, 28.8]], w: [30, 29, 15], helm: [4, 3.6, 4, -4.5], eyes: 1.0, coreAt: [1, 13], wob: 0.45, wobPh: 6.0 }
+    ],
+    // Corroer: it boils (the outline shivers, the helmet rattles, bubbles burst all over), then a breath of acid vapour
+    // rolls off it towards the hero and its skin hardens into foam (its block)
+    cast: [
+      { base: [31, -33, 7], sp: [[0, 0], [0, 12], [1, 22], [3, 30]], w: [30, 29, 15], helm: [5, 4, 8, -4.5], eyes: 1.2, core: 1.2, coreR: 1.1, wob: 0.6, wobF: 5, wobPh: 0.4 },
+      { base: [32, -34, 7], sp: [[0, 0], [0, 12], [0, 21], [2, 28]], w: [31, 30, 16], helm: [4, 3.8, 2, -4.5], eyes: 1.4, core: 1.35, coreR: 1.25, wob: 0.8, wobF: 6, wobPh: 1.2 },
+      { base: [32, -34, 7.5], sp: [[0, 0], [0, 13], [1, 23], [3, 31]], w: [31, 30, 16], helm: [5, 4.4, 12, -4.5], eyes: 1.6, core: 1.5, coreR: 1.35, wob: 0.9, wobF: 7, wobPh: 2.6, crust: 0.2 },
+      { base: [32, -34, 7.5], sp: [[0, 0], [0, 12], [0, 22], [2, 30]], w: [31, 30, 16], helm: [4, 3.6, 4, -4.5], eyes: 1.7, core: 1.55, coreR: 1.4, wob: 0.9, wobF: 7, wobPh: 4.4, crust: 0.4 },
+      { base: [32, -34, 7.5], sp: [[0, 0], [0, 13], [1, 23], [3, 31]], w: [31, 30, 16], helm: [5, 4.4, 12, -4.5], eyes: 1.8, core: 1.55, coreR: 1.4, wob: 0.9, wobF: 7, wobPh: 0.3, crust: 0.6 },
+      { x: -1, base: [32, -33, 7], sp: [[0, 0], [1, 13], [3, 23], [6, 30]], w: [31, 30, 16], helm: [8, 4, 16, -4.5], eyes: 1.9, core: 1.4, coreR: 1.3, wob: 0.7, wobF: 6, wobPh: 2, crust: 0.85 },
+      { x: -1, base: [32, -33, 7], sp: [[0, 0], [1, 13], [3, 23], [5.5, 30.5]], w: [31, 30, 16], helm: [8, 4.2, 14, -4.5], eyes: 1.8, core: 1.3, coreR: 1.2, wob: 0.5, wobF: 5, wobPh: 3.5, crust: 1 },
+      { base: [31, -33, 7], sp: [[0, 0], [0.5, 12], [2, 22], [4, 30]], w: [30, 29, 15], helm: [6, 4, 10, -4.5], eyes: 1.5, core: 1.2, coreR: 1.1, wob: 0.45, wobF: 4, wobPh: 5, crust: 1 },
+      { base: [31, -33, 7], sp: [[0, 0], [0.3, 12], [1.5, 22], [3.5, 29.5]], w: [30, 29, 15], helm: [5, 3.8, 8, -4.5], eyes: 1.3, core: 1.1, wob: 0.45, wobPh: 0.5, crust: 0.8 },
+      { base: [31, -33, 7], sp: [[0, 0], [0, 12], [1, 22], [2.8, 29]], w: [30, 29, 15], helm: [4, 3.7, 6, -4.5], eyes: 1.15, core: 1.05, wob: 0.45, wobPh: 2, crust: 0.5 },
+      { base: [31, -33, 7], sp: [[0, 0], [-0.2, 12], [0.6, 22], [2.3, 28.8]], w: [30, 29, 15], helm: [4, 3.6, 4, -4.5], eyes: 1.05, wob: 0.45, wobPh: 3.6, crust: 0.2 }
+    ],
+    // struck from the front: the gel dents in and lurches back, the helmet jolts up and back, it jiggles and settles
+    hurt: [
+      { x: 2, base: [27, -35, 7], trail: [6, 1.6], sp: [[1, 0], [-3, 12], [-6, 21], [-6, 28]], w: [29, 29, 15], helm: [-2, 5.5, -16, -4.5], eyes: 1.4, blink: 1, flash: 0.85, wob: 1.0, wobF: 4, wobPh: 0, core: 1.2 },
+      { x: 2, base: [26, -36, 7.5], trail: [6, 1.6], sp: [[1, 0], [-4, 11], [-8, 19], [-8, 26]], w: [30, 30, 16], helm: [-4, 5, -20, -4.5], eyes: 1.4, blink: 1, flash: 0.4, wob: 0.9, wobF: 4, wobPh: 1.6, core: 1.15 },
+      { x: 2, base: [29, -34, 7], trail: [7, 1.6], sp: [[0, 0], [0, 13], [2, 24], [5, 31]], w: [29, 28, 15], helm: [7, 3, 14, -4.5], eyes: 1.2, blink: 1, flash: 0.12, wob: 0.8, wobF: 4, wobPh: 3.2 },
+      { x: 1, base: [31, -34, 7], sp: [[0, 0], [-0.5, 12], [-1, 22], [0.5, 30]], w: [30, 29, 15], helm: [3, 4.2, 0, -4.5], eyes: 1.1, wob: 0.6, wobPh: 4.6 },
+      { base: [31, -33, 7], sp: [[0, 0], [0.4, 12], [1.6, 22], [3.4, 29.5]], w: [30, 29, 15], helm: [5, 3.8, 8, -4.5], eyes: 1.0, wob: 0.5, wobPh: 5.6 },
+      { base: [31, -33, 7], sp: [[0, 0], [-0.2, 12], [0.6, 22], [2.3, 28.8]], w: [30, 29, 15], helm: [4, 3.6, 4, -4.5], wob: 0.45, wobPh: 6.1 }
+    ],
+    // the death: struck, the core flares and bursts, the gel loses its tension and melts into a puddle while the helmet
+    // slides down and keels over, sinking; then the acid boils the puddle away from the outside in and nothing is left
+    death: [
+      { x: 2, base: [27, -35, 7], trail: [6, 1.6], sp: [[1, 0], [-3, 12], [-6, 21], [-6, 28]], w: [29, 29, 15], helm: [-2, 5.5, -16, -4.5], eyes: 1.6, blink: 1, flash: 0.9, wob: 1.0, wobF: 4, core: 1.3 },
+      { x: 0, base: [32, -36, 7], trail: [5, 1.6], sp: [[1, 0], [-1, 12], [-2, 21], [-1, 27]], w: [31, 30, 15], helm: [1, 4.5, -10, -4.5], eyes: 1.8, flash: 0.4, core: 1.8, coreR: 1.15, wob: 1, wobF: 4, wobPh: 1 },
+      { x: 0, base: [35, -37, 7], trail: [5, 1.6], sp: [[1, 0], [0, 11], [0, 19], [1, 24]], w: [33, 32, 15], helm: [3, 4, 4, -4.5], eyes: 2.0, core: 2.4, coreR: 1.25, wob: 0.9, wobF: 5, wobPh: 2.5 },
+      { x: 0, base: [37, -38, 7], trail: [5, 1.6], sp: [[1, 0], [1, 10], [1, 17], [2, 21]], w: [34, 33, 15], helm: [4, 3.6, 10, -4], eyes: 1.4, core: 0, wob: 1.2, wobF: 5, wobPh: 4 },
+      { x: 0, base: [40, -38, 6.5], trail: [5, 1.5], sp: [[1, 0], [2, 9], [3, 15], [4, 18]], w: [36, 32, 13], helm: [6, 3.4, 18, -3.2], eyes: 1.0, core: 0, wob: 0.9, wobF: 4, wobPh: 5 },
+      { x: 0, base: [43, -38, 6], trail: [5, 1.4], sp: [[1, 0], [3, 7], [5, 12], [7, 14]], w: [36, 28, 11], helm: [9, 3.0, 26, -2], eyes: 0.8, core: 0, wob: 0.7, wobF: 4, wobPh: 0.4 },
+      { x: 0, base: [46, -38, 5.5], trail: [5, 1.3], sp: [[1, 0], [4, 6], [7, 9], [10, 10]], w: [34, 24, 9], helm: [12, 2.6, 34, -0.5], eyes: 0.6, core: 0, wob: 0.5, wobPh: 1.2 },
+      { x: 0, base: [48, -38, 5], trail: [5, 1.2], sp: [[1, 0], [5, 5], [9, 7], [13, 7]], w: [30, 20, 7.5], helm: [14, 2.4, 40, 1], eyes: 0.4, core: 0, wob: 0.4, wobPh: 2 },
+      { x: 0, base: [49, -38, 4.5], trail: [5, 1.2], sp: [[1, 0], [6, 4], [11, 5], [15, 5]], w: [26, 16, 6.5], helm: [16, 2.2, 44, 4], eyes: 0.25, core: 0, wob: 0.3, wobPh: 2.8 },
+      { x: 0, base: [49, -38, 4.5], trail: [5, 1.2], sp: [[1, 0], [6, 4], [11, 5], [15, 5]], w: [26, 16, 6.5], helm: [16, 2.0, 46, 7], eyes: 0.12, core: 0, wob: 0.3, wobPh: 3.4 },
+      { x: 0, base: [49, -38, 4.5], trail: [5, 1.2], sp: [[1, 0], [6, 4], [11, 5], [15, 5]], w: [26, 16, 6.5], helm: [16, 1.8, 47, 9.5], eyes: 0, core: 0, wob: 0.3, wobPh: 4 }
+    ]
+  };
+  // the last frames of the death: the puddle and the helmet in it boil away from the outside in, then nothing is left
+  [0.12, 0.28, 0.46, 0.66, 0.86].forEach((melt, k) => POSES.death.push(withP(POSES.death[10], { melt, wobPh: 4.6 + k * 0.5, sinkWave: 0.2 })));
+  const N_OF = { idle: 24, attack: 11, spit: 10, cast: 12, hurt: 7, death: 17 };
+  const ANIMATIONS = [['idle', 24, true], ['attack', 11, false], ['spit', 10, false], ['cast', 12, false], ['hurt', 7, false], ['death', 17, false]];
+  const STRIKE_FRAME = 5, SPIT_FRAME = 5, SPIT_OUT = 4;
+
+  const clock = (f, n) => frac((f - (n - 1)) / LOOP);
+  const pose = (name, f) => name === 'idle' ? idlePose(f / LOOP) : withP(IDLE, POSES[name][Math.min(f, POSES[name].length - 1)]);
+  /** The pose shown at frame f (the last frame of every action but the death is idle frame 0). */
+  const poseAt = (name, f) => name === 'idle' ? idlePose(f / LOOP) : name !== 'death' && f >= N_OF[name] - 1 ? idlePose(0) : pose(name, f);
+  const silhouette = p => { const F = figure(p); const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = F.lab[i] ? 1 : 0; return m; };
+
+  function idleFrame(f) {
+    const t = f / LOOP, p = withP(idlePose(t), { blink: f === 15 || f === 16 ? 1 : 0 });
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    paint(c, g, F, t, Math.sin(t * 4 * Math.PI));
+    ooze(c, g, t, F);
+    bubbles(c, g, t, F);
+    ambient(c, g, t, F);
+    return [c, g];
+  }
+  /** Where the slam lands: the front of the splat, on the floor. */
+  const strikePoint = () => { const p = pose('attack', STRIKE_FRAME), fr = p.splat[0] + p.splat[1]; return [ROOT_X + p.x - (fr - 3) * Z, GROUND - 2]; };
+  /** The glob's flight: out of the visor slit, in an arc towards the hero, gone past the cell's front. */
+  const spitPath = () => { const s = figure(pose('spit', SPIT_OUT)).slit; return { 4: [s[0] - 2, s[1]], 5: [s[0] - 24, s[1] - 3], 6: [s[0] - 43, s[1] + 2] }; };
+
+  function actionFrame(name, f) {
+    const n = N_OF[name]; if (f === n - 1) return idleFrame(0);
+    const t = clock(f, n), p = withP(pose(name, f), { phase: t * 2 * Math.PI });
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    if (name === 'attack') {
+      if (f === 3) speedLines(c, g, F.hx + 2, F.hy - 2, -0.75, 0.66, 0.8, 41, 5, 10, [6, 12], 12);
+      if (f === 4) speedLines(c, g, F.hx + 3, F.hy - 4, -0.6, 0.8, 1.0, 37, 6, 10, [7, 13], 9);
+      if (f === 5) speedLines(c, g, F.hx + 3, F.hy - 6, -0.6, 0.8, 0.6, 37, 5, 9, [5, 9], 9);
+    }
+    paint(c, g, F, t, name === 'cast' ? Math.sin(t * 12 * Math.PI) : 1.0);
+    ooze(c, g, t, F);
+    if (name === 'attack') {
+      // it gathers, boiling a little; gobs fly off its back as it rolls over; the slam splashes acid
+      if (f <= 1) bubbles(c, g, t, F, 7, 2);
+      if (f === 3 || f === 4) sparks(c, g, F.hx + 12, F.hy + 2, f === 3 ? 2.4 : 3.4, 19, 9, 2.2, -Math.PI * 0.1, 0.5, { grav: 0.12, life: 7, violetEvery: 3 });
+      const [sx, sy] = strikePoint();
+      if (f >= 5) {
+        const age = f - STRIKE_FRAME;
+        floorRing(c, g, sx + 2 - age * 3, GROUND - 1.5, 12 + age * 6, [0.9, 0.5, 0.2, 0][age] ?? 0);
+        if (age <= 2) star4(c, g, sx, sy - 3, [6, 3, 1][age], { gain: [1.5, 1.0, 0.6][age], diag: age < 2 });
+        sparks(c, g, sx, sy - 3, 2.2 + age, 5, 18, 3.0, -Math.PI * 0.62, 0.7, { grav: 0.2, life: 7, violetEvery: 4 });
+        sparks(c, g, sx + 8, sy - 2, 1.8 + age, 9, 7, 2.2, -Math.PI * 0.3, 0.4, { grav: 0.2, life: 6 });
+        if (age === 0) [[-9, -14, 2], [-15, -9, 1], [-4, -19, 1], [4, -16, 2]].forEach(([dx, dy, r], j) => glob(c, g, sx + dx, sy + dy, r, 2 + (j % 2)));
+        if (age === 1) [[-13, -10, 1], [-20, -4, 1], [-7, -13, 1], [6, -11, 1]].forEach(([dx, dy, r], j) => glob(c, g, sx + dx, sy + dy, r, 2 + (j % 2)));
+        // flecks of acid left on the floor in front, fading
+        const fk = [1, 1, 0.8, 0.55, 0.3][age] ?? 0;
+        [-14, -10, -5, 3].forEach((dx, j) => { putPx(c, sx + dx, GROUND - 1, ACID[j % 2 ? 2 : 3], fk); putPx(c, sx + dx + 1, GROUND - 1, ACID[1], fk); addPx(g, sx + dx, GROUND - 1, LIGHT.acid, 0.3 * fk); });
+      }
+    } else if (name === 'spit') {
+      // the core climbs, bubbles race up; the glob bursts from the slit and flies off; drips fall from the visor after
+      if (f <= 2) bubbles(c, g, t, F, 7, 2);
+      if (f === 3) star4(c, g, F.slit[0], F.slit[1], 2, { gain: 0.9, diag: false });
+      const path = spitPath();
+      if (f === SPIT_OUT) { glob(c, g, path[4][0], path[4][1], 3, 3); star4(c, g, F.slit[0], F.slit[1], 5, { gain: 1.4 }); sparks(c, g, F.slit[0], F.slit[1], 1.4, 23, 8, 2.2, Math.PI * 1.05, 0.5, { grav: 0.18, life: 5 }); }
+      if (f === 5) {
+        const [x, y] = path[5];
+        speedLines(c, g, x, y, -1, 0.05, 1.0, 29, 4, 2.5, [5, 9], 3);
+        glob(c, g, x, y, 3, 3);
+        [[6, -1], [10, 1], [14, 0]].forEach(([dx, dy], j) => glob(c, g, x + dx, y + dy, j ? 0 : 1, 2));
+      }
+      if (f === 6) { const [x, y] = path[6]; speedLines(c, g, x, y, -1, 0.1, 0.6, 31, 3, 2, [4, 7], 3); glob(c, g, x, y, 2, 3); glob(c, g, x + 7, y - 1, 0, 2); }
+      if (f >= 5 && f <= 7) drips(c, g, F, f - 4);
+    } else if (name === 'cast') {
+      bubbles(c, g, t, F, f >= 2 && f <= 6 ? 11 : 6, f >= 2 && f <= 6 ? 3 : 2, 43);
+      if (f >= 4) vapor(c, g, F, f - 3.6, [0, 0, 0, 0, 0.6, 1, 1, 0.9, 0.7, 0.45, 0.2][f]);
+      if (f === 5 || f === 6) star4(c, g, F.W(31, 26)[0], F.W(31, 26)[1], f === 5 ? 3 : 2, { gain: 0.9, diag: false });
+    } else if (name === 'hurt') {
+      // the hit tears acid out of its front: it sprays back, away from the hero
+      const h0 = figure(pose('hurt', 0)).W(24, 22);
+      sparks(c, g, h0[0] + 2, h0[1], f + 0.8, 13, 13, 2.5, -0.25, 0.9, { grav: 0.16, life: 5.5, violetEvery: 3 });
+      if (f === 0) star4(c, g, h0[0] - 2, h0[1] - 2, 4, { core: K.white, col: K.violet3, edge: K.violet2, light: LIGHT.violet, gain: 1.0 });
+    }
+    ambient(c, g, t, F);
+    return [c, g];
+  }
+
+  function deathFrame(f) {
+    const n = N_OF.death, c = new Cv(), g = new Cv();
+    if (f === n - 1) return [c, g];   // nothing left: the death holds an empty frame
+    const t = frac(f / LOOP), p = withP(pose('death', f), { phase: t * 2 * Math.PI }), F = figure(p);
+    paint(c, g, F, t, 1.0);
+    if (f < 9) ooze(c, g, t, F);
+    const h0 = figure(pose('death', 0)).W(24, 22);
+    sparks(c, g, h0[0] + 2, h0[1], f + 0.8, 13, 13, 2.5, -0.25, 0.9, { grav: 0.16, life: 5.5, violetEvery: 3 });
+    if (f === 0) star4(c, g, h0[0] - 2, h0[1] - 2, 4, { core: K.white, col: K.violet3, edge: K.violet2, light: LIGHT.violet });
+    // the core flares and bursts: a star, then acid thrown up and out
+    const burst = figure(pose('death', 2)).chest;
+    if (f === 2) star4(c, g, burst[0], burst[1], 3, { gain: 1.0, diag: false });
+    if (f === 3) star4(c, g, burst[0], burst[1], 8, { gain: 1.6 });
+    if (f === 4) star4(c, g, burst[0], burst[1], 4, { gain: 1.0 });
+    sparks(c, g, burst[0], burst[1] - 4, f - 2.6, 71, 18, 2.4, -Math.PI / 2, Math.PI * 0.8, { grav: 0.16, life: 7, violetEvery: 3 });
+    if (f >= 3 && f <= 8) bubbles(c, g, t, F, 4, 2, 47);
+    // boiling away: vapour motes are born on the ragged edge and rise in the next frames
+    if (f >= 9) {
+      const r = rng(90);
+      for (let i = 0; i < 24; i++) {
+        const born = 9 + uni(r, 0, 6), x0 = uni(r, F.gx - 46, F.gx + 40), age = f - born, y0 = GROUND - 2 - uni(r, 0, 8);
+        if (age < 0 || age > 5) continue;
+        const k = 1 - age / 6, x = x0 + Math.sin(age * 1.3 + i) * 1.2, y = y0 - age * 2.4;
+        putPx(c, x, y, i % 3 ? ACID[3] : K.violet3, Math.min(1, 1.4 * k)); addPx(g, x, y, i % 3 ? LIGHT.acid : LIGHT.violet, 0.6 * k);
+      }
+    }
+    return [c, g];
+  }
+
+  const FRAME = { idle: idleFrame, attack: f => actionFrame('attack', f), spit: f => actionFrame('spit', f), cast: f => actionFrame('cast', f),
+    hurt: f => actionFrame('hurt', f), death: deathFrame };
+  const durationsMs = n => Array.from({ length: n }, (_, i) => Math.round((i + 1) * 1000 / FPS) - Math.round(i * 1000 / FPS));
+  /** The silhouette of frame f (the whole figure: gel and helmet), for the one-region check. */
+  const silhouetteOf = (name, f) => name === 'death' && f === N_OF.death - 1 ? new Uint8Array(N) : silhouette(poseAt(name, f));
+  const lostOf = (name, f) => name === 'death' && f === N_OF.death - 1 ? 0 : figure(poseAt(name, f)).lost;
+  /** Frames that may come apart (the boiling end of the death). */
+  const dissolving = (name, f) => name === 'death' && (f === N_OF.death - 1 || poseAt(name, f).melt > 0);
+  const EVENTS = { attack: { strikes: [STRIKE_FRAME] }, spit: { strikes: [SPIT_FRAME] } };
+  const META = { moves: { slam: 'attack', spit: 'spit', corrode: 'cast', vengeance: 'cast' } };
+  /** Where the game's particles burst (EnemyAnimator.Styles): the core, the eyes and the body on idle frame 0, the splash. */
+  const points = () => { const F = figure(idlePose(0)); return { chest: F.chest, eyes: [(F.eyes[0][0] + F.eyes[1][0]) / 2, F.eyes[0][1]], body: F.body, claw: strikePoint() }; };
+  const api = { CW, CH, GROUND, FPS, LOOP, ROOT_X, ANIMATIONS, STRIKE_FRAME, SPIT_FRAME, EVENTS, META, FRAME, durationsMs, strikePoint,
+    silhouetteOf, lostOf, dissolving, points, figure, pose, L_ };
+  root.SlimeArt = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const A = window.SlimeArt;
+  const INFO = {
+    idle: ['Reposo', 'Bucle de 2 s: el gel respira (se estira y se aplasta), la coronilla llega tarde y el yelmo más tarde todavía, el gel lame el yelmo, las burbujas suben y revientan en la piel, el ácido rezuma por la visera y el núcleo late.'],
+    attack: ['Golpe Viscoso', 'Se aplasta y se echa atrás, salta estirada, se vuelca hacia el héroe como una ola con el yelmo en la cresta (el núcleo se queda atrás), el frente cae en un barrido y se despanzurra en el suelo (golpe en el fotograma 6) salpicando ácido; el gel rebota, se pasa hacia atrás y se asienta.'],
+    spit: ['Escupitajo Ácido', 'Toma aire: crece, el yelmo se echa atrás y el núcleo de ácido sube por su garganta; da un latigazo hacia delante y el glóbulo sale por la rendija de la visera y vuela hacia el héroe (golpe en el fotograma 6); retrocede y le gotea la visera.'],
+    cast: ['Corroer', 'Hierve: el contorno tiembla, el yelmo traquetea y las burbujas revientan por toda la piel; luego le sale un aliento de vapor ácido hacia el héroe y la piel se endurece en una costra de espuma (su escudo).'],
+    hurt: ['Daño', 'El golpe le hunde el frente y la echa atrás con un destello; el yelmo salta hacia atrás, le arranca ácido que sale despedido y el gel tiembla hasta asentarse.'],
+    death: ['Muerte', 'El golpe la echa atrás, el núcleo se enciende y revienta; el gel pierde la tensión y se derrite en un charco mientras el yelmo resbala, se vuelca y se hunde; después el ácido hierve el charco de fuera adentro hasta no dejar nada. Termina en un fotograma vacío.']
+  };
+  const EVENTS = { attack: { [A.STRIKE_FRAME]: 'golpe' }, spit: { [A.SPIT_FRAME]: 'golpe' } };
+  const cache = {};
+  function toCanvases(c, g) {
+    const lit = document.createElement('canvas'), glow = document.createElement('canvas');
+    lit.width = glow.width = A.CW; lit.height = glow.height = A.CH;
+    const L = lit.getContext('2d').createImageData(A.CW, A.CH), G = glow.getContext('2d').createImageData(A.CW, A.CH);
+    for (let i = 0; i < A.CW * A.CH; i++) {
+      const o = i * 4;
+      let r = c.px[o] + Math.min(4, g.px[o]) * 0.6, gg = c.px[o + 1] + Math.min(4, g.px[o + 1]) * 0.6, b = c.px[o + 2] + Math.min(4, g.px[o + 2]) * 0.6;
+      const hot = Math.max(0, Math.max(r, gg, b) - 1) * 0.5;
+      r = Math.min(1, Math.min(1, r) + hot); gg = Math.min(1, Math.min(1, gg) + hot); b = Math.min(1, Math.min(1, b) + hot);
+      L.data[o] = r * 255 + 0.5; L.data[o + 1] = gg * 255 + 0.5; L.data[o + 2] = b * 255 + 0.5; L.data[o + 3] = c.px[o + 3] > 0.01 ? 255 : 0;
+      G.data[o] = Math.min(1, g.px[o] / 2.5) * 255; G.data[o + 1] = Math.min(1, g.px[o + 1] / 2.5) * 255; G.data[o + 2] = Math.min(1, g.px[o + 2] / 2.5) * 255; G.data[o + 3] = 255;
+    }
+    lit.getContext('2d').putImageData(L, 0, 0); glow.getContext('2d').putImageData(G, 0, 0);
+    return { lit, glow };
+  }
+  function frames(name) {
+    if (!cache[name]) { const n = A.ANIMATIONS.find(a => a[0] === name)[1]; cache[name] = Array.from({ length: n }, (_, f) => toCanvases(...A.FRAME[name](f))); }
+    return cache[name];
+  }
+  const stage = document.getElementById('stage');
+  const strip = document.getElementById('strip'), readout = document.getElementById('readout'), note = document.getElementById('note');
+  const playBtn = document.getElementById('play'), haloBox = document.getElementById('halo');
+  let name = 'idle', frame = 0, playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches, acc = 0, last = 0, rest = 0;
+  function paint(target, fr, scale, withHalo) {
+    const t = target.getContext('2d'), sw = A.CW * scale, s = A.CH * scale, css = getComputedStyle(document.documentElement);
+    t.fillStyle = css.getPropertyValue('--stage').trim() || '#1c1932'; t.fillRect(0, 0, sw, s);
+    t.fillStyle = css.getPropertyValue('--stage-floor').trim() || '#120f22'; t.fillRect(0, A.GROUND * scale, sw, s - A.GROUND * scale);
+    // the contact shadow the game draws under every figure (Presentation/Fx/GroundShadow.cs), here as a flat ellipse
+    t.fillStyle = 'rgba(10, 6, 18, 0.75)'; t.beginPath(); t.ellipse(A.ROOT_X * scale, (A.GROUND - 0.5) * scale, 30 * scale, 2.4 * scale, 0, 0, Math.PI * 2); t.fill();
+    t.imageSmoothingEnabled = false; t.drawImage(fr.lit, 0, 0, sw, s);
+    if (!withHalo) return;
+    t.save(); t.globalCompositeOperation = 'lighter'; t.imageSmoothingEnabled = true;
+    t.filter = `blur(${1.4 * scale}px)`; t.globalAlpha = 0.55 * 0.9; t.drawImage(fr.glow, 0, 0, sw, s);
+    t.filter = `blur(${4 * scale}px)`; t.globalAlpha = 0.55 * 1.1; t.drawImage(fr.glow, 0, 0, sw, s);
+    t.restore();
+  }
+  function render() {
+    const fr = frames(name);
+    paint(stage, fr[frame], 4, haloBox.checked);
+    const n = fr.length, ev = (EVENTS[name] || {})[frame];
+    readout.innerHTML = `Fotograma <b>${frame + 1}</b> / ${n} · ${A.durationsMs(n)[frame]} ms${ev ? ` · <b>${ev}</b>` : ''}`;
+    strip.querySelectorAll('figure').forEach((el, i) => { el.dataset.on = String(i === frame); });
+  }
+  function buildStrip() {
+    strip.textContent = '';
+    frames(name).forEach((fr, i) => {
+      const fig = document.createElement('figure'), cv = document.createElement('canvas'), cap = document.createElement('figcaption');
+      cv.width = 256; cv.height = 192; paint(cv, fr, 2, true);
+      cv.addEventListener('click', () => { frame = i; setPlaying(false); render(); });
+      const ev = (EVENTS[name] || {})[i];
+      cap.innerHTML = String(i + 1) + (ev ? ` <span class="ev">${ev}</span>` : '');
+      fig.append(cv, cap); strip.append(fig);
+    });
+  }
+  function select(n) {
+    name = n; frame = 0; acc = 0; rest = 0;
+    picker.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.anim === n)));
+    note.innerHTML = `<strong>${INFO[n][0]}.</strong> ${INFO[n][1]}`;
+    buildStrip(); render();
+  }
+  function setPlaying(v) { playing = v; playBtn.textContent = v ? 'Pausa' : 'Reproducir'; }
+  const picker = document.getElementById('picker');
+  A.ANIMATIONS.forEach(([n]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.anim = n; b.textContent = INFO[n][0];
+    b.addEventListener('click', () => select(n)); picker.append(b);
+  });
+  playBtn.addEventListener('click', () => setPlaying(!playing));
+  document.getElementById('prev').addEventListener('click', () => { setPlaying(false); const n = frames(name).length; frame = (frame - 1 + n) % n; render(); });
+  document.getElementById('next').addEventListener('click', () => { setPlaying(false); frame = (frame + 1) % frames(name).length; render(); });
+  haloBox.addEventListener('change', render);
+  function tick(now) {
+    const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
+    if (playing) {
+      const fr = frames(name), n = fr.length, loop = A.ANIMATIONS.find(a => a[0] === name)[2];
+      if (rest > 0) { rest -= dt; if (rest <= 0) { frame = 0; acc = 0; render(); } }
+      else {
+        acc += dt;
+        const dur = A.durationsMs(n)[frame] / 1000;
+        if (acc >= dur) {
+          acc -= dur;
+          if (frame === n - 1 && !loop) { rest = name === 'death' ? 1.6 : 0.6; }
+          else { frame = (frame + 1) % n; render(); }
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  setPlaying(playing);
+  select('idle');
+  requestAnimationFrame(tick);
+})();
+</script>

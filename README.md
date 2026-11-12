@@ -245,14 +245,18 @@ Los enemigos se rehacen con el mismo método que los héroes, una página por en
 es **el Espectro** (12-11-2026, `wraith.html`): una sola silueta por fotograma con capucha, vacío con ojos de ectoplasma,
 capa que se deshace en jirones, llama del alma y mangas de campana con garras de hueso; las mangas y los dedos tienen su
 propia forma en cada fotograma (barrido, tela que llega tarde), nada de piezas que giran. Reposo, Zarpazo Espectral,
-daño, Lamento y muerte que se disuelve, con halo. Los demás enemigos siguen con sus hojas anteriores hasta rehacerlos.
+daño, Lamento y muerte que se disuelve, con halo. **La Babosa Ácida** (`slime.html`): gel oscuro con núcleo de ácido y un
+yelmo oxidado hundido en la coronilla; Golpe Viscoso, Escupitajo Ácido, Corroer, daño y muerte que se derrite. **El Gusano
+de Tumba** (`worm.html`, con su mortaja y su boca de lamprea), **el Ojo Vigilante** (`eye.html`, una celada con un ojo
+magenta y tentáculos) y **el Cráneo Ígneo** (`skull.html`, yelmo con cuernos y melena de fuego). Los demás enemigos siguen
+con sus hojas anteriores hasta rehacerlos.
 
 ```powershell
 python Tools/VfxLab/export_enemy_art.py --enemy wraith --preview TestResults/enemy-preview   # necesita Node
 python Tools/VfxLab/export_enemy_art.py --check
 ```
 
-Pruebas: `WraithArtTests` (EditMode).
+Pruebas: `WraithArtTests` y `HtmlEnemyArtTests` (EditMode).
 
 ## VFX Lab (prueba de efectos y cartas de la Pícara)
 

@@ -30,6 +30,7 @@ Referencias aprobadas (mirarlas antes de dibujar):
 | La Guerrera en combate: mismo método (yelmo con visera en T, escudo, sin capa) | `Tools/VfxLab/warrior_hero.html` → `Assets/Resources/Game/Heroes/warrior*` |
 | La Pícara en combate: hecha por piezas, pendiente de rehacer con el método del Mago | `Tools/VfxLab/rogue_hero_art.py` |
 | **Enemigos: el Espectro** (primer enemigo con el método; mangas y garras escritas fotograma a fotograma) | `Tools/VfxLab/enemies/wraith.html` → `Assets/Resources/Game/Enemies/wraith_*` (`export_enemy_art.py`) |
+| Enemigos sin brazos con el método: Babosa Ácida, Gusano de Tumba, Ojo Vigilante, Cráneo Ígneo | `Tools/VfxLab/enemies/slime.html`, `worm.html`, `eye.html`, `skull.html` |
 
 ---
 
@@ -658,7 +659,43 @@ deshace en siete jirones que gotean, llama del alma en el pecho, mangas de campa
 cian delante, violeta detrás) y flota. Celda 128×96 (necesita sitio delante para la estocada y el lamento), sombra en la
 fila 93. Reposo 24, ataque 10 (Zarpazo Espectral, golpe en el 4), daño 7, habilidad 12 (Lamento, en el 6), muerte 17
 que se disuelve y acaba vacía. El usuario aprobó el diseño con la pose de prueba y pidió los brazos fotograma a fotograma
-(arriba). Pendientes de rehacer con el método: la Pícara (su hoja actual es por piezas) y los otros 65 enemigos.
+(arriba). **La Babosa Ácida** (12-11-2026): `Tools/VfxLab/enemies/slime.html` → `slime_sheet|halo.png`; gel oscuro en rampa
+teal con un núcleo de ácido verde lima que late, un yelmo oxidado (bacinete con la punta hacia atrás y un agujero comido por
+el ácido) hundido en la coronilla, con los ojos en la rendija de la visera y ácido que rezuma por ella. Sin brazos: en cada
+fotograma se escribe la forma de todo el gel (lomo, anchos, pie, estela y salpicadura). Golpe Viscoso (se aplasta, salta, se
+vuelca como una ola con el yelmo en la cresta, se despanzurra), Escupitajo Ácido (el núcleo sube por la garganta y el
+glóbulo sale por la visera), Corroer (hierve, aliento de vapor ácido y costra de espuma), daño y muerte que se derrite en un
+charco que hierve hasta desaparecer. **El Gusano de Tumba** (`worm.html`): sale de un montículo de tierra con una lápida
+detrás (todo en el mismo mapa), cuerpo anillado de carne pálida con el vientre de placas, la cabeza envuelta en una mortaja
+raída (punta doblada atrás y tres tiras que llegan tarde) con la cara en sombra, ojos de bilis amarilla y boca de lamprea con
+dientes de hueso; cada fotograma escribe el lomo, los anchos, hacia dónde mira la cabeza y cuánto abre la boca. Mordida
+Pútrida, Enterrarse (`burrow`: se zambulle, el montículo se agita y sale cubierto de tierra), Bilis (un trago le sube por el
+cuerpo y vomita un chorro en arco que humea en el suelo), daño y muerte (se desploma y la tumba se deshace en polvo).
+**El Ojo Vigilante** (`eye.html`, celda 144×96 por el rayo): una celada de hierro con cola y un remate, ribetes dorados, la
+visera se abre como un párpado sobre un único ojo magenta con pupila de rendija; cinco tentáculos de carne oscura con su
+forma escrita en cada fotograma (giro, curva, largo y arrastre de la punta). Rayo Ocular, Mirada Fija/Pavor (ondas de la
+mirada), daño (chispas de acero) y muerte (el ojo revienta, la celada cae, rebota y se deshace). **El Cráneo Ígneo**
+(`skull.html`): cráneo dentro de un yelmo roto con cuernos, cuencas en sombra con brasas, mandíbula con su apertura escrita
+en cada fotograma y una melena de fuego sin contorno (rampa de la Chispa Ígnea) cuyas lenguas se calculan de nuevo en cada
+fotograma, detrás de la figura. Llamarada (toma aire, cono de fuego, humo entre los dientes), Avivar (ruge, la melena crece,
+ascuas en espiral), daño y muerte (el fuego se apaga en humo, cae, rebota y se consume en ascuas). Pendientes de rehacer
+con el método: la Pícara (su hoja actual es por piezas) y los otros 61 enemigos.
+
+**Lecciones de la Babosa (12-11-2026), para cuerpos sin brazos:** el gel es un lomo con anchos unido al pie con una unión
+suave (sin juntas); una ola demasiado estrecha parecía un gusano: la masa se conserva (los anchos crecen cuando se estira).
+Lo rígido que lleva encima (el yelmo) se asienta sobre la superficie calculada del gel en cada fotograma, en píxeles enteros
+y con su inclinación escrita, y el gel lo cubre con un labio mojado; si no, flota separado. La parte hundida no se pinta como
+una caja oscura: solo una sombra bajo la línea del gel. Un núcleo con lóbulos parecía un corazón: casi elíptico. La
+disolución con ruido fino deja confeti: ruido grueso y fuera los píxeles con menos de dos vecinos.
+
+**Lecciones del Gusano, el Ojo y el Cráneo (12-11-2026):** lo fino (tentáculos de 2 px, puntas) recibe la luz de borde por
+los dos lados y se vuelve cian entero: en las partes finas, un brillo de su propia rampa en vez del borde cian. El polvo y el
+humo tramados a bajo alfa se ven como una rejilla sobre el escenario: bocanadas pequeñas y sólidas. Una disolución con
+huecos por todas partes dibuja anillos brillantes: se deshace desde el suelo hacia arriba con la línea ondulada y solo brilla
+el borde donde ya se ha deshecho (comparado con el mapa antes de disolver). Una cabeza que gira con el cuello (ángulo
+relativo) se volvía loca en las poses dobladas: el fotograma escribe hacia dónde mira la cabeza (ángulo absoluto). La cara
+tapada necesita una abertura clara (un óvalo en la mortaja, la visera) y la boca solo se abre si la mandíbula baja de verdad.
+El fuego que crece (Avivar) tiene un tope para no salir de la celda.
 
 **Enemigos con el método (12-11-2026):** miran hacia el héroe, así que el borde cian va en su lado izquierdo y el violeta
 detrás; los que flotan no pisan: la sombra del juego va en la fila 93 y el bajo flota encima. Celda de 96×96 si basta y

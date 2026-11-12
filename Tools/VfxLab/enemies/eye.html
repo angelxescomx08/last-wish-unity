@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprite del Ojo Vigilante</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one stage (the sprite at 4x on the dungeon night), the animation picker beside it, the frame strip below. */
+  :root {
+    --bg: #0f0d1a; --panel: #17142a; --line: #2b2648; --fg: #e8e4f8; --muted: #9d97bd;
+    --accent: #f07ab9; --gold: #d9b26a; --stage: #1c1932; --stage-floor: #120f22;
+    --font-display: "Pixelify Sans", "Silkscreen", ui-monospace, monospace;
+    --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { background: var(--bg); color: var(--fg); }
+  body { font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .page { max-width: 980px; margin: 0 auto; padding-block: 28px 40px; display: grid; gap: 22px; }
+  header { display: grid; gap: 6px; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 6vw, 44px); line-height: 1; margin: 0;
+    letter-spacing: 0.02em; text-wrap: balance; }
+  h1 span { color: var(--accent); }
+  .lede { color: var(--muted); max-width: 64ch; margin: 0; }
+  .work { display: grid; grid-template-columns: minmax(0, 512px) minmax(0, 1fr); gap: 22px; align-items: start; }
+  @media (max-width: 720px) { .work { grid-template-columns: minmax(0, 1fr); } }
+  .stage { position: relative; width: 100%; max-width: 512px; aspect-ratio: 4 / 3; border: 1px solid var(--line);
+    background: var(--stage); }
+  .stage canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+  .side { display: grid; gap: 16px; min-width: 0; }
+  .label { font-family: var(--font-display); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .picker { display: flex; flex-wrap: wrap; gap: 8px; }
+  .picker button, .controls button { font: 600 14px/1 var(--font-body); color: var(--fg); background: var(--panel);
+    border: 1px solid var(--line); padding: 10px 12px; cursor: pointer; }
+  .picker button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+  .picker button:hover, .controls button:hover { border-color: var(--muted); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .controls label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 14px; }
+  .readout { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .readout b { color: var(--fg); font-weight: 500; }
+  .note { border-left: 2px solid var(--gold); padding: 2px 0 2px 12px; color: var(--muted); font-size: 14px; margin: 0; }
+  .note strong { color: var(--fg); font-weight: 600; }
+  .strip-wrap { display: grid; gap: 8px; }
+  .strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+  .strip figure { margin: 0; display: grid; gap: 4px; flex: 0 0 auto; }
+  .strip canvas { width: 256px; height: 192px; image-rendering: pixelated; background: var(--stage); border: 1px solid var(--line); cursor: pointer; display: block; }
+  .strip figure[data-on="true"] canvas { border-color: var(--accent); }
+  .strip figcaption { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+  .strip figcaption .ev { color: var(--gold); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+  <header>
+    <h1>El <span>Ojo Vigilante</span></h1>
+    <p class="lede">Enemigo de Last Wish dibujado con código, con el método y el diseño de los héroes. En cada fotograma la figura entera —la celada de hierro con su cola, la visera que se abre como un párpado, el ojo magenta y los cinco tentáculos— es una sola silueta con un único contorno: no hay piezas encima ni partes que giren, y cada tentáculo tiene su forma escrita en cada fotograma. Mira hacia el héroe. 12 fotogramas por segundo, celdas de 144×96 px.</p>
+  </header>
+  <div class="work">
+    <div class="stage"><canvas id="stage" width="512" height="384" aria-label="El Ojo Vigilante animado"></canvas></div>
+    <div class="side">
+      <div class="label">Animación</div>
+      <div class="picker" id="picker" role="group" aria-label="Animación"></div>
+      <div class="controls">
+        <button id="play" type="button">Pausa</button>
+        <button id="prev" type="button" aria-label="Fotograma anterior">◀</button>
+        <button id="next" type="button" aria-label="Fotograma siguiente">▶</button>
+        <label><input id="halo" type="checkbox" checked> Halo de luz</label>
+      </div>
+      <div class="readout" id="readout"></div>
+      <p class="note" id="note"></p>
+    </div>
+  </div>
+  <div class="strip-wrap">
+    <div class="label">Fotogramas a tamaño de combate</div>
+    <div class="strip" id="strip"></div>
+  </div>
+</div>
+
+<script id="eye-art">
+/* El Ojo Vigilante drawn by code (docs/art-style.md section 3.1: the mandatory method for characters and enemies). Every
+   frame computes the WHOLE figure as one label map: an iron sallet with a long tail swept back and a knob on top, the
+   visor that opens over its single eye like an eyelid, the fleshy underside and five tentacles whose shapes (swing, curl,
+   length, trailing tip) are written for that frame. One outline around everything; nothing is a separate piece and
+   nothing is tweened at play time. Two layers: paint (readable alone) and light (only the magic: the magenta eye, its
+   beam and its stare). 144x96 cells (room in front for the beam), the shadow line on row 93; it hovers and faces left
+   (towards the hero): cyan rim in front, violet behind. */
+(function (root) {
+  'use strict';
+  const CW = 144, CH = 96, N = CW * CH, GROUND = 93, ROOT_X = 102, FPS = 12, LOOP = 24, Z = 1.3;  // Z: drawing scale of the body
+
+  // ---------------------------------------------------------------------------------------------- palette
+  const hex = h => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
+  const ramp = a => a.map(hex);
+  const K = {};
+  for (const [k, v] of Object.entries({
+    ink: '#07050c', void1: '#04020a', rimc: '#58dcff', rimv: '#3a2163', white: '#ffffff',
+    violet1: '#55248a', violet2: '#8a47cf', violet3: '#c79bff', steel3: '#cdd5ec', steel4: '#f4f7ff'
+  })) K[k] = hex(v);
+  const RAMP = {
+    iron: ramp(['#0e0d17', '#191827', '#272639', '#3a3a52', '#53546f', '#767a96']),
+    gold: ramp(['#3a2a16', '#6b4f24', '#a07a3a', '#d6b064']),
+    flesh: ramp(['#0f0914', '#1c1024', '#2c1a36', '#40274c', '#583763', '#73497d']),
+    inner: ramp(['#040209', '#0a0614', '#130c22'])
+  };
+  // its accent: the eye's magenta (iris, its beam, its stare)
+  const MAG = ramp(['#2e0a25', '#6c1650', '#b8327f', '#f07ab9', '#ffe2f2']);
+  const LIGHT = { mag: [1.0, 0.3, 0.72], cyan: [0.25, 0.85, 1.0], white: [1, 1, 1], violet: [0.6, 0.3, 1.0] };
+  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+  // ---------------------------------------------------------------------------------------------- tiny raster kit
+  const BAY = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  const B = new Float32Array(N);
+  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) B[y * CW + x] = (BAY[y % 4][x % 4] + 0.5) / 16;
+  const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+  const smooth = (e0, e1, d) => clamp01((d - e0) / (e1 - e0));
+  const frac = v => v - Math.floor(v);
+
+  class Cv { constructor() { this.px = new Float32Array(N * 4); } }
+  const val = (a, i) => typeof a === 'number' ? a : typeof a === 'function' ? a(i) : a[i];
+  function put(c, m, col, a = 1) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      if (B[i] < val(a, i)) { const o = i * 4; c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1; }
+    }
+  }
+  function add(g, m, light, a = 1) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      const al = val(a, i), o = i * 4;
+      g.px[o] += light[0] * al; g.px[o + 1] += light[1] * al; g.px[o + 2] += light[2] * al; g.px[o + 3] = 1;
+    }
+  }
+  const idx = (x, y) => { x = Math.floor(x); y = Math.floor(y); return x < 0 || y < 0 || x >= CW || y >= CH ? -1 : y * CW + x; };
+  function putPx(c, x, y, col, a = 1) {
+    const i = idx(x, y); if (i < 0 || B[i] >= a) return;
+    const o = i * 4; c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+  }
+  function addPx(g, x, y, light, a = 1) {
+    const i = idx(x, y); if (i < 0) return;
+    const o = i * 4; g.px[o] += light[0] * a; g.px[o + 1] += light[1] * a; g.px[o + 2] += light[2] * a; g.px[o + 3] = 1;
+  }
+  const mask = fn => { const m = new Uint8Array(N); for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) { const i = y * CW + x; if (fn(x + 0.5, y + 0.5, i, x, y)) m[i] = 1; } return m; };
+  const at = (m, x, y) => x >= 0 && y >= 0 && x < CW && y < CH ? m[y * CW + x] : 0;
+  function dilate(m, diag = false) {
+    const o = new Uint8Array(N);
+    for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+      const i = y * CW + x;
+      o[i] = m[i] || at(m, x - 1, y) || at(m, x + 1, y) || at(m, x, y - 1) || at(m, x, y + 1) ||
+        (diag && (at(m, x - 1, y - 1) || at(m, x + 1, y - 1) || at(m, x - 1, y + 1) || at(m, x + 1, y + 1))) ? 1 : 0;
+    }
+    return o;
+  }
+  const outline = m => { const d = dilate(m); for (let i = 0; i < N; i++) d[i] = d[i] && !m[i] ? 1 : 0; return d; };
+  const nb = (m, dx, dy) => { const o = new Uint8Array(N); for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) o[y * CW + x] = at(m, x + dx, y + dy); return o; };
+  const and = (...ms) => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) { let v = 1; for (const m of ms) if (!m[i]) { v = 0; break; } o[i] = v; } return o; };
+  const or = (...ms) => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) { for (const m of ms) if (m[i]) { o[i] = 1; break; } } return o; };
+  const not = m => { const o = new Uint8Array(N); for (let i = 0; i < N; i++) o[i] = m[i] ? 0 : 1; return o; };
+  function line(x0, y0, x1, y1) {
+    x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+    const pts = []; const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx + dy;
+    for (;;) { pts.push([x0, y0]); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x0 += sx; } if (e2 <= dx) { err += dx; y0 += sy; } }
+    return pts;
+  }
+  function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const uni = (r, a, b) => a + (b - a) * r();
+  const h2 = (x, y) => { let h = Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+  const vnoise = (x, y) => {
+    const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+    const a = h2(xi, yi), b = h2(xi + 1, yi), c = h2(xi, yi + 1), d = h2(xi + 1, yi + 1);
+    return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+  };
+
+  function toneIdx(i, light, n, amp) { return Math.max(0, Math.min(n - 1, Math.floor(light * (n - 1) + 0.5 + (B[i] - 0.5) * amp))); }
+  function paintZone(c, m, rp, light, amp = 0.55) {
+    for (let i = 0; i < N; i++) {
+      if (!m[i]) continue;
+      const col = rp[toneIdx(i, val(light, i), rp.length, amp)], o = i * 4;
+      c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------- shapes
+  const LDIR = (() => { const v = [-0.55, -0.7, 0.5], l = Math.hypot(...v); return v.map(q => q / l); })();   // screen space, from the upper left
+  // the sallet, in its own coordinates (a: towards the hero, b: up): a round dome with a long tail swept back, a knob on
+  // top, and the opening of its visor on the front where the eye looks out
+  const DRX = 14, DRY = 12.5, DCB = -1, RIM = -9.5;
+  const OPA = 5.6, OPB = -1.2, OPRX = 6.6, OPRY = 6.2;          // the visor's opening
+  const ROOTS = [9.5, 4.5, -0.5, -5.5, -10.5];                         // where the tentacles hang from the underside
+  const LENS = [15, 19, 21, 18, 14];
+  function inSallet(a, b) {
+    if (((a / DRX) ** 2 + ((b - DCB) / DRY) ** 2) <= 1 && b >= RIM) return 1;
+    if (Math.hypot(a + 1.5, b - DCB - DRY - 0.6) < 2.2) return 2;                  // the knob
+    if (a < -8 && a > -23) {                                                        // the tail
+      const k = clamp01((-8 - a) / 15), top = 3.5 - 11.5 * k + 2.5 * k * k, bot = RIM - 0.4 + 1.2 * k * k;
+      if (b <= top && b >= bot && !(a < -21.5 && b > bot + 1.6)) return 3;
+    }
+    return 0;
+  }
+  const inOpening = (a, b, open) => ((a - OPA) / OPRX) ** 2 + ((b - OPB) / OPRY) ** 2 <= 1 && b <= OPB - OPRY + 2 * OPRY * open;
+
+  // ---------------------------------------------------------------------------------------------- labels
+  const L_ = {}; ['EMPTY', 'TENT_B', 'MANTLE', 'TENT', 'HELM', 'FACE'].forEach((k, i) => { L_[k] = i; });
+
+  // ---------------------------------------------------------------------------------------------- the pose
+  // Every frame writes the whole figure: where the sallet hovers (x, y, hd: height of its centre) and how it tips (tilt,
+  // +: towards the hero), how far the visor is raised (open), where the eye looks (look [a, b]), the iris and pupil
+  // (iris: size, pupil: slit width), its glow (eyes), and EACH tentacle's shape for that frame, tents[i] = [swing (deg,
+  // +: towards the hero), curl (deg along its length), length, drag (how far its tip trails, + towards the hero)];
+  // flash (hit); fade (death: it comes apart).
+  const IDLE = { x: 0, y: 0, hd: 50, tilt: 4, open: 0.82, look: [1, 0], iris: 1, pupil: 1, eyes: 1, tents: null, flash: 0, fade: 0, phase: 0 };
+
+  function figure(p) {
+    const lab = new Int8Array(N), HA = new Float32Array(N), HB = new Float32Array(N), TT = new Float32Array(N), TV = new Float32Array(N), TI = new Int8Array(N).fill(-1);
+    const hx = Math.round(ROOT_X + p.x), hy = Math.round(GROUND - p.hd * Z + p.y);
+    const ta = p.tilt * Math.PI / 180, cs = Math.cos(ta), sn = Math.sin(ta);
+    const toPx = (a, b) => [hx - (a * cs + b * sn) * Z, hy - (-a * sn + b * cs) * Z];
+    for (let y = 0; y < GROUND; y++) for (let x = 0; x < CW; x++) {
+      const i = y * CW + x, du = (hx - x - 0.5) / Z, dd = (hy - y - 0.5) / Z, a = du * cs - dd * sn, b = du * sn + dd * cs;
+      HA[i] = a; HB[i] = b;
+      const s = inSallet(a, b);
+      if (s) { lab[i] = inOpening(a, b, p.open) ? L_.FACE : L_.HELM; TI[i] = s; continue; }
+      // the fleshy underside the tentacles grow from, under the rim
+      if (((a + 1) / 11.5) ** 2 + ((b - RIM) / 3.6) ** 2 <= 1) lab[i] = L_.MANTLE;
+    }
+    // each tentacle: discs along the curve written for this frame (no straight bar, no pivot), thinning to a 4-connected tip
+    const tips = [];
+    p.tents.forEach(([swing, curl, len, drag], j) => {
+      const far = j === 1 || j === 3, LT = far ? L_.TENT_B : L_.TENT;
+      let [cx, cy] = toPx(ROOTS[j], RIM - 0.8);
+      const n = 30, step = len * Z / n, th0 = Math.PI / 2 + swing * Math.PI / 180, cu = curl * Math.PI / 180;
+      let prev = null;
+      for (let k = 0; k <= n; k++) {
+        const s = k / n, r = ((far ? 2.2 : 2.6) * Math.pow(1 - s, 1.1) + 0.66) * Z;
+        const ox = -drag * Z * Math.pow(s, 2.2);
+        const qx = cx + ox, qy = cy;
+        for (let yy = Math.floor(qy - r - 1); yy <= qy + r + 1; yy++) for (let xx = Math.floor(qx - r - 1); xx <= qx + r + 1; xx++) {
+          const i = idx(xx, yy); if (i < 0 || yy >= GROUND) continue;
+          const dd = Math.hypot(xx + 0.5 - qx, yy + 0.5 - qy); if (dd > r) continue;
+          const ok = far ? lab[i] === 0 : lab[i] === 0 || lab[i] === L_.MANTLE || lab[i] === L_.TENT_B || (lab[i] === LT && TT[i] <= s);
+          if (!ok) continue;
+          lab[i] = LT; TT[i] = s; TV[i] = ((xx + 0.5 - qx) * -Math.sin(th0 + cu * Math.pow(s, 1.4)) + (yy + 0.5 - qy) * Math.cos(th0 + cu * Math.pow(s, 1.4))) / r;
+        }
+        const pp = [Math.floor(qx), Math.floor(qy)], i0 = idx(pp[0], pp[1]);
+        if (i0 >= 0 && pp[1] < GROUND && (lab[i0] === 0 || (!far && lab[i0] !== L_.HELM && lab[i0] !== L_.FACE))) { lab[i0] = LT; TT[i0] = s; }
+        if (prev && pp[0] !== prev[0] && pp[1] !== prev[1]) { const i1 = idx(pp[0], prev[1]); if (i1 >= 0 && prev[1] < GROUND && lab[i1] === 0) { lab[i1] = LT; TT[i1] = s; } }
+        prev = pp;
+        const th = th0 + cu * Math.pow(s, 1.4);
+        cx += Math.cos(th) * step; cy += Math.sin(th) * step;
+      }
+      tips.push([cx - drag * Z, cy]);
+    });
+    // one figure: anything not 4-connected to the dome is dropped
+    const reach = new Uint8Array(N), stack = [], seed = idx(...toPx(-3, 5));
+    if (seed >= 0 && lab[seed]) { reach[seed] = 1; stack.push(seed); }
+    while (stack.length) {
+      const i = stack.pop(), x = i % CW, y = (i / CW) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const j = idx(x + dx, y + dy); if (j >= 0 && !reach[j] && lab[j]) { reach[j] = 1; stack.push(j); } }
+    }
+    let lost = 0;
+    for (let i = 0; i < N; i++) if (!reach[i] && lab[i]) { lab[i] = 0; lost++; }
+    // death: it comes apart along a ragged edge (coarse noise; no lone specks)
+    const lab0 = Int8Array.from(lab);
+    if (p.fade > 0) {
+      for (let i = 0; i < N; i++) {
+        if (!lab[i]) continue;
+        const x = i % CW, y = (i / CW) | 0;
+        // from the floor up, along a ragged line (two frequencies and the dither), like the Espectro
+        const rag = 2.2 * Math.sin(x * 0.55 + 1.3) + 1.4 * Math.sin(x * 1.37) + (B[i] - 0.5) * 3;
+        if (GROUND - y < p.fade * 40 - 3 + rag) lab[i] = 0;
+      }
+      for (let pass = 0; pass < 2; pass++) {
+        const keep = Int8Array.from(lab);
+        for (let i = 0; i < N; i++) {
+          if (!keep[i]) continue;
+          const x = i % CW, y = (i / CW) | 0; let k = 0;
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const j = idx(x + dx, y + dy); if (j >= 0 && keep[j]) k++; }
+          if (k < 2) lab[i] = 0;
+        }
+      }
+    }
+    const ec = toPx(OPA + p.look[0], OPB + p.look[1]);
+    return { p, lab, lab0, HA, HB, TT, TV, TI, hx, hy, cs, sn, toPx, lost, tips, eye: ec, chest: toPx(0, -3), body: toPx(-2, 0),
+      beamFrom: toPx(OPA + p.look[0] + 3.5, OPB + p.look[1]) };
+  }
+
+  // ---------------------------------------------------------------------------------------------- painting
+  function paint(c, g, F, t) {
+    const { p, lab, HA, HB, TT, TV, TI } = F;
+    const is = (...ls) => { const s = new Set(ls); const m = new Uint8Array(N); for (let i = 0; i < N; i++) if (s.has(lab[i])) m[i] = 1; return m; };
+    const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = lab[i] ? 1 : 0;
+    const mo = dilate(m);
+    for (let i = 0; i < N; i++) if (mo[i]) { const o = i * 4; g.px[o] = g.px[o + 1] = g.px[o + 2] = 0; }
+    put(c, outline(m), K.ink);
+    const up = mm => nb(mm, 0, -1), down = mm => nb(mm, 0, 1), left = mm => nb(mm, -1, 0), right = mm => nb(mm, 1, 0);
+    const helm = is(L_.HELM), face = is(L_.FACE), mantle = is(L_.MANTLE), tent = is(L_.TENT), tentB = is(L_.TENT_B);
+    const toScreen = (na, nb_, nz) => { const nu = na * F.cs + nb_ * F.sn, nd = -na * F.sn + nb_ * F.cs, l = Math.hypot(nu, nd, nz) || 1; return (-nu * LDIR[0] - nd * LDIR[1] + nz * LDIR[2]) / l; };
+    // the tentacles and the underside: dark flesh, rounded (lit on their upper left), suckers on the side towards the hero
+    paintZone(c, tentB, RAMP.flesh, i => 0.32 - 0.2 * TV[i] - 0.1 * TT[i], 0.5);
+    paintZone(c, mantle, RAMP.flesh, i => 0.35 + 0.05 * HA[i] / 10 - 0.08 * (RIM - HB[i]), 0.5);
+    paintZone(c, tent, RAMP.flesh, i => 0.62 - 0.32 * TV[i] - 0.1 * TT[i], 0.5);
+    put(c, and(tent, mask((x, y, i) => TV[i] > 0.35 && TT[i] > 0.12 && TT[i] < 0.85 && Math.abs(frac(TT[i] * 7) - 0.5) < 0.16)), RAMP.flesh[5]);
+    // the sallet: dark iron lit from the upper left, a ridge over the dome, a gilt edge on the visor and round the rim
+    const hl = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      if (!helm[i]) continue;
+      const a = HA[i], b = HB[i];
+      let v;
+      if (TI[i] === 3) { const k = clamp01((-8 - a) / 15), top = 3.5 - 11.5 * k + 2.5 * k * k, bot = RIM - 0.4 + 1.2 * k * k, q = (b - (top + bot) / 2) / Math.max(1, (top - bot) / 2); v = 0.38 + 0.5 * toScreen(-0.25, 0.7 * q, 0.7); }
+      else if (TI[i] === 2) { const na = (a + 1.5) / 2.2, nb_ = (b - DCB - DRY - 0.6) / 2.2; v = 0.4 + 0.6 * toScreen(na, nb_, Math.sqrt(Math.max(0.05, 1 - na * na - nb_ * nb_))); }
+      else { const na = a / DRX, nb_ = (b - DCB) / DRY; v = 0.36 + 0.6 * toScreen(na, nb_, Math.sqrt(Math.max(0.05, 1 - na * na - nb_ * nb_))); }
+      if (TI[i] === 1 && b > 2 && Math.abs(a - (2.6 - 0.25 * (b - 2))) < 0.75) v += 0.2;     // the ridge
+      if (b < RIM + 1.5) v -= 0.1;
+      hl[i] = v;
+    }
+    paintZone(c, helm, RAMP.iron, i => hl[i], 0.45);
+    put(c, and(helm, mask((x, y, i) => hl[i] > 0.92 && TI[i] === 1)), K.steel3);
+    // gilt: the band round the rim, the visor's lip over the eye, and three rivets
+    const opening = mask((x, y, i) => inOpening(HA[i], HB[i], 1));
+    const lip = and(helm, dilate(face, true), mask((x, y, i) => HB[i] > OPB - 1));
+    const band = and(helm, mask((x, y, i) => HB[i] < RIM + 1.4 && HB[i] > RIM + 0.2 && TI[i] !== 3));
+    paintZone(c, or(lip, band), RAMP.gold, i => 0.35 + 0.6 * clamp01(hl[i]), 0.5);
+    put(c, and(helm, dilate(face, true), mask((x, y, i) => HB[i] <= OPB - 1)), RAMP.iron[1]);
+    for (const a of [9, 3, -3]) { const [qx, qy] = F.toPx(a, RIM + 2.6); const i = idx(qx, qy); if (i >= 0 && helm[i]) putPx(c, qx, qy, RAMP.gold[3]); }
+    // the eye: a dark socket, a glowing magenta iris with a dark ring, a black slit pupil, a white glint
+    const ek = p.eyes, [ex, ey] = F.eye, ir = 4.3 * p.iris * Z;
+    for (let i = 0; i < N; i++) {
+      if (!face[i]) continue;
+      const x = i % CW + 0.5, y = ((i / CW) | 0) + 0.5, d = Math.hypot(x - ex, y - ey) / ir, o = i * 4;
+      let col = K.void1, gl = 0;
+      if (d < 1 && ek > 0.02) {
+        const lx = ((x - ex) * F.cs - (y - ey) * F.sn), ly = ((x - ex) * F.sn + (y - ey) * F.cs);
+        if (Math.abs(lx) < 0.75 * p.pupil * Z * (1 - Math.abs(ly) / (ir * 1.05)) + 0.3 && Math.abs(ly) < ir * 0.92) col = K.void1;
+        else { const tone = d > 0.82 ? 1 : d > 0.5 ? 2 : 3; col = mix(MAG[Math.max(0, tone - 1)], MAG[tone], Math.min(1, ek)); gl = (d > 0.82 ? 0.35 : d > 0.5 ? 0.7 : 1.0) * ek; }
+      } else if (d < 1.35 && ek > 0.02) col = mix(K.void1, MAG[0], 0.6);
+      c.px[o] = col[0]; c.px[o + 1] = col[1]; c.px[o + 2] = col[2]; c.px[o + 3] = 1;
+      if (gl > 0) addPx(g, x, y, LIGHT.mag, 0.75 * gl);
+    }
+    if (ek > 0.3) { const gx_ = Math.round(ex - 1.6 * Z), gy_ = Math.round(ey - 1.7 * Z), j = idx(gx_, gy_); if (j >= 0 && face[j]) { putPx(c, gx_, gy_, K.white); addPx(g, gx_, gy_, LIGHT.white, 0.6 * ek); } }
+    // rim light: cyan in front and on top, violet behind
+    // (the thin ends of the tentacles get a soft flesh highlight instead: a rim on both sides of a 2 px tentacle would
+    // turn it cyan)
+    const thin = and(or(tent, tentB), mask((x, y, i) => TT[i] > 0.3));
+    const fig = and(m, not(face));
+    const rimC = and(fig, or(not(left(m)), and(not(up(m)), mask(x => x < F.hx + 4))));
+    const rimV = and(fig, not(right(m)), not(rimC));
+    put(c, and(rimV, not(thin)), K.rimv, 0.8);
+    put(c, and(rimC, not(thin)), K.rimc); add(g, and(rimC, not(thin)), LIGHT.cyan, 0.42);
+    put(c, and(rimC, thin, tent), RAMP.flesh[5]); put(c, and(rimC, thin, tentB), RAMP.flesh[3]);
+    if (p.fade > 0) {   // only the true edge of what is left burns (where the figure has already come apart)
+      const gone = mask((x, y, i) => F.lab0[i] && !m[i]), edge = and(m, dilate(gone));
+      put(c, edge, MAG[2]); put(c, and(edge, mask((x, y, i) => B[i] < 0.4)), MAG[3]); add(g, edge, LIGHT.mag, 0.45);
+    }
+    if (p.flash > 0) {
+      const fv = hex('#fff0f8');
+      for (let i = 0; i < N; i++) if (m[i]) { const w = p.flash * 0.85, o = i * 4; c.px[o] = c.px[o] * (1 - w) + fv[0] * w; c.px[o + 1] = c.px[o + 1] * (1 - w) + fv[1] * w; c.px[o + 2] = c.px[o + 2] * (1 - w) + fv[2] * w; }
+    }
+    return m;
+  }
+
+  // ---------------------------------------------------------------------------------------------- effects (its moves' vocabulary)
+  function star4(c, g, x, y, arm, o = {}) {
+    const core = o.core || K.white, col = o.col || MAG[3], edge = o.edge || MAG[2], light = o.light || LIGHT.mag, gain = o.gain ?? 1, diag = o.diag ?? true;
+    x = Math.floor(x); y = Math.floor(y);
+    for (let i = 1; i <= arm; i++) {
+      const k = i / (arm + 0.5), colr = k < 0.55 ? col : edge;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { putPx(c, x + dx * i + 0.5, y + dy * i + 0.5, colr); addPx(g, x + dx * i + 0.5, y + dy * i + 0.5, light, gain * (1 - k) * 0.9); }
+    }
+    if (diag && arm >= 3) for (const [dx, dy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) for (let i = 1; i <= Math.max(1, Math.floor(arm / 3)); i++) { putPx(c, x + dx * i + 0.5, y + dy * i + 0.5, edge); addPx(g, x + dx * i + 0.5, y + dy * i + 0.5, light, gain * 0.35); }
+    putPx(c, x + 0.5, y + 0.5, core); addPx(g, x + 0.5, y + 0.5, LIGHT.white, gain * 1.2);
+  }
+  function motes(c, g, t, seed, count, area, gain = 0.6) {
+    const r = rng(seed); const [x0, y0, x1, y1] = area;
+    for (let i = 0; i < count; i++) {
+      const px = uni(r, x0, x1), phase = r(), cycles = r() < 0.7 ? 1 : 2, wob = uni(r, 1.0, 2.5);
+      const u = frac(t * cycles + phase), y = y1 - u * (y1 - y0), x = px + Math.sin((u * 2 + phase) * Math.PI * 2) * wob, a = Math.sin(u * Math.PI);
+      if (a < 0.2) continue;
+      const vio = i % 3 === 0, col = vio ? K.violet3 : MAG[3], lt = vio ? LIGHT.violet : LIGHT.mag;
+      putPx(c, x, y, col, Math.min(1, a * 1.4)); addPx(g, x, y, lt, gain * a);
+    }
+  }
+  const ambient = (c, g, t, F, gain = 0.45) => motes(c, g, t, 23, 5, [F.hx - 22, F.hy - 26, F.hx + 18, F.hy + 30], gain);
+  /** Motes drawn into the eye (charging the beam, or the stare gathering). */
+  function converge(c, g, F, k, seed, n = 12, r0 = 22) {
+    if (k <= 0.02) return;
+    const r = rng(seed), [ex, ey] = F.eye;
+    for (let i = 0; i < n; i++) {
+      const q = uni(r, 0, 2 * Math.PI) + k * 1.6, rr = uni(r, r0 * 0.5, r0) * (1.1 - k) + 2.5, x = ex + Math.cos(q) * rr, y = ey + Math.sin(q) * rr * 0.85, j = idx(x, y);
+      if (j < 0 || F.lab[j] || y >= GROUND - 1) continue;
+      putPx(c, x, y, i % 3 ? MAG[3] : K.violet3); addPx(g, x, y, i % 3 ? LIGHT.mag : LIGHT.violet, 0.8 * k);
+    }
+  }
+  /** Rayo Ocular: a beam from the eye to the front of the cell, a white core with magenta edges that wobble. */
+  function beam(c, g, x0, y0, x1, y1, k, w = 2.2, seed = 3) {
+    if (k <= 0.02) return;
+    const len = Math.hypot(x1 - x0, y1 - y0), ux = (x1 - x0) / len, uy = (y1 - y0) / len, r = rng(seed);
+    const ph = uni(r, 0, 6.28);
+    for (let s = 0; s <= len; s += 0.5) {
+      const x = x0 + ux * s, y = y0 + uy * s, ww = w * k * (0.85 + 0.15 * Math.sin(s * 0.9 + ph)) * (s < 3 ? 0.7 + 0.1 * s : 1) * (s > len - 6 ? (len - s) / 6 : 1);
+      for (let o = -Math.ceil(ww + 1); o <= Math.ceil(ww + 1); o++) {
+        const qx = x - uy * o, qy = y + ux * o, a = Math.abs(o);
+        if (a > ww + 0.8) continue;
+        const col = a <= ww * 0.35 ? K.white : a <= ww * 0.75 ? MAG[4] : a <= ww ? MAG[3] : MAG[1];
+        putPx(c, qx, qy, col); addPx(g, qx, qy, a <= ww * 0.35 ? LIGHT.white : LIGHT.mag, (a <= ww ? 0.9 : 0.3) * k);
+      }
+    }
+  }
+  /** Mirada Fija / Pavor: arcs of its stare that open towards the hero and fade as they travel. */
+  function stare(c, g, cx, cy, age, count = 3) {
+    for (let j = 0; j < count; j++) {
+      const a = age - j * 0.85; if (a <= 0) continue;
+      const r = 4 + a * 6.2, k = 1 - a / 5.6; if (k <= 0.05) continue;
+      const n = Math.ceil(r * 2.4);
+      for (let s = 0; s <= n; s++) {
+        const v = s / n, ang = Math.PI * (0.75 + 0.5 * v), edgeK = Math.sin(Math.PI * v);
+        if (edgeK < 0.25) continue;
+        const x = cx + Math.cos(ang) * r, y = cy + Math.sin(ang) * r * 0.85, vio = j % 2 === 1;
+        if (x < 2 || y < 2 || y >= GROUND - 1) continue;
+        putPx(c, x, y, k > 0.6 && edgeK > 0.8 ? MAG[4] : vio ? K.violet3 : MAG[3], Math.min(1, k * 1.6 * edgeK));
+        addPx(g, x, y, vio ? LIGHT.violet : LIGHT.mag, 0.8 * k * edgeK);
+      }
+    }
+  }
+  function sparks(c, g, ox, oy, age, seed, count, speed, ang, spread, o = {}) {
+    if (age <= 0) return;
+    const grav = o.grav ?? 0.14, life = o.life ?? 7, ve = o.violetEvery ?? 0, steel = o.steel;
+    const r = rng(seed);
+    for (let i = 0; i < count; i++) {
+      const a0 = ang + uni(r, -spread, spread), spd = uni(r, speed * 0.45, speed), lf = life * uni(r, 0.7, 1.0);
+      if (age > lf) continue;
+      const x = ox + Math.cos(a0) * spd * age, y = oy + Math.sin(a0) * spd * age + grav * age * age, k = 1 - age / (lf + 1);
+      if (y >= GROUND || x < 1 || x > CW - 2 || y < 1) continue;
+      const vio = ve && i % ve === 0, col = steel ? (age < 2 ? K.steel4 : K.steel3) : vio ? K.violet3 : age < 2.5 ? MAG[4] : MAG[3];
+      putPx(c, x, y, col); addPx(g, x, y, steel ? LIGHT.white : vio ? LIGHT.violet : LIGHT.mag, (steel ? 0.6 : 1) * k);
+      if (age < 4) for (const [qx, qy] of line(x, y, x - Math.cos(a0) * spd * 0.9, y - Math.sin(a0) * spd * 0.9 - grav * age * 1.5).slice(1)) { putPx(c, qx + 0.5, qy + 0.5, steel ? RAMP.iron[4] : vio ? K.violet1 : MAG[1], k); addPx(g, qx + 0.5, qy + 0.5, steel ? LIGHT.white : LIGHT.mag, 0.25 * k); }
+    }
+  }
+  function dust(c, x, y, r, k, seed = 5) {
+    if (k <= 0.05) return;
+    const q = rng(seed), n = Math.round(4 + 6 * k), d0 = hex('#2a2233'), d1 = hex('#3d3348');
+    for (let j = 0; j < n; j++) {
+      const an = uni(q, Math.PI, 2 * Math.PI), dd = uni(q, 0.2, 1) * r, cx = x + Math.cos(an) * dd, cy = y + Math.sin(an) * dd * 0.45, rr = uni(q, 1.2, 2.4) * (0.5 + 0.5 * k);
+      for (let yy = Math.floor(cy - rr); yy <= cy + rr; yy++) for (let xx = Math.floor(cx - rr); xx <= cx + rr; xx++) {
+        const e = Math.hypot(xx + 0.5 - cx, yy + 0.5 - cy) / rr; if (e > 1 || yy >= GROUND || xx < 1 || xx > CW - 2) continue;
+        putPx(c, xx + 0.5, yy + 0.5, e < 0.5 && xx < cx ? d1 : d0);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------- the frames
+  // Every action frame below is its own drawing: where the sallet hovers and how it tips, how far the visor is raised,
+  // where the eye looks and how wide the pupil is, and the shape of each of the five tentacles (swing, curl, length and
+  // how far its tip trails) are written for that frame; nothing is interpolated or rotated at play time.
+  const withP = (p, o) => Object.assign({}, p, o);
+  const BASE = [9, 3, -3, -9, -15];
+  /** The idle tentacles: a slow wave runs down each one (its curl), later in the ones behind, the tips trailing. */
+  function idleTents(t) {
+    const a = 2 * Math.PI * t;
+    return [0, 1, 2, 3, 4].map(j => [BASE[j] + 5 * Math.sin(a - 0.6 * j), 26 * Math.sin(a - 1.1 - 0.6 * j), LENS[j] + 0.8 * Math.sin(2 * a - j), 1.4 * Math.sin(a - 1.8 - 0.5 * j)]);
+  }
+  /** The idle: it hovers up and down in whole pixels, the sallet tips a little after it, the eye watches the hero and
+      glances away, the visor drops for a blink, the tentacles wave. */
+  function idlePose(t, f) {
+    const a = 2 * Math.PI * t, s = Math.sin(a), tl = Math.sin(a - 1.2);
+    const look = f >= 8 && f <= 11 ? [-1.2, 1.0] : f >= 12 && f <= 13 ? [0, 0.5] : [1, 0];
+    return withP(IDLE, { phase: a, y: Math.round(-1.5 * s - 0.5), tilt: tl > 0.45 ? 6 : tl < -0.45 ? 2 : 4, look, tents: idleTents(t) });
+  }
+  const T = (...v) => v;
+  const POSES = {
+    // Rayo Ocular: it rises and tips back with the visor flung open, the tentacles drawing in and then bracing; the eye
+    // charges (motes drawn into it, the pupil narrowing to a slit), it thrusts forward and fires (frame 5: the beam reaches
+    // the hero), the recoil throws it back with the tentacles streaming forward, the beam thins out and it settles
+    attack: [
+      { y: -1, tilt: -2, open: 0.95, pupil: 0.7, eyes: 1.15, tents: T([10, 40, 13, 0], [4, 34, 16, 0], [-2, 30, 17, 0], [-8, 28, 15, 0], [-14, 26, 12, 0]) },
+      { y: -2, tilt: -7, open: 1, pupil: 0.5, iris: 1.05, eyes: 1.4, tents: T([26, -18, 14, -1], [10, -10, 17, -0.5], [-4, 8, 19, 0], [-18, 16, 16, 0.5], [-30, 24, 12, 1]) },
+      { y: -2, tilt: -9, open: 1, pupil: 0.35, iris: 0.95, eyes: 1.8, tents: T([30, -26, 14, -1.5], [12, -16, 17, -1], [-5, 10, 19, 0], [-20, 22, 16, 1], [-34, 30, 12, 1.5]) },
+      { x: -2, y: -1, tilt: 8, open: 1, pupil: 0.3, iris: 1.0, eyes: 2.0, tents: T([-10, 30, 15, -3], [-14, 26, 18, -3], [-18, 22, 19, -2.5], [-22, 20, 16, -2], [-26, 18, 12, -2]) },
+      { x: 2, y: -1, tilt: -6, open: 1, pupil: 0.3, iris: 1.05, eyes: 2.1, tents: T([30, -20, 15, 4], [24, -16, 18, 4], [18, -12, 19, 3.5], [12, -8, 16, 3], [6, -6, 12, 2.5]) },
+      { x: 3, tilt: -7, open: 1, pupil: 0.4, iris: 1.0, eyes: 1.8, tents: T([26, -10, 14, 4.5], [22, -8, 17, 4.5], [16, -4, 19, 4], [10, -2, 16, 3.5], [4, 0, 12, 3]) },
+      { x: 2, tilt: -3, open: 0.95, pupil: 0.6, eyes: 1.4, tents: T([14, 10, 14, 2], [10, 8, 17, 2], [6, 10, 19, 1.5], [0, 12, 16, 1], [-6, 14, 12, 1]) },
+      { x: 1, tilt: 2, open: 0.88, pupil: 0.85, eyes: 1.15, tents: T([0, 24, 14, -1.5], [-3, 20, 18, -1.5], [-6, 18, 20, -1], [-10, 18, 17, -1], [-14, 18, 13, -0.5]) },
+      { tilt: 4, open: 0.84, eyes: 1.05, tents: T([3, 6, 14, -0.6], [0, 4, 18, -0.6], [-3, 2, 20, -0.4], [-6, 2, 17, -0.3], [-10, 2, 13, -0.2]) }
+    ],
+    // Mirada Fija / Pavor: the visor rises all the way, the iris swells and the pupil narrows to a slit, the tentacles
+    // spread and bristle; its stare goes out to the hero in arcs (a glint on the eye), it holds, then lets go and settles
+    cast: [
+      { open: 0.92, eyes: 1.1, iris: 1.05, tents: T([10, 10, 14, 0], [4, 8, 17, 0], [-2, 6, 19, 0], [-8, 6, 16, 0], [-14, 6, 12, 0]) },
+      { y: -1, open: 1, eyes: 1.3, iris: 1.12, pupil: 0.6, tents: T([22, -8, 14, 0], [10, -4, 17, 0], [-2, 2, 19, 0], [-14, 8, 16, 0], [-26, 12, 12, 0]) },
+      { y: -2, tilt: -3, open: 1, eyes: 1.6, iris: 1.2, pupil: 0.4, tents: T([32, -14, 15, 0], [14, -8, 18, 0], [-2, 0, 20, 0], [-18, 10, 17, 0], [-34, 16, 13, 0]) },
+      { y: -2, tilt: 2, open: 1, eyes: 2.0, iris: 1.28, pupil: 0.25, tents: T([38, -16, 15, 0.5], [16, -10, 18, 0.5], [-2, -2, 20, 0.5], [-20, 8, 17, 0.5], [-38, 16, 13, 0.5]) },
+      { x: -1, y: -2, tilt: 3, open: 1, eyes: 2.1, iris: 1.3, pupil: 0.22, tents: T([40, -20, 15, 0], [18, -12, 18, 0], [-2, -4, 20, 0], [-22, 6, 17, 0], [-40, 14, 13, 0]) },
+      { x: 0, y: -2, tilt: 3, open: 1, eyes: 2.0, iris: 1.3, pupil: 0.22, tents: T([38, -16, 15, -0.5], [17, -10, 18, -0.5], [-2, -2, 20, -0.5], [-21, 8, 17, -0.5], [-39, 16, 13, -0.5]) },
+      { x: -1, y: -2, tilt: 3, open: 1, eyes: 2.0, iris: 1.3, pupil: 0.22, tents: T([40, -20, 15, 0], [18, -12, 18, 0], [-2, -4, 20, 0], [-22, 6, 17, 0], [-40, 14, 13, 0]) },
+      { y: -2, tilt: 2, open: 1, eyes: 1.8, iris: 1.25, pupil: 0.3, tents: T([34, -12, 15, 0], [15, -6, 18, 0], [-2, 0, 20, 0], [-18, 8, 17, 0], [-34, 14, 13, 0]) },
+      { y: -1, tilt: 3, open: 0.95, eyes: 1.45, iris: 1.12, pupil: 0.6, tents: T([18, 14, 14, -1], [8, 12, 17, -1], [-2, 12, 19, -0.5], [-10, 14, 16, -0.5], [-18, 16, 12, 0]) },
+      { tilt: 4, open: 0.88, eyes: 1.2, iris: 1.04, pupil: 0.85, tents: T([6, 22, 14, -0.8], [2, 20, 18, -0.8], [-3, 18, 20, -0.6], [-7, 18, 17, -0.4], [-11, 18, 13, -0.2]) },
+      { tilt: 4, open: 0.84, eyes: 1.05, tents: T([4, 4, 14, -0.4], [0, 2, 18, -0.4], [-3, 0, 20, -0.3], [-6, 0, 17, -0.2], [-10, 0, 13, -0.1]) }
+    ],
+    // struck: knocked back, the visor slams down, the tentacles fly forward; it shakes it off and the visor rises again
+    hurt: [
+      { x: 4, y: -1, tilt: -14, open: 0.12, eyes: 1.2, flash: 0.85, tents: T([34, -20, 13, 4], [28, -16, 16, 4], [22, -12, 18, 3.5], [16, -8, 15, 3], [10, -6, 11, 2.5]) },
+      { x: 5, y: -1, tilt: -16, open: 0.06, eyes: 1.2, flash: 0.4, tents: T([30, -6, 13, 5], [24, -4, 16, 5], [18, -2, 18, 4.5], [12, 0, 15, 4], [6, 2, 11, 3.5]) },
+      { x: 3, tilt: -6, open: 0.45, eyes: 1.1, flash: 0.12, tents: T([-6, 30, 14, 1], [-10, 26, 17, 1], [-14, 24, 19, 1], [-18, 22, 16, 1], [-22, 20, 12, 0.5]) },
+      { x: 1, tilt: 2, open: 0.72, tents: T([0, 18, 14, -2], [-3, 16, 18, -2], [-6, 14, 20, -1.5], [-10, 14, 17, -1], [-14, 14, 13, -1]) },
+      { tilt: 5, open: 0.8, tents: T([5, 6, 14, -0.8], [1, 4, 18, -0.8], [-2, 2, 20, -0.6], [-5, 2, 17, -0.4], [-9, 2, 13, -0.2]) },
+      { tilt: 4, open: 0.82, tents: T([4, 2, 14, -0.3], [0, 0, 18, -0.3], [-3, 0, 20, -0.2], [-6, 0, 17, -0.1], [-10, 0, 13, 0]) }
+    ],
+    // the death: struck, the eye flares and bursts; the empty sallet drops, the tentacles streaming up as it falls, it hits
+    // the floor with them splayed out, bounces, tips back onto its tail and comes apart into magenta motes
+    death: [
+      { x: 4, y: -1, tilt: -14, open: 0.12, eyes: 1.2, flash: 0.9, tents: T([34, -20, 13, 4], [28, -16, 16, 4], [22, -12, 18, 3.5], [16, -8, 15, 3], [10, -6, 11, 2.5]) },
+      { x: 5, y: -2, tilt: -18, open: 1, eyes: 2.2, iris: 1.35, pupil: 1.8, flash: 0.35, tents: T([40, -40, 14, 2], [20, 40, 17, -2], [-10, -40, 19, 2], [-26, 40, 16, -2], [-40, -30, 12, 2]) },
+      { x: 5, y: -2, tilt: -16, open: 1, eyes: 2.5, iris: 1.4, pupil: 2.2, tents: T([20, 40, 14, -2], [36, -40, 17, 2], [-26, 40, 19, -2], [-10, -40, 16, 2], [-30, 30, 12, -2]) },
+      { x: 5, y: -2, tilt: -14, open: 1, eyes: 0, tents: T([24, -20, 14, 0], [12, 20, 17, 0], [-4, -20, 19, 0], [-16, 20, 16, 0], [-28, -16, 12, 0]) },
+      { x: 5, hd: 44, tilt: -10, open: 1, eyes: 0, tents: T([30, -60, 14, 0], [14, -40, 17, 0], [-2, 0, 18, 0], [-18, 40, 16, 0], [-32, 60, 12, 0]) },
+      { x: 5, hd: 35, tilt: -6, open: 1, eyes: 0, tents: T([34, -80, 13, 0], [16, -60, 16, 0], [-2, 0, 17, 0], [-20, 60, 15, 0], [-36, 80, 11, 0]) },
+      { x: 5, hd: 25, tilt: -2, open: 1, eyes: 0, tents: T([60, -30, 13, 0], [40, -20, 15, 0], [-10, 10, 15, 0], [-44, 20, 14, 0], [-64, 30, 11, 0]) },
+      { x: 5, hd: 15, tilt: 4, open: 1, eyes: 0, tents: T([84, -10, 13, 0], [74, -6, 15, 0], [-70, 6, 14, 0], [-80, 8, 13, 0], [-86, 10, 11, 0]) },
+      { x: 5, hd: 17, tilt: -6, open: 1, eyes: 0, tents: T([76, -20, 13, 0], [62, -16, 15, 0], [-56, 16, 14, 0], [-70, 20, 13, 0], [-80, 20, 11, 0]) },
+      { x: 6, hd: 15, tilt: -18, open: 1, eyes: 0, tents: T([82, -10, 12, 0], [70, -8, 14, 0], [-64, 8, 13, 0], [-78, 10, 12, 0], [-86, 12, 10, 0]) },
+      { x: 6, hd: 15, tilt: -22, open: 1, eyes: 0, tents: T([86, -6, 12, 0], [74, -4, 14, 0], [-66, 4, 13, 0], [-80, 6, 12, 0], [-88, 8, 10, 0]) }
+    ]
+  };
+  [0.14, 0.3, 0.46, 0.62, 0.8].forEach(fade => POSES.death.push(withP(POSES.death[10], { fade })));
+  const N_OF = { idle: 24, attack: 10, cast: 12, hurt: 7, death: 17 };
+  const ANIMATIONS = [['idle', 24, true], ['attack', 10, false], ['cast', 12, false], ['hurt', 7, false], ['death', 17, false]];
+  const STRIKE_FRAME = 4, STARE_FRAME = 3;
+
+  const clock = (f, n) => frac((f - (n - 1)) / LOOP);
+  const pose = (name, f) => name === 'idle' ? idlePose(f / LOOP, f) : withP(IDLE, POSES[name][Math.min(f, POSES[name].length - 1)]);
+  const poseAt = (name, f) => name === 'idle' ? idlePose(f / LOOP, f) : name !== 'death' && f >= N_OF[name] - 1 ? idlePose(0, 0) : pose(name, f);
+  const silhouette = p => { const F = figure(p); const m = new Uint8Array(N); for (let i = 0; i < N; i++) m[i] = F.lab[i] ? 1 : 0; return m; };
+
+  function idleFrame(f) {
+    const t = f / LOOP, p = withP(idlePose(t, f), { open: f === 15 || f === 16 ? (f === 15 ? 0.3 : 0.12) : 0.82 });
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    paint(c, g, F, t);
+    ambient(c, g, t, F);
+    return [c, g];
+  }
+  /** Where the beam lands: the front of the cell at the hero's chest height. */
+  const BEAM_END = [4, GROUND - 48];
+  const strikePoint = () => [BEAM_END[0] + 8, BEAM_END[1]];
+
+  function actionFrame(name, f) {
+    const n = N_OF[name]; if (f === n - 1) return idleFrame(0);
+    const t = clock(f, n), p = withP(pose(name, f), { phase: t * 2 * Math.PI });
+    const c = new Cv(), g = new Cv(), F = figure(p);
+    paint(c, g, F, t);
+    const [ex, ey] = F.eye, [bx, by] = F.beamFrom;
+    if (name === 'attack') {
+      if (f <= 2) converge(c, g, F, [0.35, 0.65, 0.95][f], 13 + f, 12, 24);
+      if (f === 2) star4(c, g, ex, ey, 2, { gain: 0.9, diag: false });
+      if (f === 3) { beam(c, g, bx, by, bx - 34, by + (BEAM_END[1] - by) * 34 / (bx - BEAM_END[0]), 0.7, 1.8, 3); star4(c, g, bx, by, 4, { gain: 1.2 }); }
+      if (f >= 4 && f <= 6) {
+        const k = [1, 0.62, 0.3][f - 4];
+        beam(c, g, bx, by, BEAM_END[0], BEAM_END[1], k, 2.4, 3 + f);
+        star4(c, g, bx, by, [6, 4, 2][f - 4], { gain: [1.5, 1.1, 0.7][f - 4] });
+        star4(c, g, BEAM_END[0] + 4, BEAM_END[1], [4, 3, 1][f - 4], { gain: [1.2, 0.9, 0.5][f - 4], diag: f === 4 });
+      }
+      sparks(c, g, BEAM_END[0] + 6, BEAM_END[1], f - STRIKE_FRAME + 0.6, 5, 10, 2.0, -0.2, 1.1, { grav: 0.16, life: 5, violetEvery: 3 });
+      if (f >= 4 && f <= 6) sparks(c, g, bx - 20, by + 1, f - 3.4, 9, 6, 1.4, -Math.PI / 2, 1.2, { grav: 0.05, life: 4 });
+    } else if (name === 'cast') {
+      if (f >= 1 && f <= 3) converge(c, g, F, [0, 0.4, 0.75, 1][f], 31 + f, 10, 20);
+      if (f === 3) star4(c, g, ex - 1, ey, 5, { gain: 1.3 });
+      if (f === 4) star4(c, g, ex - 1, ey, 3, { gain: 0.9 });
+      if (f >= 3) stare(c, g, ex - 6, ey, f - 2.4, 3);
+      if (f >= 2 && f <= 8) motes(c, g, t * 2, 47, 8, [F.hx - 30, F.hy - 24, F.hx + 20, F.hy + 26], 0.6);
+    } else if (name === 'hurt') {
+      // the hit rings on the iron: white sparks off its front, a violet glint
+      const h0 = figure(pose('hurt', 0)).toPx(10, 3);
+      sparks(c, g, h0[0], h0[1], f + 0.8, 13, 12, 2.4, Math.PI * 0.95, 1.0, { grav: 0.16, life: 5, steel: true });
+      if (f === 0) star4(c, g, h0[0] - 2, h0[1], 4, { core: K.white, col: K.violet3, edge: K.violet2, light: LIGHT.violet, gain: 1.0 });
+    }
+    ambient(c, g, t, F);
+    return [c, g];
+  }
+
+  function deathFrame(f) {
+    const n = N_OF.death, c = new Cv(), g = new Cv();
+    if (f === n - 1) return [c, g];   // nothing left: the death holds an empty frame
+    const t = frac(f / LOOP), p = withP(pose('death', f), { phase: t * 2 * Math.PI }), F = figure(p);
+    paint(c, g, F, t);
+    const h0 = figure(pose('death', 0)).toPx(10, 3);
+    sparks(c, g, h0[0], h0[1], f + 0.8, 13, 12, 2.4, Math.PI * 0.95, 1.0, { grav: 0.16, life: 5, steel: true });
+    if (f === 0) star4(c, g, h0[0] - 2, h0[1], 4, { core: K.white, col: K.violet3, edge: K.violet2, light: LIGHT.violet });
+    // the eye bursts
+    const e3 = figure(pose('death', 3)).eye;
+    if (f === 2) star4(c, g, F.eye[0], F.eye[1], 3, { gain: 1.0, diag: false });
+    if (f === 3) star4(c, g, e3[0], e3[1], 8, { gain: 1.6 });
+    if (f === 4) star4(c, g, e3[0], e3[1], 4, { gain: 1.0 });
+    sparks(c, g, e3[0], e3[1], f - 2.6, 71, 18, 2.4, Math.PI, Math.PI * 0.9, { grav: 0.12, life: 7, violetEvery: 3 });
+    // it hits the floor
+    if (f >= 7 && f <= 9) dust(c, F.hx, GROUND - 2, 16 + (f - 7) * 4, [1, 0.7, 0.4][f - 7], 11 + f);
+    if (f === 7) sparks(c, g, F.hx - 8, GROUND - 2, 1.2, 33, 6, 1.8, -Math.PI * 0.6, 0.6, { grav: 0.2, life: 4, steel: true });
+    // coming apart: motes born on the ragged edge rise in the next frames
+    if (f >= 11) {
+      const r = rng(90);
+      for (let i = 0; i < 22; i++) {
+        const born = 11 + uni(r, 0, 4.5), x0 = uni(r, F.hx - 30, F.hx + 28), age = f - born, y0 = GROUND - 4 - uni(r, 0, 18);
+        if (age < 0 || age > 5) continue;
+        const k = 1 - age / 6, x = x0 + Math.sin(age * 1.3 + i) * 1.2, y = y0 - age * 2.6;
+        putPx(c, x, y, i % 3 ? MAG[3] : K.violet3, Math.min(1, 1.4 * k)); addPx(g, x, y, i % 3 ? LIGHT.mag : LIGHT.violet, 0.6 * k);
+      }
+    }
+    return [c, g];
+  }
+
+  const FRAME = { idle: idleFrame, attack: f => actionFrame('attack', f), cast: f => actionFrame('cast', f), hurt: f => actionFrame('hurt', f), death: deathFrame };
+  const durationsMs = n => Array.from({ length: n }, (_, i) => Math.round((i + 1) * 1000 / FPS) - Math.round(i * 1000 / FPS));
+  const silhouetteOf = (name, f) => name === 'death' && f === N_OF.death - 1 ? new Uint8Array(N) : silhouette(poseAt(name, f));
+  const lostOf = (name, f) => name === 'death' && f === N_OF.death - 1 ? 0 : figure(poseAt(name, f)).lost;
+  const dissolving = (name, f) => name === 'death' && (f === N_OF.death - 1 || poseAt(name, f).fade > 0);
+  const EVENTS = { attack: { strikes: [STRIKE_FRAME] } };
+  const META = { moves: { beam: 'attack', stare: 'cast', dread: 'cast', vengeance: 'cast' } };
+  /** Where the game's particles burst (EnemyAnimator.Styles): the sallet, the eye on idle frame 0, where the beam lands. */
+  const points = () => { const F = figure(idlePose(0, 0)); return { chest: F.chest, eyes: F.eye, body: F.body, claw: strikePoint() }; };
+  const api = { CW, CH, GROUND, FPS, LOOP, ROOT_X, ANIMATIONS, STRIKE_FRAME, STARE_FRAME, EVENTS, META, FRAME, durationsMs, strikePoint,
+    silhouetteOf, lostOf, dissolving, points, figure, pose, L_ };
+  root.EyeArt = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const A = window.EyeArt;
+  const INFO = {
+    idle: ['Reposo', 'Bucle de 2 s: flota subiendo y bajando, la celada se inclina un poco después, el ojo vigila al héroe y aparta la mirada un momento, la visera baja para parpadear y una onda lenta recorre cada tentáculo.'],
+    attack: ['Rayo Ocular', 'Se eleva y se echa atrás con la visera abierta del todo, los tentáculos se recogen y luego se afianzan; el ojo se carga (las motas entran en él y la pupila se cierra en una rendija), se lanza hacia delante y dispara: el rayo llega al héroe en el fotograma 5; el retroceso lo echa atrás con los tentáculos por delante y el rayo se apaga.'],
+    cast: ['Mirada Fija · Pavor', 'La visera sube del todo, el iris crece y la pupila se cierra en una rendija, los tentáculos se abren y se erizan; su mirada sale hacia el héroe en ondas con un destello en el ojo, la sostiene y luego la suelta.'],
+    hurt: ['Daño', 'El golpe lo echa atrás y salta en chispas sobre el hierro; la visera se cierra de golpe, los tentáculos salen despedidos hacia delante y luego se recompone.'],
+    death: ['Muerte', 'El golpe lo echa atrás, el ojo se enciende y revienta; la celada vacía cae con los tentáculos hacia arriba, choca contra el suelo con ellos abiertos, rebota, se vuelca sobre su cola y se deshace en motas. Termina en un fotograma vacío.']
+  };
+  const EVENTS = { attack: { [A.STRIKE_FRAME]: 'rayo' } };
+  const cache = {};
+  function toCanvases(c, g) {
+    const lit = document.createElement('canvas'), glow = document.createElement('canvas');
+    lit.width = glow.width = A.CW; lit.height = glow.height = A.CH;
+    const L = lit.getContext('2d').createImageData(A.CW, A.CH), G = glow.getContext('2d').createImageData(A.CW, A.CH);
+    for (let i = 0; i < A.CW * A.CH; i++) {
+      const o = i * 4;
+      let r = c.px[o] + Math.min(4, g.px[o]) * 0.6, gg = c.px[o + 1] + Math.min(4, g.px[o + 1]) * 0.6, b = c.px[o + 2] + Math.min(4, g.px[o + 2]) * 0.6;
+      const hot = Math.max(0, Math.max(r, gg, b) - 1) * 0.5;
+      r = Math.min(1, Math.min(1, r) + hot); gg = Math.min(1, Math.min(1, gg) + hot); b = Math.min(1, Math.min(1, b) + hot);
+      L.data[o] = r * 255 + 0.5; L.data[o + 1] = gg * 255 + 0.5; L.data[o + 2] = b * 255 + 0.5; L.data[o + 3] = c.px[o + 3] > 0.01 ? 255 : 0;
+      G.data[o] = Math.min(1, g.px[o] / 2.5) * 255; G.data[o + 1] = Math.min(1, g.px[o + 1] / 2.5) * 255; G.data[o + 2] = Math.min(1, g.px[o + 2] / 2.5) * 255; G.data[o + 3] = 255;
+    }
+    lit.getContext('2d').putImageData(L, 0, 0); glow.getContext('2d').putImageData(G, 0, 0);
+    return { lit, glow };
+  }
+  function frames(name) {
+    if (!cache[name]) { const n = A.ANIMATIONS.find(a => a[0] === name)[1]; cache[name] = Array.from({ length: n }, (_, f) => toCanvases(...A.FRAME[name](f))); }
+    return cache[name];
+  }
+  const stage = document.getElementById('stage');
+  const strip = document.getElementById('strip'), readout = document.getElementById('readout'), note = document.getElementById('note');
+  const playBtn = document.getElementById('play'), haloBox = document.getElementById('halo');
+  let name = 'idle', frame = 0, playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches, acc = 0, last = 0, rest = 0;
+  function paint(target, fr, scale, withHalo) {
+    const t = target.getContext('2d'), sw = A.CW * scale, s = A.CH * scale, css = getComputedStyle(document.documentElement);
+    t.fillStyle = css.getPropertyValue('--stage').trim() || '#1c1932'; t.fillRect(0, 0, sw, s);
+    t.fillStyle = css.getPropertyValue('--stage-floor').trim() || '#120f22'; t.fillRect(0, A.GROUND * scale, sw, s - A.GROUND * scale);
+    // the contact shadow the game draws under every figure (Presentation/Fx/GroundShadow.cs), here as a flat ellipse
+    t.fillStyle = 'rgba(10, 6, 18, 0.75)'; t.beginPath(); t.ellipse(A.ROOT_X * scale, (A.GROUND - 0.5) * scale, 18 * scale, 2.4 * scale, 0, 0, Math.PI * 2); t.fill();
+    t.imageSmoothingEnabled = false; t.drawImage(fr.lit, 0, 0, sw, s);
+    if (!withHalo) return;
+    t.save(); t.globalCompositeOperation = 'lighter'; t.imageSmoothingEnabled = true;
+    t.filter = `blur(${1.4 * scale}px)`; t.globalAlpha = 0.55 * 0.9; t.drawImage(fr.glow, 0, 0, sw, s);
+    t.filter = `blur(${4 * scale}px)`; t.globalAlpha = 0.55 * 1.1; t.drawImage(fr.glow, 0, 0, sw, s);
+    t.restore();
+  }
+  function render() {
+    const fr = frames(name);
+    paint(stage, fr[frame], 4, haloBox.checked);
+    const n = fr.length, ev = (EVENTS[name] || {})[frame];
+    readout.innerHTML = `Fotograma <b>${frame + 1}</b> / ${n} · ${A.durationsMs(n)[frame]} ms${ev ? ` · <b>${ev}</b>` : ''}`;
+    strip.querySelectorAll('figure').forEach((el, i) => { el.dataset.on = String(i === frame); });
+  }
+  function buildStrip() {
+    strip.textContent = '';
+    frames(name).forEach((fr, i) => {
+      const fig = document.createElement('figure'), cv = document.createElement('canvas'), cap = document.createElement('figcaption');
+      cv.width = 256; cv.height = 192; paint(cv, fr, 2, true);
+      cv.addEventListener('click', () => { frame = i; setPlaying(false); render(); });
+      const ev = (EVENTS[name] || {})[i];
+      cap.innerHTML = String(i + 1) + (ev ? ` <span class="ev">${ev}</span>` : '');
+      fig.append(cv, cap); strip.append(fig);
+    });
+  }
+  function select(n) {
+    name = n; frame = 0; acc = 0; rest = 0;
+    picker.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.anim === n)));
+    note.innerHTML = `<strong>${INFO[n][0]}.</strong> ${INFO[n][1]}`;
+    buildStrip(); render();
+  }
+  function setPlaying(v) { playing = v; playBtn.textContent = v ? 'Pausa' : 'Reproducir'; }
+  const picker = document.getElementById('picker');
+  A.ANIMATIONS.forEach(([n]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.anim = n; b.textContent = INFO[n][0];
+    b.addEventListener('click', () => select(n)); picker.append(b);
+  });
+  playBtn.addEventListener('click', () => setPlaying(!playing));
+  document.getElementById('prev').addEventListener('click', () => { setPlaying(false); const n = frames(name).length; frame = (frame - 1 + n) % n; render(); });
+  document.getElementById('next').addEventListener('click', () => { setPlaying(false); frame = (frame + 1) % frames(name).length; render(); });
+  haloBox.addEventListener('change', render);
+  function tick(now) {
+    const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
+    if (playing) {
+      const fr = frames(name), n = fr.length, loop = A.ANIMATIONS.find(a => a[0] === name)[2];
+      if (rest > 0) { rest -= dt; if (rest <= 0) { frame = 0; acc = 0; render(); } }
+      else {
+        acc += dt;
+        const dur = A.durationsMs(n)[frame] / 1000;
+        if (acc >= dur) {
+          acc -= dur;
+          if (frame === n - 1 && !loop) { rest = name === 'death' ? 1.6 : 0.6; }
+          else { frame = (frame + 1) % n; render(); }
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  setPlaying(playing);
+  select('idle');
+  requestAnimationFrame(tick);
+})();
+</script>

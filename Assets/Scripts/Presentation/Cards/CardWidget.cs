@@ -202,8 +202,18 @@ namespace LastWish.Presentation
         private static readonly LinkedList<FaceEntry> lru = new LinkedList<FaceEntry>();
         private static readonly Dictionary<(int, int), Stack<Tex>> spareTargets = new Dictionary<(int, int), Stack<Tex>>();
         private static int targetSerial;
+        private static IRenderBackend cacheOwner;   // the surfaces belong to the backend that made them
 
         public static int CachedFaces => faces.Count;
+
+        /// <summary>A new backend (a new game or test boot) cannot use the old one's surfaces: their ids now name other
+        /// textures. Forget them (the old backend owns and frees them).</summary>
+        private static void AdoptBackend(Canvas canvas)
+        {
+            if (ReferenceEquals(cacheOwner, canvas.Backend)) return;
+            faces.Clear(); lru.Clear(); spareTargets.Clear();
+            cacheOwner = canvas.Backend;
+        }
 
         private static Tex RentTarget(Canvas canvas, int w, int h)
         {
@@ -260,6 +270,7 @@ namespace LastWish.Presentation
                 BoostD = show.BonusDamage > 0 || comboDmg, BoostB = show.BonusBlock > 0 || comboBlk, Affordable = !show.Unaffordable, Upgraded = card.Upgraded, Mask = mask, Chroma = card.Chroma,
                 Hollow = hollow, Res = res,
             };
+            AdoptBackend(canvas);
             if (faces.TryGetValue(key, out var hit))
             {
                 hit.LastFrame = canvas.FrameIndex;
